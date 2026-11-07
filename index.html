@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Скрипторий</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&family=Frank+Ruhl+Libre:wght@400;500&family=Gentium+Plus:ital@0;1&family=Onest:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:,"><link rel="stylesheet" href="style.css">
+</head>
+<body class="theme-light layout-A">
+<header id="top">
+  <div class="brand" title="Скрипторий"><span class="mark">℘</span><span class="name">Скрипторий</span></div>
+  <button id="bookBtn" class="pill"><span id="bookLabel">Бытие 1</span><i>▾</i></button>
+  <div class="stepper"><button id="prev" title="Предыдущая глава">‹</button><button id="next" title="Следующая глава">›</button></div>
+  <form id="jump" autocomplete="off"><input id="jumpInp" placeholder="Перейти: Ин 3:16" aria-label="Перейти к месту"></form>
+  <div class="spacer"></div>
+  <div class="seg" id="layoutSw" role="tablist" aria-label="Раскладка">
+    <button data-l="A" title="Книга: страница для чтения">Книга</button>
+    <button data-l="B" title="Стол: колонки текстов рядом">Стол</button>
+    <button data-l="D" title="Манускрипт: текст с полями">Манускрипт</button>
+  </div>
+  <button id="textsBtn" class="pill">Тексты<i>▾</i></button>
+  <button id="themeBtn" class="icon" title="Тема">◐</button>
+  <button id="dataBtn" class="icon" title="Заметки: экспорт и импорт">⇅</button>
+</header>
+<main id="stage"><div id="reader"></div>
+<aside id="inspector" class="closed"><button id="inspClose" class="icon">✕</button><div id="inspBody"></div></aside></main>
+<div id="pop" hidden></div>
+<div id="menu" hidden></div>
+<div id="modal" hidden><div class="sheet" id="sheet"></div></div>
+<script src="decoders.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+# Скрипторий
+
+Личное приложение для изучения Библии: иврит и греческий с морфологией и словарём, русские и английские переводы рядом, выделения и заметки. Три раскладки: «Книга», «Стол», «Манускрипт».
+
+Сайт: https://elijahflanagan48-hue.github.io/scriptorium/
+
+Данные работают без сервера-бэкенда; заметки и выделения хранятся в браузере.
+
+## Источники и лицензии
+- Иврит: OSHB / Westminster Leningrad Codex (openscriptures/morphhb), текст в общественном достоянии, морфология CC BY 4.0.
+- Греческий НТ: SBLGNT (Society of Biblical Literature и Logos) с морфологией MorphGNT (CC BY-SA 3.0).
+- Словари: STEPBible-Data, TBESH / TBESG (Tyndale House, CC BY 4.0).
+- Синодальный перевод: общественное достояние (scrollmapper/bible_databases).
+- KJV, ASV, American KJV, Updated KJV, Berean Standard Bible: общественное достояние (scrollmapper/bible_databases).
+
+Нумерация стихов всех переводов приведена к еврейской (Псалтирь, Иов, Даниил и др. перенумерованы); в нескольких десятках глав возможен сдвиг на один стих.
+
+Скрипт сборки данных: `tools/build_full.py`.
