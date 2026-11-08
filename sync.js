@@ -15,7 +15,7 @@ const Sync=(()=>{
   function init(state,h){
     S=state;hooks=h;if(!S.ts)S.ts={};if(!S.sts)S.sts=0;
     if(!enabled)return;
-    if(tok())api('/api/me').then(r=>{user={email:r.email};h.status();syncNow()}).catch(e=>{if(e.status===401)setTok('');h.status()});
+    if(tok())api('/api/me').then(r=>{user={email:r.email,access:!!r.access,owner:!!r.owner};h.status();syncNow()}).catch(e=>{if(e.status===401)setTok('');h.status()});
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&user)syncNow()});
   }
   const ensureTs=()=>{
@@ -52,14 +52,19 @@ const Sync=(()=>{
     busy=false;hooks.status();
   }
   function changed(){if(!enabled||!user)return;clearTimeout(timer);timer=setTimeout(syncNow,1800)}
-  const auth=async(path,email,password)=>{try{const r=await api(path,'POST',{email,password});setTok(r.token);user={email:r.email};hooks.status();syncNow();return''}catch(e){return e.message==='Failed to fetch'?'Нет связи с сервером':e.message}};
+  const login=async r=>{setTok(r.token);let m={};try{m=await api('/api/me')}catch(e){}user={email:m.email||r.email,access:!!m.access,owner:!!m.owner};hooks.status();syncNow()};
+  const fail=e=>e.message==='Failed to fetch'?'Нет связи с сервером':e.message;
+  const auth=async(path,email,password)=>{try{await login(await api(path,'POST',{email,password}));return''}catch(e){return fail(e)}};
   return{
     enabled,init,changed,syncNow,
     get user(){return user},get last(){return last},get msg(){return msg},
     signIn:(email,password)=>auth('/api/login',email,password),
     signUp:(email,password)=>auth('/api/signup',email,password),
-    forgot:async email=>{try{await api('/api/forgot','POST',{email});return''}catch(e){return e.message==='Failed to fetch'?'Нет связи с сервером':e.message}},
-    reset:async(email,code,password)=>{try{const r=await api('/api/reset','POST',{email,code,password});setTok(r.token);user={email:r.email};hooks.status();syncNow();return''}catch(e){return e.message==='Failed to fetch'?'Нет связи с сервером':e.message}},
+    forgot:async email=>{try{await api('/api/forgot','POST',{email});return''}catch(e){return fail(e)}},
+    reset:async(email,code,password)=>{try{await login(await api('/api/reset','POST',{email,code,password}));return''}catch(e){return fail(e)}},
+    redeem:async code=>{try{await api('/api/redeem','POST',{code});const m=await api('/api/me');user={...user,access:!!m.access,owner:!!m.owner};hooks.status();return''}catch(e){return fail(e)}},
+    pget:key=>api('/api/p?k='+encodeURIComponent(key)),
+    admin:(path,body)=>api('/api/admin/'+path,body?'POST':'GET',body),
     signOut:async()=>{setTok('');user=null;hooks.status();return''}
   };
 })();

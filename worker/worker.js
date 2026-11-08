@@ -15,6 +15,19 @@ async function auth(req,env){
   return sig===await hmac(env.JWT_SECRET,uid+'.'+exp)?uid:null;
 }
 const same=(a,b)=>{if(a.length!==b.length)return false;let r=0;for(let i=0;i<a.length;i++)r|=a.charCodeAt(i)^b.charCodeAt(i);return r===0};
+let ready=false;
+async function ensure(env){if(ready)return;await env.DB.batch([
+env.DB.prepare('CREATE TABLE IF NOT EXISTS private(k TEXT PRIMARY KEY,v TEXT)'),
+env.DB.prepare('CREATE TABLE IF NOT EXISTS codes(code TEXT PRIMARY KEY,label TEXT,uses INTEGER DEFAULT 0,max_uses INTEGER,created_at INTEGER)'),
+env.DB.prepare('CREATE TABLE IF NOT EXISTS grants(user_id TEXT PRIMARY KEY,code TEXT,at INTEGER)')]);ready=true}
+async function who(req,env){
+  const uid=await auth(req,env);if(!uid)return null;await ensure(env);
+  const u=await env.DB.prepare('SELECT email FROM users WHERE id=?').bind(uid).first();if(!u)return null;
+  const owner=u.email===(env.OWNER||'elijah.flanagan48@gmail.com');let access=owner;
+  if(!access)access=!!await env.DB.prepare('SELECT 1 FROM grants WHERE user_id=?').bind(uid).first();
+  return{uid,email:u.email,owner,access};
+}
+const newCode=()=>{const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',r=crypto.getRandomValues(new Uint8Array(10));let c='';for(let i=0;i<10;i++){c+=A[r[i]%A.length];if(i===4)c+='-'}return c};
 export default{
   async fetch(req,env){
     if(req.method==='OPTIONS')return new Response(null,{headers:CORS});
@@ -70,7 +83,32 @@ export default{
           await env.DB.prepare('INSERT INTO state(user_id,data,updated_at) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at').bind(uid,JSON.stringify(data),Date.now()).run();
           return json({ok:true})}
       }
-      if(p==='/api/me'){const uid=await auth(req,env);if(!uid)return json({error:'unauthorized'},401);const u=await env.DB.prepare('SELECT email FROM users WHERE id=?').bind(uid).first();return json({email:u&&u.email})}
+      if(p==='/api/me'){const w=await who(req,env);if(!w)return json({error:'unauthorized'},401);return json({email:w.email,access:w.access,owner:w.owner})}
+      if(p==='/api/redeem'){
+        if(req.method!=='POST')return json({error:'method'},405);
+        const w=await who(req,env);if(!w)return json({error:'unauthorized'},401);
+        const {code}=await req.json();const c=String(code||'').trim().toUpperCase();
+        const r=await env.DB.prepare('SELECT uses,max_uses FROM codes WHERE code=?').bind(c).first();
+        if(!r||(r.max_uses&&r.uses>=r.max_uses))return json({error:'Неверный или уже использованный код'},400);
+        if(!w.access){await env.DB.batch([env.DB.prepare('INSERT OR REPLACE INTO grants(user_id,code,at) VALUES(?,?,?)').bind(w.uid,c,Date.now()),env.DB.prepare('UPDATE codes SET uses=uses+1 WHERE code=?').bind(c)])}
+        return json({ok:true});
+      }
+      if(p==='/api/p'){
+        const w=await who(req,env);if(!w||!w.access)return json({error:'forbidden'},403);
+        const r=await env.DB.prepare('SELECT v FROM private WHERE k=?').bind(url.searchParams.get('k')||'').first();
+        if(!r)return json({error:'not_found'},404);
+        return new Response(r.v,{headers:{...CORS,'content-type':'application/json','cache-control':'private, max-age=3600'}});
+      }
+      if(p.startsWith('/api/admin/')){
+        const w=await who(req,env);if(!w||!w.owner)return json({error:'forbidden'},403);
+        if(p==='/api/admin/code'&&req.method==='POST'){const b=await req.json();const code=newCode();
+          await env.DB.prepare('INSERT INTO codes(code,label,uses,max_uses,created_at) VALUES(?,?,0,?,?)').bind(code,String(b.label||'').slice(0,60),+b.max||null,Date.now()).run();return json({code})}
+        if(p==='/api/admin/codes'){const r=await env.DB.prepare('SELECT code,label,uses,max_uses FROM codes ORDER BY created_at DESC').all();const n=await env.DB.prepare('SELECT COUNT(*) AS n FROM private').first();return json({codes:r.results,private_count:n.n})}
+        if(p==='/api/admin/revoke'&&req.method==='POST'){const {code}=await req.json();await env.DB.batch([env.DB.prepare('DELETE FROM grants WHERE code=?').bind(code),env.DB.prepare('DELETE FROM codes WHERE code=?').bind(code)]);return json({ok:true})}
+        if(p==='/api/admin/private'&&req.method==='POST'){const {k,v}=await req.json();if(typeof k!=='string'||typeof v!=='string'||v.length>19e5)return json({error:'bad'},400);
+          await env.DB.prepare('INSERT OR REPLACE INTO private(k,v) VALUES(?,?)').bind(k,v).run();return json({ok:true})}
+        return json({error:'not_found'},404);
+      }
       return json({ok:true,service:'scriptorium-api'});
     }catch(err){return json({error:'server_error'},500)}
   }

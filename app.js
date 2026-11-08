@@ -8,8 +8,10 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(typ
 const stamp=k=>{S.ts[k]=Date.now();save()};
 const touchSettings=()=>{S.sts=Date.now();save()};
 const cache=new Map();
-const J=p=>{if(!cache.has(p))cache.set(p,fetch(p).then(r=>{if(!r.ok)throw 0;return r.json()}).catch(()=>{cache.delete(p);return null}));return cache.get(p)};
-let CUR=null,IDX,BOOKS,BI={},TRS={},OCC=null,LEX={},cur=S.last,token=0,sideT=null,INSP=null;
+const PRIV=/^data\/(tr|align)\/BTI\/([^/]+)\.json$/;
+const J=p=>{const pm=PRIV.exec(p);if(pm){if(!cache.has(p))cache.set(p,(Sync.user&&Sync.user.access?Sync.pget(pm[1]+'/BTI/'+pm[2]):Promise.resolve(null)).catch(()=>{cache.delete(p);return null}));return cache.get(p)}
+  if(!cache.has(p))cache.set(p,fetch(p).then(r=>{if(!r.ok)throw 0;return r.json()}).catch(()=>{cache.delete(p);return null}));return cache.get(p)};
+let PEND=false,CUR=null,IDX,BOOKS,BI={},TRS={},OCC=null,LEX={},cur=S.last,token=0,sideT=null,INSP=null;
 const MQ=window.matchMedia('(max-width:820px)'),isM=()=>MQ.matches;
 
 /* ---------- genres ---------- */
@@ -24,7 +26,7 @@ const shortName=id=>SHORT[id]||id;
   IDX=await J('data/index.json');
   if(!IDX){document.body.innerHTML='<p style="padding:40px;font-family:sans-serif">Не найдены файлы данных. Запустите приложение через сервер: в папке приложения выполните <code>python3 -m http.server 8000</code> и откройте <code>http://localhost:8000</code>.</p>';return}
   BOOKS=IDX.books;BOOKS.forEach((b,i)=>BI[b.id]=i);IDX.translations.forEach(t=>TRS[t.id]=t);
-  S.sel=S.sel.filter(x=>x==='ORIG'||TRS[x]);if(!S.sel.length)S.sel=['ORIG','RST'];
+  PEND=S.sel.includes('BTI');S.sel=S.sel.filter(x=>x==='ORIG'||TRS[x]);if(!S.sel.length)S.sel=['ORIG','RST'];
   if(!S.recent)S.recent=[];if(!S.wnotes)S.wnotes={};if(!S.ts)S.ts={};if(!S.qhist)S.qhist=[];if(!S.saved)S.saved=[];if(S.side===undefined)S.side=true;
   if(BI[cur.book]===undefined)cur={book:'Gen',ch:1};
   const h=parseHash();if(h)cur=h;
@@ -410,7 +412,14 @@ function dataSheet(){
 function moreSheet(){
   openModal(`<h3>Настройки</h3><h5>Раскладка текста</h5><div class="mlist">`+Object.entries(LAYN).map(([l,n])=>`<button data-lay="${l}" class="${S.layout===l?'on':''}">${n}${l==='B'&&isM()?' · сравнение':''}</button>`).join('')+`</div><h5>Ещё</h5><div class="mlist"><button data-m="texts">Тексты и переводы</button><button data-m="theme">Тема: ${S.theme==='light'?'светлая → тёмная':'тёмная → светлая'}</button><button data-m="hist">История</button><button data-m="data">Заметки: сохранить в файл и загрузить</button><button data-m="acc">Личный кабинет${Sync.user?' · '+esc(Sync.user.email):''}</button></div>`);
 }
+function syncPrivate(){
+  if(!IDX)return;const ok=!!(Sync.user&&Sync.user.access);
+  if(ok&&!TRS.BTI){const t={id:'BTI',name:'Современный перевод (Кулаков, BTI)',lang:'ru',license:'скрытый доступ',books:BOOKS.map(b=>b.id)};TRS.BTI=t;IDX.translations.push(t);
+    if(!S.btiShown||PEND){S.btiShown=1;PEND=false;if(!S.sel.includes('BTI'))S.sel.push('BTI');save()}render()}
+  if(!ok&&TRS.BTI){delete TRS.BTI;IDX.translations=IDX.translations.filter(t=>t.id!=='BTI');S.sel=S.sel.filter(x=>x!=='BTI');if(!S.sel.length)S.sel=['ORIG','RST'];for(const k of [...cache.keys()])if(PRIV.test(k))cache.delete(k);render()}
+}
 function accStatus(){
+  syncPrivate();
   const b=$('#accBtn');if(b){b.classList.toggle('on',!!Sync.user);b.title=Sync.user?'Аккаунт: '+Sync.user.email:'Войти'}
   if(!$('#modal').hidden&&$('#sheet [data-acc]'))accSheet();
 }
@@ -418,11 +427,26 @@ function accSheet(){
   const mk=h=>openModal(`<div data-acc="1"><h3>Личный кабинет</h3>${h}<div class="hint" id="accMsg">${esc(Sync.msg||'')}</div></div>`);
   if(!Sync.enabled){mk('<p>Облако пока не подключено, поэтому заметки хранятся только в этом браузере. Когда в файле <code>config.js</code> появится адрес сервера, здесь можно будет войти и синхронизировать устройства.</p>');return}
   if(Sync.user){const t=Sync.last?Sync.last.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'ещё не было';
-    mk(`<p>Вы вошли как <b>${esc(Sync.user.email)}</b>.<br>Заметки, выделения и настройки синхронизируются автоматически. Последняя синхронизация: ${t}.</p><div class="acts" style="display:flex;gap:8px;flex-wrap:wrap"><button class="pill" id="accSync">Синхронизировать сейчас</button><button class="pill" id="accOut">Выйти</button></div>`);return}
+    const priv=Sync.user.access?'<p>✔ Скрытые материалы открыты.</p>':'<h5>Код доступа</h5><p>Если вам выдали особый код, введите его, чтобы открыть скрытые материалы.</p><div class="accf"><input id="accCode" placeholder="Код доступа" autocapitalize="characters" autocomplete="off"></div><div class="acts" style="margin-top:8px"><button class="pill" id="accRedeem">Активировать</button></div>';
+    const own=Sync.user.owner?'<h5>Для владельца</h5><div class="accf"><input id="accLabel" placeholder="Для кого код (например, Мама)"></div><div class="acts" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="pill" id="accNewCode">Создать код</button><label class="pill" style="cursor:pointer">Загрузить скрытые материалы<input id="accUpload" type="file" accept=".json" hidden></label></div><div id="accCodes" class="hint">Загружаю список кодов…</div>':'';
+    mk(`<p>Вы вошли как <b>${esc(Sync.user.email)}</b>.<br>Заметки, выделения и настройки синхронизируются автоматически. Последняя синхронизация: ${t}.</p><div class="acts" style="display:flex;gap:8px;flex-wrap:wrap"><button class="pill" id="accSync">Синхронизировать сейчас</button><button class="pill" id="accOut">Выйти</button></div>${priv}${own}`);
+    if(Sync.user.owner)loadCodes();return}
   mk(`<p>Войдите, чтобы заметки, выделения и настройки были на всех ваших устройствах.</p><div class="accf"><input id="accEmail" type="email" placeholder="Почта" autocomplete="email"><input id="accPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password"></div><div class="acts" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="pill" id="accIn">Войти</button><button class="pill" id="accUp">Создать аккаунт</button><button class="pill" id="accForgot">Забыли пароль?</button></div>`);
 }
 function resetSheet(email){
   openModal(`<div data-acc="1"><h3>Восстановление пароля</h3><p>Мы отправим код на почту. Введите его и новый пароль.</p><div class="accf"><input id="accEmail" type="email" placeholder="Почта" value="${esc(email||'')}"><input id="accCode" inputmode="numeric" placeholder="Код из письма (6 цифр)"><input id="accPass" type="password" placeholder="Новый пароль (от 8 символов)" autocomplete="new-password"></div><div class="acts" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="pill" id="accSend">Отправить код</button><button class="pill" id="accReset">Сменить пароль</button></div><div class="hint" id="accMsg"></div></div>`);
+}
+async function loadCodes(){
+  try{const r=await Sync.admin('codes');const el=$('#accCodes');if(!el)return;
+    el.innerHTML=(r.private_count?`Загружено файлов: ${r.private_count}. `:'Скрытые материалы ещё не загружены. ')+(r.codes.length?'<div style="margin-top:6px">'+r.codes.map(c=>`<div><b>${esc(c.code)}</b> ${esc(c.label||'')} · активаций: ${c.uses}${c.max_uses?'/'+c.max_uses:''} <button class="pill" data-revoke="${esc(c.code)}">Отозвать</button></div>`).join('')+'</div>':'Кодов пока нет.')}
+  catch(e){const el=$('#accCodes');if(el)el.textContent='Не удалось загрузить список кодов'}
+}
+async function uploadPrivate(file){
+  const say=t=>{const m=$('#accMsg');if(m)m.textContent=t};
+  try{const data=JSON.parse(await file.text()),keys=Object.keys(data);let i=0;
+    for(const k of keys){say(`Загрузка ${++i} из ${keys.length}…`);await Sync.admin('private',{k,v:typeof data[k]==='string'?data[k]:JSON.stringify(data[k])})}
+    say('Готово: загружено файлов — '+keys.length);loadCodes()}
+  catch(e){say('Ошибка загрузки: '+(e.message||e))}
 }
 async function accAct(id){
   const email=($('#accEmail')||{}).value,pass=($('#accPass')||{}).value,m=$('#accMsg');const say=t=>{if($('#accMsg'))$('#accMsg').textContent=t};
@@ -430,6 +454,8 @@ async function accAct(id){
   if(id==='accForgot'){resetSheet(email);return}
   if(id==='accSend'){if(!email){say('Введите почту.');return}say('Отправляю…');const e=await Sync.forgot(email);say(e||'Если такая почта зарегистрирована, код отправлен. Проверьте письма и папку «Спам».');return}
   if(id==='accReset'){const code=($('#accCode')||{}).value;if(!email||!code||!pass||pass.length<8){say('Нужны почта, код и новый пароль от 8 символов.');return}say('…');const e=await Sync.reset(email,code.trim(),pass);say(e||'');if(!e)closeModal();return}
+  if(id==='accRedeem'){const c=($('#accCode')||{}).value;if(!c){say('Введите код.');return}say('…');const e=await Sync.redeem(c);say(e||'Готово: скрытые материалы открыты.');return}
+  if(id==='accNewCode'){try{const r=await Sync.admin('code',{label:($('#accLabel')||{}).value||'',max:0});say('Новый код: '+r.code+' — передайте его человеку');loadCodes()}catch(e){say('Не получилось: '+(e.message||e))}return}
   if(id==='accSync'){say('Синхронизирую…');await Sync.syncNow();accSheet();return}
   if(!email){say('Введите почту.');return}
   if(!pass||pass.length<8){say('Пароль: от 8 символов.');return}
@@ -496,12 +522,14 @@ function bind(){
     const g=e.target.closest('[data-go]');if(g){const [b,c]=g.dataset.go.split('.');closeModal();go(b,+c);scrollTo(0,0);return}
     const lay=e.target.closest('[data-lay]');if(lay){S.layout=lay.dataset.lay;touchSettings();closeModal();render();return}
     const m=e.target.closest('[data-m]');if(m){const a=m.dataset.m;if(a==='texts')textsSheet();if(a==='data')dataSheet();if(a==='acc')accSheet();if(a==='hist'){closeModal();showSec('hist')}if(a==='theme'){toggleTheme();closeModal()}return}
-    if(/^acc(In|Up|Out|Sync|Forgot|Send|Reset)$/.test(e.target.id)){accAct(e.target.id);return}
+    if(/^acc(In|Up|Out|Sync|Forgot|Send|Reset|Redeem|NewCode)$/.test(e.target.id)){accAct(e.target.id);return}
+    const rv=e.target.closest('[data-revoke]');if(rv){Sync.admin('revoke',{code:rv.dataset.revoke}).then(loadCodes);return}
     if(e.target.id==='exp'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({hl:S.hl,notes:S.notes,wnotes:S.wnotes},null,1)],{type:'application/json'}));a.download='scriptorium-notes.json';a.click()}
   };
   $('#modal').onchange=e=>{
     const t=e.target.dataset&&e.target.dataset.t;
     if(t){const on=e.target.checked;if(on&&!S.sel.includes(t))S.sel.push(t);if(!on)S.sel=S.sel.filter(x=>x!==t);if(!S.sel.length){S.sel=[t];e.target.checked=true}touchSettings();render()}
+    if(e.target.id==='accUpload'){const f=e.target.files[0];if(f)uploadPrivate(f);return}
     if(e.target.id==='imp'){const f=e.target.files[0];if(!f)return;f.text().then(x=>{const j=JSON.parse(x);Object.assign(S.hl,j.hl||{});Object.assign(S.notes,j.notes||{});Object.assign(S.wnotes,j.wnotes||{});const now=Date.now();Object.keys(j.hl||{}).forEach(k=>S.ts['h:'+k]=now);Object.keys(j.notes||{}).forEach(k=>S.ts['n:'+k]=now);Object.keys(j.wnotes||{}).forEach(k=>S.ts['w:'+k]=now);save();render();dataSheet()})}
   };
   addEventListener('keydown',e=>{
