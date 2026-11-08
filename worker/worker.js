@@ -1,5 +1,6 @@
 // Scriptorium API: аккаунты и синхронизация на Cloudflare Workers + D1.
-// Привязки (Bindings): DB (D1), секрет JWT_SECRET. Необязательно: SIGNUP=closed — закрыть регистрацию.
+// Привязки (Bindings): DB (D1), секрет JWT_SECRET. Для писем восстановления: MAIL_URL (адрес Google Apps Script) и секрет MAIL_KEY.
+// Необязательно: SIGNUP=closed — закрыть регистрацию.
 const enc=new TextEncoder();
 const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const unb64=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
@@ -33,6 +34,33 @@ export default{
         }
         const u=await env.DB.prepare('SELECT id,salt,hash FROM users WHERE email=?').bind(e).first();
         if(!u||!same(await pbkdf2(password,unb64(u.salt)),u.hash))return json({error:'Неверная почта или пароль'},401);
+        return json({token:await makeToken(env,u.id),email:e});
+      }
+      if(p==='/api/forgot'||p==='/api/reset'){
+        if(req.method!=='POST')return json({error:'method'},405);
+        await env.DB.prepare('CREATE TABLE IF NOT EXISTS resets(email TEXT PRIMARY KEY,code_hash TEXT,exp INTEGER,tries INTEGER,sent_at INTEGER)').run();
+        const body=await req.json();const e=String(body.email||'').trim().toLowerCase();
+        if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e))return json({error:'Введите почту'},400);
+        if(p==='/api/forgot'){
+          const u=await env.DB.prepare('SELECT id FROM users WHERE email=?').bind(e).first();
+          const r=await env.DB.prepare('SELECT sent_at FROM resets WHERE email=?').bind(e).first();
+          if(r&&Date.now()-r.sent_at<60000)return json({error:'Подождите минуту перед повторной отправкой'},429);
+          if(u&&env.MAIL_URL){
+            const code=String(100000+(crypto.getRandomValues(new Uint32Array(1))[0]%900000));
+            await env.DB.prepare('INSERT INTO resets(email,code_hash,exp,tries,sent_at) VALUES(?,?,?,0,?) ON CONFLICT(email) DO UPDATE SET code_hash=excluded.code_hash,exp=excluded.exp,tries=0,sent_at=excluded.sent_at').bind(e,await hmac(env.JWT_SECRET,'reset.'+e+'.'+code),Date.now()+15*60000,Date.now()).run();
+            await fetch(env.MAIL_URL,{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({key:env.MAIL_KEY,to:e,subject:'Scriptorium: код восстановления пароля',body:'Ваш код для восстановления пароля: '+code+'\n\nКод действует 15 минут. Если вы не запрашивали восстановление, просто проигнорируйте это письмо.'})});
+          }
+          return json({ok:true});
+        }
+        const code=String(body.code||'').trim(),password=String(body.password||'');
+        if(password.length<8)return json({error:'Пароль от 8 символов'},400);
+        const r=await env.DB.prepare('SELECT code_hash,exp,tries FROM resets WHERE email=?').bind(e).first();
+        if(!r||r.exp<Date.now()||r.tries>=5)return json({error:'Код недействителен или истёк. Запросите новый'},400);
+        if(!same(await hmac(env.JWT_SECRET,'reset.'+e+'.'+code),r.code_hash)){await env.DB.prepare('UPDATE resets SET tries=tries+1 WHERE email=?').bind(e).run();return json({error:'Неверный код'},400)}
+        const u=await env.DB.prepare('SELECT id FROM users WHERE email=?').bind(e).first();if(!u)return json({error:'Неверный код'},400);
+        const salt=crypto.getRandomValues(new Uint8Array(16));
+        await env.DB.prepare('UPDATE users SET salt=?,hash=? WHERE id=?').bind(b64(salt),await pbkdf2(password,salt),u.id).run();
+        await env.DB.prepare('DELETE FROM resets WHERE email=?').bind(e).run();
         return json({token:await makeToken(env,u.id),email:e});
       }
       if(p==='/api/state'){

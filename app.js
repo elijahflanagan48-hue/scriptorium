@@ -393,11 +393,17 @@ function accSheet(){
   if(!Sync.enabled){mk('<p>Облако пока не подключено, поэтому заметки хранятся только в этом браузере. Когда в файле <code>config.js</code> появится адрес сервера, здесь можно будет войти и синхронизировать устройства.</p>');return}
   if(Sync.user){const t=Sync.last?Sync.last.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'ещё не было';
     mk(`<p>Вы вошли как <b>${esc(Sync.user.email)}</b>.<br>Заметки, выделения и настройки синхронизируются автоматически. Последняя синхронизация: ${t}.</p><div class="acts" style="display:flex;gap:8px;flex-wrap:wrap"><button class="pill" id="accSync">Синхронизировать сейчас</button><button class="pill" id="accOut">Выйти</button></div>`);return}
-  mk(`<p>Войдите, чтобы заметки, выделения и настройки были на всех ваших устройствах.</p><div class="accf"><input id="accEmail" type="email" placeholder="Почта" autocomplete="email"><input id="accPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password"></div><div class="acts" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="pill" id="accIn">Войти</button><button class="pill" id="accUp">Создать аккаунт</button></div>`);
+  mk(`<p>Войдите, чтобы заметки, выделения и настройки были на всех ваших устройствах.</p><div class="accf"><input id="accEmail" type="email" placeholder="Почта" autocomplete="email"><input id="accPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password"></div><div class="acts" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="pill" id="accIn">Войти</button><button class="pill" id="accUp">Создать аккаунт</button><button class="pill" id="accForgot">Забыли пароль?</button></div>`);
+}
+function resetSheet(email){
+  openModal(`<div data-acc="1"><h3>Восстановление пароля</h3><p>Мы отправим код на почту. Введите его и новый пароль.</p><div class="accf"><input id="accEmail" type="email" placeholder="Почта" value="${esc(email||'')}"><input id="accCode" inputmode="numeric" placeholder="Код из письма (6 цифр)"><input id="accPass" type="password" placeholder="Новый пароль (от 8 символов)" autocomplete="new-password"></div><div class="acts" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="pill" id="accSend">Отправить код</button><button class="pill" id="accReset">Сменить пароль</button></div><div class="hint" id="accMsg"></div></div>`);
 }
 async function accAct(id){
   const email=($('#accEmail')||{}).value,pass=($('#accPass')||{}).value,m=$('#accMsg');const say=t=>{if($('#accMsg'))$('#accMsg').textContent=t};
   if(id==='accOut'){await Sync.signOut();return}
+  if(id==='accForgot'){resetSheet(email);return}
+  if(id==='accSend'){if(!email){say('Введите почту.');return}say('Отправляю…');const e=await Sync.forgot(email);say(e||'Если такая почта зарегистрирована, код отправлен. Проверьте письма и папку «Спам».');return}
+  if(id==='accReset'){const code=($('#accCode')||{}).value;if(!email||!code||!pass||pass.length<8){say('Нужны почта, код и новый пароль от 8 символов.');return}say('…');const e=await Sync.reset(email,code.trim(),pass);say(e||'');if(!e)closeModal();return}
   if(id==='accSync'){say('Синхронизирую…');await Sync.syncNow();accSheet();return}
   if(!email){say('Введите почту.');return}
   if(!pass||pass.length<8){say('Пароль: от 8 символов.');return}
@@ -422,7 +428,7 @@ function bind(){
     const g=e.target.closest('[data-go]');if(g){const [b,c]=g.dataset.go.split('.');closeModal();go(b,+c);scrollTo(0,0);return}
     const lay=e.target.closest('[data-lay]');if(lay){S.layout=lay.dataset.lay;touchSettings();closeModal();render();return}
     const m=e.target.closest('[data-m]');if(m){const a=m.dataset.m;if(a==='texts')textsSheet();if(a==='data')dataSheet();if(a==='acc')accSheet();if(a==='theme'){toggleTheme();closeModal()}return}
-    if(/^acc(In|Up|Out|Sync)$/.test(e.target.id)){accAct(e.target.id);return}
+    if(/^acc(In|Up|Out|Sync|Forgot|Send|Reset)$/.test(e.target.id)){accAct(e.target.id);return}
     if(e.target.id==='exp'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({hl:S.hl,notes:S.notes,wnotes:S.wnotes},null,1)],{type:'application/json'}));a.download='scriptorium-notes.json';a.click()}
   };
   $('#modal').onchange=e=>{

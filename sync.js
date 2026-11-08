@@ -58,6 +58,8 @@ const Sync=(()=>{
     get user(){return user},get last(){return last},get msg(){return msg},
     signIn:(email,password)=>auth('/api/login',email,password),
     signUp:(email,password)=>auth('/api/signup',email,password),
+    forgot:async email=>{try{await api('/api/forgot','POST',{email});return''}catch(e){return e.message==='Failed to fetch'?'Нет связи с сервером':e.message}},
+    reset:async(email,code,password)=>{try{const r=await api('/api/reset','POST',{email,code,password});setTok(r.token);user={email:r.email};hooks.status();syncNow();return''}catch(e){return e.message==='Failed to fetch'?'Нет связи с сервером':e.message}},
     signOut:async()=>{setTok('');user=null;hooks.status();return''}
   };
 })();
