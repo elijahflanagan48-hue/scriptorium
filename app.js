@@ -63,9 +63,11 @@ async function loadChapter(book,ch){
   return{orig,lang,tr,al,verses:[...nums].sort((a,b)=>a-b)};
 }
 const origHTML=(ws,lang,cls='')=>ws?`<div class="orig ${lang} ${cls}" lang="${lang==='heb'?'he':'grc'}">`+ws.map((w,i)=>`<span class="w" data-i="${i}" data-k="${w[1]}" data-m="${esc(w[2])}">${esc(w[0])}</span>`).join(' ')+'</div>':'';
-const trHTML=(id,v,text,d)=>{const a=d.al&&d.al[id]&&d.al[id][v],ch=text.trim().split(/\s+/);
-  if(!a||a.length!==ch.length)return esc(text);
-  return ch.map((c,i)=>a[i]>=0?`<span class="tw" data-t="${id}" data-a="${a[i]}">${esc(c)}</span>`:esc(c)).join(' ')};
+const trHTML=(id,v,text,d)=>{const a=d.al&&d.al[id]&&d.al[id][v],ch=text.trim().split(/\s+/),ok=a&&a.length===ch.length;
+  return ch.map((c,i)=>{
+    if(ok&&a[i]>=0)return `<span class="tw" data-t="${id}" data-j="${i}" data-a="${a[i]}">${esc(c)}</span>`;
+    if(!/\p{L}/u.test(c))return esc(c);
+    return `<span class="tw0" data-t="${id}" data-j="${i}" data-na="${ok?0:1}">${esc(c)}</span>`}).join(' ')};
 const vnHTML=(ref,v)=>`<span class="vn" data-ref="${ref}" title="Выделение и заметка">${v}${S.notes[ref]?'<span class="note-dot">✎</span>':''}</span>`;
 const hlc=ref=>S.hl[ref]?' hl'+S.hl[ref]:'';
 
@@ -173,10 +175,32 @@ async function popWord(anchor,wd,isH,note){
 const refOf=el=>{const r=el.closest('[data-ref]');return r?r.dataset.ref:null};
 function hiClear(){$$('.hi').forEach(x=>x.classList.remove('hi'))}
 function origWord(el){const ref=refOf(el);if(!ref||!CUR)return null;const v=ref.split('.')[2];const ws=CUR.orig[v];return ws?ws[+el.dataset.a]:null}
+function missInfo(el){
+  const ref=refOf(el),v=ref.split('.')[2],id=el.dataset.t,j=+el.dataset.j,text=el.textContent;
+  if(el.dataset.na==='1')return{na:true,text,id,ref};
+  const al=(CUR.al[id]&&CUR.al[id][v])||[];let a=-1,nb=null;
+  for(let k=j+1;k<Math.min(al.length,j+4);k++)if(al[k]>=0){a=al[k];nb=k;break}
+  if(a<0)for(let k=j-1;k>=Math.max(0,j-3);k--)if(al[k]>=0){a=al[k];nb=k;break}
+  const wd=a>=0&&CUR.orig[v]?CUR.orig[v][a]:null;
+  const nel=nb!=null?$(`[data-ref="${ref}"] .tw[data-t="${id}"][data-j="${nb}"]`):null;
+  return{text,id,ref,a,nb,wd,nbText:nel?nel.textContent:''};
+}
+function missHTML(m,short){
+  if(m.na)return `<div class="meta">«${esc(m.text)}»</div><div class="gl">Для этого стиха соответствие слов не определено</div><div class="auto">Не удалось автоматически сопоставить слова перевода со словами оригинала.</div>`;
+  return `<div class="meta">«${esc(m.text)}» — отдельного слова в оригинале нет</div><div class="gl">Добавлено переводом: предлог, союз, связка или местоимение передаются падежом, порядком слов или контекстом.</div>`+
+    (m.wd?`<div class="cnt">рядом: «${esc(m.nbText)}» ← ${esc(m.wd[0])}${short?'':' · клик — статья'}</div>`:'');
+}
+function popNote(anchor,m){
+  const pop=$('#pop');pop.innerHTML=missHTML(m,false);pop.hidden=false;
+  const r=anchor.getBoundingClientRect(),pw=pop.offsetWidth,ph=pop.offsetHeight;
+  let x=Math.min(Math.max(8,r.left+r.width/2-pw/2),innerWidth-pw-8),y=r.bottom+8;if(y+ph>innerHeight-8)y=r.top-ph-8;
+  pop.style.left=x+'px';pop.style.top=y+'px';
+}
 document.addEventListener('mouseover',e=>{
   if(isM())return;
-  const t=e.target.closest&&e.target.closest('.w,.tw');if(!t)return;
+  const t=e.target.closest&&e.target.closest('.w,.tw,.tw0');if(!t)return;
   const ref=refOf(t);hiClear();
+  if(t.classList.contains('tw0')){const m=missInfo(t);popNote(t,m);if(m.nb!=null)$$(`[data-ref="${ref}"] .tw[data-j="${m.nb}"]`).forEach(x=>{if(x.dataset.t===t.dataset.t)x.classList.add('hi')});return}
   if(t.classList.contains('w')){
     popWord(t,[t.textContent,t.dataset.k,t.dataset.m],!!t.closest('.heb'));
     if(ref)$$(`[data-ref="${ref}"] .tw[data-a="${t.dataset.i}"]`).forEach(x=>x.classList.add('hi'));
@@ -187,7 +211,7 @@ document.addEventListener('mouseover',e=>{
     $$(`[data-ref="${ref}"] .w[data-i="${t.dataset.a}"]`).forEach(x=>x.classList.add('hi'));
   }
 });
-document.addEventListener('mouseout',e=>{if(e.target.closest&&e.target.closest('.w,.tw')){$('#pop').hidden=true;hiClear()}});
+document.addEventListener('mouseout',e=>{if(e.target.closest&&e.target.closest('.w,.tw,.tw0')){$('#pop').hidden=true;hiClear()}});
 
 /* ---------- word article (inspector) ---------- */
 const clean=s=>s.toLowerCase().replace(/[.,;:!?«»"“”‘’()\[\]—–·]/g,'').trim();
@@ -203,7 +227,7 @@ async function inspect(wd,isH,pinSel,ctx){
 }
 function renderInsp(){
   const I=INSP;if(!I)return;const {wd,isH,k,dm,lx}=I;
-  const tabs=[['a','Статья'],['o','Вхождения'],['t','Переводы'],['f','Формы']];
+  const tabs=[['a','Статья'],['o','Где ещё'],['t','Как переводят'],['f','Формы']];
   const cnt=k&&OCC&&OCC[k]?OCC[k].length:0;
   $('#inspBody').innerHTML=`<div class="ihero ${isH?'he':''}"><div class="k">${esc(k||'без номера Стронга')} · ${esc(dm.pos||'')}</div><div class="lm ${isH?'he':'gr'}">${esc(lx?lx.lemma:wd[0])}</div><div class="sub">${lx?esc(lx.tr)+' · «'+esc(lx.gloss)+'»':''}</div></div>`+
     `<div class="itabs">`+tabs.map(([i,n])=>`<button data-it="${i}" class="${I.tab===i?'on':''}">${n}</button>`).join('')+`</div><div class="ipane" id="ipane"></div>`;
@@ -211,6 +235,7 @@ function renderInsp(){
 }
 function tabArticle(){
   const {wd,isH,k,dm,lx,ctx}=INSP;let h='';
+  if(ctx&&ctx.missing)h+=`<div class="ibox warm">${missHTML(ctx.missing,true)}<div class="hint" style="margin-top:6px">Ниже — слово оригинала, рядом с которым оно стоит.</div></div>`;
   h+=`<div class="ih" style="margin-top:6px">Эта форма${ctx?' · '+esc(bookAb(ctx.ref.split('.')[0]))+' '+ctx.ref.split('.')[1]+':'+ctx.ref.split('.')[2]:''}</div><div class="ibox"><span class="f ${isH?'he':'gr'}">${esc(wd[0])}</span> — ${esc(dm.pos||'')}${dm.detail?', '+esc(dm.detail):''}`;
   (dm.prefix||[]).forEach(p=>h+=`<div>приставка: ${esc(p)}</div>`);(dm.suffix||[]).forEach(p=>h+=`<div>${esc(p)}</div>`);
   if(ctx){const by={};$$(`[data-ref="${ctx.ref}"] .tw[data-a="${ctx.i}"]`).forEach(x=>{(by[x.dataset.t]=by[x.dataset.t]||[]).push(x.textContent)});
@@ -228,7 +253,7 @@ function tabOcc(){
     const by={};all.forEach(n=>{const bi=Math.floor(n/1e6);by[bi]=(by[bi]||0)+1});
     const rows=Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,8),mx=rows[0]?rows[0][1]:1;
     const box=$('#occBox');if(!box)return;
-    box.innerHTML=`<div class="ih" style="margin-top:6px">По книгам · всего ${all.length}</div><div class="bars">`+rows.map(([bi,n])=>`<div class="bar g-${genreOf(BOOKS[bi].id)}"><span>${esc(BOOKS[bi].ru)}</span><i style="width:${Math.max(4,n/mx*100)}%"></i><b>${n}</b></div>`).join('')+`</div><div class="ih">Отрывки</div><div id="occRows"></div>`;
+    box.innerHTML=`<div class="ih" style="margin-top:6px">Всего ${all.length} раз в Библии · по книгам</div><div class="bars">`+rows.map(([bi,n])=>`<div class="bar g-${genreOf(BOOKS[bi].id)}"><span>${esc(BOOKS[bi].ru)}</span><i style="width:${Math.max(4,n/mx*100)}%"></i><b>${n}</b></div>`).join('')+`</div><div class="ih">Отрывки</div><div id="occRows"></div>`;
     occList(k,0)})();
 }
 async function occList(k,from){
@@ -312,6 +337,10 @@ document.addEventListener('click',async e=>{
   const act=t.closest('[data-act]');if(act){if(act.dataset.act==='texts')textsSheet();return}
   const w=t.closest('.w');if(w){const ref=refOf(w);inspect([w.textContent,w.dataset.k,w.dataset.m],!!w.closest('.heb'),ref?`[data-ref="${ref}"] .w[data-i="${w.dataset.i}"]`:null,ref?{ref,i:w.dataset.i}:null);return}
   const tw=t.closest('.tw');if(tw){const wd=origWord(tw),ref=refOf(tw);if(wd)inspect(wd,CUR.lang==='heb',`[data-ref="${ref}"] .w[data-i="${tw.dataset.a}"]`,{ref,i:tw.dataset.a});return}
+  const t0=t.closest('.tw0');if(t0){const m=missInfo(t0);
+    if(m.wd){const pins=`[data-ref="${m.ref}"] .w[data-i="${m.a}"]`;inspect(m.wd,CUR.lang==='heb',pins,{ref:m.ref,i:m.a,missing:m})}
+    else{INSP=null;$('#inspBody').innerHTML=`<div class="insp-empty">${missHTML(m,true)}</div>`;openInsp()}
+    return}
   const rm=t.closest('[data-rm]');if(rm){S.sel=S.sel.filter(x=>x!==rm.dataset.rm);save();render();return}
   if(t.id==='scrim'){closeInsp();document.body.classList.remove('drawer')}
 });

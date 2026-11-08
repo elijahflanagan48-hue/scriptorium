@@ -158,3 +158,4 @@ body.insp-open #scrim,body.drawer #scrim{display:block}
   #tbar button.on{background:var(--ink);color:var(--bg)}#tbar button.on.o{background:var(--accent2);color:#3B2600}
 }
 .pbody .orig{display:inline}.pbody .orig.heb{display:block}
+.tw0{cursor:help;border-radius:4px}.tw0:hover{background:color-mix(in srgb,var(--mute) 22%,transparent)}
