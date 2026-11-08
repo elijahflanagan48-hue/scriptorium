@@ -8,31 +8,57 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Frank+Ruhl+Libre:wght@400;500&family=Gentium+Plus:ital@0;1&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Crect x='2' y='2' width='12' height='12' rx='4' fill='%23FF6B57'/%3E%3Crect x='16' y='2' width='12' height='12' rx='4' fill='%23FFB020'/%3E%3Crect x='2' y='16' width='12' height='12' rx='4' fill='%232BB673'/%3E%3Crect x='16' y='16' width='12' height='12' rx='4' fill='%234C7DFF'/%3E%3C/svg%3E"><link rel="stylesheet" href="style.css">
 </head>
-<body class="theme-light layout-A">
+<body class="theme-light layout-A sec-read">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-read" viewBox="0 0 24 24"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5C4.7 20 4 19.3 4 18.5z"/><path d="M20 5.5C20 4.7 19.3 4 18.5 4H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/></symbol>
+  <symbol id="i-lib" viewBox="0 0 24 24"><path d="M5 4v16M10 4v16M15 5l4 14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-notes" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/></symbol>
+  <symbol id="i-hist" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></symbol>
+  <symbol id="i-set" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></symbol>
+</svg>
+
+<nav id="rail" aria-label="Разделы">
+  <div class="logo" title="Scriptorium"><svg width="32" height="32" viewBox="0 0 30 30" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="4" fill="#FF6B57"/><rect x="16" y="2" width="12" height="12" rx="4" fill="#FFB020"/><rect x="2" y="16" width="12" height="12" rx="4" fill="#2BB673"/><rect x="16" y="16" width="12" height="12" rx="4" fill="#4C7DFF"/></svg></div>
+  <button data-sec="read" title="Читать (повторное нажатие — скрыть или показать список книг)"><svg><use href="#i-read"/></svg>Читать</button>
+  <button data-sec="lib" title="Библиотека"><svg><use href="#i-lib"/></svg>Полки</button>
+  <button data-sec="search" title="Поиск"><svg><use href="#i-search"/></svg>Поиск</button>
+  <button data-sec="notes" title="Заметки и выделения"><svg><use href="#i-notes"/></svg>Заметки</button>
+  <button data-sec="hist" title="История"><svg><use href="#i-hist"/></svg>История</button>
+  <span class="grow"></span>
+  <button id="setBtn" title="Настройки" aria-label="Настройки"><svg><use href="#i-set"/></svg></button>
+  <button id="accBtn" title="Войти" aria-label="Личный кабинет"><svg><use href="#i-user"/></svg></button>
+</nav>
+
 <header id="top">
-  <button id="drawerBtn" class="icon only-m" aria-label="Книги">☰</button>
-  <div class="brand"><svg width="28" height="28" viewBox="0 0 30 30" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="4" fill="#FF6B57"/><rect x="16" y="2" width="12" height="12" rx="4" fill="#FFB020"/><rect x="2" y="16" width="12" height="12" rx="4" fill="#2BB673"/><rect x="16" y="16" width="12" height="12" rx="4" fill="#4C7DFF"/></svg><span class="name">Scriptorium</span></div>
-  <button id="bookBtn" class="pill"><span id="bookLabel">Бытие 1</span><i>▾</i></button>
-  <div class="stepper"><button id="prev" title="Предыдущая глава" aria-label="Предыдущая глава">‹</button><button id="next" title="Следующая глава" aria-label="Следующая глава">›</button></div>
-  <form id="jump" autocomplete="off"><input id="jumpInp" placeholder="Перейти: Ин 3:16" aria-label="Перейти к месту"></form>
-  <div class="spacer"></div>
-  <div class="seg only-d" id="layoutSw" role="tablist" aria-label="Раскладка">
-    <button data-l="A" title="Книга: перевод и оригинал рядом">Книга</button>
-    <button data-l="B" title="Стол: колонки текстов рядом">Стол</button>
-    <button data-l="D" title="Манускрипт: текст с полями">Манускрипт</button>
+  <button id="mSearch" class="icon only-m" aria-label="Поиск"><svg><use href="#i-search"/></svg></button>
+  <div id="tabs" class="only-d" role="tablist" aria-label="Открытые места"></div>
+  <button id="bookBtn" class="pill only-m"><span class="gdot"></span><span id="bookLabel">Бытие 1</span><i>▾</i></button>
+  <div class="spacer only-d"></div>
+  <div id="omni" class="only-d">
+    <svg aria-hidden="true"><use href="#i-search"/></svg>
+    <input id="jumpInp" placeholder="Перейти или найти: ин 3 16, любовь, G26…" aria-label="Перейти или найти" autocomplete="off">
+    <kbd>⌘K</kbd>
+    <div id="sugg" hidden></div>
   </div>
-  <button id="textsBtn" class="pill only-d">Тексты<i>▾</i></button>
-  <button id="themeBtn" class="icon only-d" title="Тема" aria-label="Тема">◐</button>
-  <button id="accBtn" class="icon only-d" title="Войти" aria-label="Личный кабинет">☺</button>
-  <button id="dataBtn" class="icon only-d" title="Заметки: экспорт и импорт" aria-label="Заметки">⇅</button>
-  <button id="moreBtn" class="icon only-m" aria-label="Ещё">⋯</button>
+  <button id="aaBtn" class="icon only-m" aria-label="Вид текста">Аа</button>
 </header>
+
 <div id="body">
   <aside id="side" aria-label="Книги"></aside>
-  <main id="stage"><div id="reader"></div></main>
+  <main id="stage"><div id="reader"></div><div id="page" hidden></div></main>
   <aside id="inspector"><button id="inspClose" class="icon" aria-label="Закрыть">✕</button><div id="inspBody"></div></aside>
 </div>
-<nav id="tbar" class="only-m" aria-label="Тексты"></nav>
+
+<nav id="tabbar" aria-label="Разделы">
+  <button data-sec="read"><svg><use href="#i-read"/></svg>Читать</button>
+  <button data-sec="lib"><svg><use href="#i-lib"/></svg>Полки</button>
+  <button data-sec="search"><svg><use href="#i-search"/></svg>Поиск</button>
+  <button data-sec="notes"><svg><use href="#i-notes"/></svg>Заметки</button>
+  <button id="mMore"><svg><use href="#i-more"/></svg>Ещё</button>
+</nav>
 <div id="scrim"></div>
 <div id="pop" hidden></div>
 <div id="menu" hidden></div>
@@ -42,5 +68,7 @@
 <script src="speech.js"></script>
 <script src="sync.js"></script>
 <script src="app.js"></script>
+<script src="search.js"></script>
+<script src="pages.js"></script>
 </body>
 </html>
