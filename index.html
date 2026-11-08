@@ -23,6 +23,7 @@
   </div>
   <button id="textsBtn" class="pill only-d">Тексты<i>▾</i></button>
   <button id="themeBtn" class="icon only-d" title="Тема" aria-label="Тема">◐</button>
+  <button id="accBtn" class="icon only-d" title="Войти" aria-label="Личный кабинет">☺</button>
   <button id="dataBtn" class="icon only-d" title="Заметки: экспорт и импорт" aria-label="Заметки">⇅</button>
   <button id="moreBtn" class="icon only-m" aria-label="Ещё">⋯</button>
 </header>
@@ -36,7 +37,11 @@
 <div id="pop" hidden></div>
 <div id="menu" hidden></div>
 <div id="modal" hidden><div class="sheet" id="sheet"></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
 <script src="decoders.js"></script>
+<script src="speech.js"></script>
+<script src="sync.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -2,9 +2,11 @@
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const KEY='scriptorium.v1';
-let S={layout:'A',theme:'light',last:{book:'Gen',ch:1},sel:['ORIG','RST','BTI'],hl:{},notes:{},wnotes:{},recent:[]};
+let S={layout:'A',theme:'light',last:{book:'Gen',ch:1},sel:['ORIG','RST','BTI'],hl:{},notes:{},wnotes:{},recent:[],ts:{},sts:0};
 try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(typeof Sync!=='undefined')Sync.changed()};
+const stamp=k=>{S.ts[k]=Date.now();save()};
+const touchSettings=()=>{S.sts=Date.now();save()};
 const cache=new Map();
 const J=p=>{if(!cache.has(p))cache.set(p,fetch(p).then(r=>{if(!r.ok)throw 0;return r.json()}).catch(()=>{cache.delete(p);return null}));return cache.get(p)};
 let CUR=null,IDX,BOOKS,BI={},TRS={},OCC=null,LEX={},cur=S.last,token=0,sideT=null,INSP=null;
@@ -23,10 +25,12 @@ const shortName=id=>SHORT[id]||id;
   if(!IDX){document.body.innerHTML='<p style="padding:40px;font-family:sans-serif">Не найдены файлы данных. Запустите приложение через сервер: в папке приложения выполните <code>python3 -m http.server 8000</code> и откройте <code>http://localhost:8000</code>.</p>';return}
   BOOKS=IDX.books;BOOKS.forEach((b,i)=>BI[b.id]=i);IDX.translations.forEach(t=>TRS[t.id]=t);
   S.sel=S.sel.filter(x=>x==='ORIG'||TRS[x]);if(!S.sel.length)S.sel=['ORIG','RST'];
-  if(!S.recent)S.recent=[];if(!S.wnotes)S.wnotes={};
+  if(!S.recent)S.recent=[];if(!S.wnotes)S.wnotes={};if(!S.ts)S.ts={};
   if(BI[cur.book]===undefined)cur={book:'Gen',ch:1};
   const h=parseHash();if(h)cur=h;
+  try{speechSynthesis.getVoices()}catch(e){}
   bind();go(cur.book,cur.ch,h&&h.v);
+  Sync.init(S,{status:accStatus,applied:()=>{save();cur=S.last;render()}});
   J('data/occ.json').then(o=>OCC=o);
 })();
 function parseHash(){const m=(location.hash||'').match(/^#([0-9A-Za-z]+)\.(\d+)(?:\.(\d+))?$/);return m&&BI[m[1]]!==undefined?{book:m[1],ch:+m[2],v:m[3]?+m[3]:0}:null}
@@ -36,7 +40,7 @@ function primary(){return S.sel.find(x=>x!=='ORIG')||null}
 /* ---------- navigation ---------- */
 function go(book,ch,v){
   cur={book,ch};S.last=cur;
-  const rk=book+'.'+ch;S.recent=[rk,...(S.recent||[]).filter(x=>x!==rk)].slice(0,6);save();
+  const rk=book+'.'+ch;S.recent=[rk,...(S.recent||[]).filter(x=>x!==rk)].slice(0,6);S.sts=Date.now();save();
   try{history.replaceState(null,'','#'+book+'.'+ch+(v?'.'+v:''))}catch(e){}
   document.body.classList.remove('drawer');
   render(v);
@@ -229,14 +233,15 @@ function renderInsp(){
   const I=INSP;if(!I)return;const {wd,isH,k,dm,lx}=I;
   const tabs=[['a','Статья'],['o','Где ещё'],['t','Как переводят'],['f','Формы']];
   const cnt=k&&OCC&&OCC[k]?OCC[k].length:0;
-  $('#inspBody').innerHTML=`<div class="ihero ${isH?'he':''}"><div class="k">${esc(k||'без номера Стронга')} · ${esc(dm.pos||'')}</div><div class="lm ${isH?'he':'gr'}">${esc(lx?lx.lemma:wd[0])}</div><div class="sub">${lx?esc(lx.tr)+' · «'+esc(lx.gloss)+'»':''}</div></div>`+
+  $('#inspBody').innerHTML=`<div class="ihero ${isH?'he':''}"><div class="k">${esc(k||'без номера Стронга')} · ${esc(dm.pos||'')}</div><div class="lm ${isH?'he':'gr'}">${esc(lx?lx.lemma:wd[0])}</div><div class="sub">${lx?esc(lx.tr)+' · «'+esc(lx.gloss)+'»':''}</div>
+    <div class="say"><button data-say="n" data-w="lemma">🔊 Звучание</button><button data-say="t" data-w="lemma">🔊 Как читается</button></div><div class="trl">читается: <b>${esc(Speech.tr(lx?lx.lemma:wd[0],isH))}</b> · условное чтение</div><div class="saynote" id="saynote"></div></div>`+
     `<div class="itabs">`+tabs.map(([i,n])=>`<button data-it="${i}" class="${I.tab===i?'on':''}">${n}</button>`).join('')+`</div><div class="ipane" id="ipane"></div>`;
   ({a:tabArticle,o:tabOcc,t:tabTr,f:tabForms})[I.tab]();
 }
 function tabArticle(){
   const {wd,isH,k,dm,lx,ctx}=INSP;let h='';
   if(ctx&&ctx.missing)h+=`<div class="ibox warm">${missHTML(ctx.missing,true)}<div class="hint" style="margin-top:6px">Ниже — слово оригинала, рядом с которым оно стоит.</div></div>`;
-  h+=`<div class="ih" style="margin-top:6px">Эта форма${ctx?' · '+esc(bookAb(ctx.ref.split('.')[0]))+' '+ctx.ref.split('.')[1]+':'+ctx.ref.split('.')[2]:''}</div><div class="ibox"><span class="f ${isH?'he':'gr'}">${esc(wd[0])}</span> — ${esc(dm.pos||'')}${dm.detail?', '+esc(dm.detail):''}`;
+  h+=`<div class="ih" style="margin-top:6px">Эта форма${ctx?' · '+esc(bookAb(ctx.ref.split('.')[0]))+' '+ctx.ref.split('.')[1]+':'+ctx.ref.split('.')[2]:''}</div><div class="ibox"><span class="f ${isH?'he':'gr'}">${esc(wd[0])}</span> <button class="say1" data-say="t" data-w="form" title="Прочитать эту форму">🔊</button> — ${esc(dm.pos||'')}${dm.detail?', '+esc(dm.detail):''}<div class="trl" style="margin:4px 0">читается: <b>${esc(Speech.tr(wd[0],isH))}</b></div>`;
   (dm.prefix||[]).forEach(p=>h+=`<div>приставка: ${esc(p)}</div>`);(dm.suffix||[]).forEach(p=>h+=`<div>${esc(p)}</div>`);
   if(ctx){const by={};$$(`[data-ref="${ctx.ref}"] .tw[data-a="${ctx.i}"]`).forEach(x=>{(by[x.dataset.t]=by[x.dataset.t]||[]).push(x.textContent)});
     const keys=Object.keys(by);if(keys.length)h+=`<div style="margin-top:6px">`+keys.map(t=>`<b>${esc(shortName(t))}</b>: «${esc(by[t].join(' '))}»`).join(' · ')+`</div>`}
@@ -318,12 +323,13 @@ document.addEventListener('click',async e=>{
   if(t.closest('.vn')){verseMenu(t.closest('.vn'));return}
   if(t.closest('#menu')){
     const bc=t.closest('[data-c]'),ref=$('#menu').dataset.ref;
-    if(bc){const n=bc.dataset.c;if(n==='0')delete S.hl[ref];else S.hl[ref]=n;save();applyHl(ref)}
+    if(bc){const n=bc.dataset.c;if(n==='0')delete S.hl[ref];else S.hl[ref]=n;stamp('h:'+ref);applyHl(ref)}
     if(t.id==='mClose')$('#menu').hidden=true;
     if(t.id==='mCopy'){const [b,c,v]=ref.split('.'),d=await loadChapter(b,+c),p=primary();const tx=p&&d.tr[p]&&d.tr[p][v]||'';navigator.clipboard&&navigator.clipboard.writeText(`${bookRu(b)} ${c}:${v} — ${tx}`);t.textContent='Скопировано'}
     return}
   $('#menu').hidden=true;
   if(t.id==='defMore'){const d=$('#def');d.classList.toggle('clamp');t.textContent=d.classList.contains('clamp')?'Показать полностью':'Свернуть';return}
+  const sy=t.closest('[data-say]');if(sy&&INSP){const txt=sy.dataset.w==='form'?INSP.wd[0]:(INSP.lx?INSP.lx.lemma:INSP.wd[0]);const r=Speech.say(txt,INSP.isH,sy.dataset.say);const n=$('#saynote');if(n)n.textContent=r.ok?'':r.why;return}
   const it=t.closest('[data-it]');if(it){INSP.tab=it.dataset.it;renderInsp();return}
   if(t.closest('#side')){
     const st=t.closest('[data-st]');if(st){sideT={t:st.dataset.st,from:cur.book,manual:true};buildSide();return}
@@ -333,7 +339,7 @@ document.addEventListener('click',async e=>{
   const pri=t.closest('[data-pri]');if(pri){const id=pri.dataset.pri;
     if(id==='ORIG'){if(S.sel.includes('ORIG')){if(S.sel.length>1)S.sel=S.sel.filter(x=>x!=='ORIG')}else S.sel.push('ORIG')}
     else{S.sel=S.sel.filter(x=>x!==id);S.sel.unshift(id)}
-    save();render();return}
+    touchSettings();render();return}
   const act=t.closest('[data-act]');if(act){if(act.dataset.act==='texts')textsSheet();return}
   const w=t.closest('.w');if(w){const ref=refOf(w);inspect([w.textContent,w.dataset.k,w.dataset.m],!!w.closest('.heb'),ref?`[data-ref="${ref}"] .w[data-i="${w.dataset.i}"]`:null,ref?{ref,i:w.dataset.i}:null);return}
   const tw=t.closest('.tw');if(tw){const wd=origWord(tw),ref=refOf(tw);if(wd)inspect(wd,CUR.lang==='heb',`[data-ref="${ref}"] .w[data-i="${tw.dataset.a}"]`,{ref,i:tw.dataset.a});return}
@@ -345,8 +351,8 @@ document.addEventListener('click',async e=>{
   if(t.id==='scrim'){closeInsp();document.body.classList.remove('drawer')}
 });
 document.addEventListener('input',e=>{
-  if(e.target.closest('#menu')){const ref=$('#menu').dataset.ref,v=e.target.value.trim();if(v)S.notes[ref]=v;else delete S.notes[ref];save();applyHl(ref)}
-  if(e.target.id==='wnote'&&INSP&&INSP.k){const v=e.target.value.trim();if(v)S.wnotes[INSP.k]=v;else delete S.wnotes[INSP.k];save()}
+  if(e.target.closest('#menu')){const ref=$('#menu').dataset.ref,v=e.target.value.trim();if(v)S.notes[ref]=v;else delete S.notes[ref];stamp('n:'+ref);applyHl(ref)}
+  if(e.target.id==='wnote'&&INSP&&INSP.k){const v=e.target.value.trim();if(v)S.wnotes[INSP.k]=v;else delete S.wnotes[INSP.k];stamp('w:'+INSP.k)}
 });
 function applyHl(ref){
   $$(`[data-ref="${ref}"]`).forEach(el=>{if(el.classList.contains('vn'))return;['hl1','hl2','hl3','hl4'].forEach(c=>el.classList.remove(c));if(S.hl[ref])el.classList.add('hl'+S.hl[ref])});
@@ -376,15 +382,37 @@ function dataSheet(){
 }
 function moreSheet(){
   const L=[['A','Карточки'],['B','Сравнение'],['D','Поля']];
-  openModal(`<h3>Scriptorium</h3><h5>Вид</h5><div class="mlist">`+L.map(([l,n])=>`<button data-lay="${l}" class="${S.layout===l?'on':''}">${n}</button>`).join('')+`</div><h5>Ещё</h5><div class="mlist"><button data-m="texts">Тексты</button><button data-m="theme">Тема: ${S.theme==='light'?'светлая → тёмная':'тёмная → светлая'}</button><button data-m="data">Заметки: сохранить и загрузить</button></div>`);
+  openModal(`<h3>Scriptorium</h3><h5>Вид</h5><div class="mlist">`+L.map(([l,n])=>`<button data-lay="${l}" class="${S.layout===l?'on':''}">${n}</button>`).join('')+`</div><h5>Ещё</h5><div class="mlist"><button data-m="texts">Тексты</button><button data-m="theme">Тема: ${S.theme==='light'?'светлая → тёмная':'тёмная → светлая'}</button><button data-m="data">Заметки: сохранить и загрузить</button><button data-m="acc">Личный кабинет${Sync.user?' · '+esc(Sync.user.email):''}</button></div>`);
 }
-function toggleTheme(){S.theme=S.theme==='light'?'dark':'light';save();document.body.className=document.body.className.replace(/theme-\w+/,'theme-'+S.theme)}
+function accStatus(){
+  const b=$('#accBtn');if(b){b.classList.toggle('on',!!Sync.user);b.title=Sync.user?'Аккаунт: '+Sync.user.email:'Войти'}
+  if(!$('#modal').hidden&&$('#sheet [data-acc]'))accSheet();
+}
+function accSheet(){
+  const mk=h=>openModal(`<div data-acc="1"><h3>Личный кабинет</h3>${h}<div class="hint" id="accMsg">${esc(Sync.msg||'')}</div></div>`);
+  if(!Sync.enabled){mk('<p>Облако пока не подключено, поэтому заметки хранятся только в этом браузере. Когда в файле <code>config.js</code> появятся адрес и ключ проекта Supabase, здесь можно будет войти и синхронизировать устройства.</p>');return}
+  if(Sync.user){const t=Sync.last?Sync.last.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'ещё не было';
+    mk(`<p>Вы вошли как <b>${esc(Sync.user.email)}</b>.<br>Заметки, выделения и настройки синхронизируются автоматически. Последняя синхронизация: ${t}.</p><div class="acts" style="display:flex;gap:8px;flex-wrap:wrap"><button class="pill" id="accSync">Синхронизировать сейчас</button><button class="pill" id="accOut">Выйти</button></div>`);return}
+  mk(`<p>Войдите, чтобы заметки, выделения и настройки были на всех ваших устройствах.</p><div class="accf"><input id="accEmail" type="email" placeholder="Почта" autocomplete="email"><input id="accPass" type="password" placeholder="Пароль (от 6 символов)" autocomplete="current-password"></div><div class="acts" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="pill" id="accIn">Войти</button><button class="pill" id="accUp">Создать аккаунт</button><button class="pill" id="accMagic">Ссылка на почту</button></div>`);
+}
+async function accAct(id){
+  const email=($('#accEmail')||{}).value,pass=($('#accPass')||{}).value,m=$('#accMsg');const say=t=>{if($('#accMsg'))$('#accMsg').textContent=t};
+  if(id==='accOut'){await Sync.signOut();return}
+  if(id==='accSync'){say('Синхронизирую…');await Sync.syncNow();accSheet();return}
+  if(!email){say('Введите почту.');return}
+  if(id==='accMagic'){say('Отправляю…');const e=await Sync.magic(email);say(e||'Ссылка отправлена на почту. Откройте её на этом устройстве.');return}
+  if(!pass||pass.length<6){say('Пароль: от 6 символов.');return}
+  say('…');
+  if(id==='accIn'){const e=await Sync.signIn(email,pass);say(e?'Не получилось войти: '+e:'');if(!e)closeModal()}
+  if(id==='accUp'){const e=await Sync.signUp(email,pass);say(e?'Не получилось: '+e:'Аккаунт создан. Если пришло письмо с подтверждением — нажмите ссылку в нём, затем войдите.')}
+}
+function toggleTheme(){S.theme=S.theme==='light'?'dark':'light';touchSettings();document.body.className=document.body.className.replace(/theme-\w+/,'theme-'+S.theme)}
 function bind(){
-  $('#bookBtn').onclick=()=>bookSheet();$('#textsBtn').onclick=textsSheet;$('#dataBtn').onclick=dataSheet;$('#moreBtn').onclick=moreSheet;
+  $('#bookBtn').onclick=()=>bookSheet();$('#textsBtn').onclick=textsSheet;$('#dataBtn').onclick=dataSheet;$('#moreBtn').onclick=moreSheet;$('#accBtn').onclick=accSheet;
   $('#drawerBtn').onclick=()=>document.body.classList.toggle('drawer');
   $('#prev').onclick=()=>step(-1);$('#next').onclick=()=>step(1);
   $('#themeBtn').onclick=toggleTheme;
-  $('#layoutSw').onclick=e=>{const b=e.target.closest('button');if(b){S.layout=b.dataset.l;save();render()}};
+  $('#layoutSw').onclick=e=>{const b=e.target.closest('button');if(b){S.layout=b.dataset.l;touchSettings();render()}};
   $('#inspClose').onclick=closeInsp;placeholder();
   $('#jump').onsubmit=e=>{e.preventDefault();const r=parseRef($('#jumpInp').value);if(r){go(r.book,r.ch,r.v);$('#jumpInp').blur()}else $('#jumpInp').select()};
   MQ.addEventListener('change',()=>{closeInsp();render()});
@@ -393,14 +421,15 @@ function bind(){
     const bk=e.target.closest('[data-bk]');if(bk){bookSheet(bk.dataset.bk);return}
     if(e.target.id==='back'){e.preventDefault();bookSheet();return}
     const g=e.target.closest('[data-go]');if(g){const [b,c]=g.dataset.go.split('.');closeModal();go(b,+c);scrollTo(0,0);return}
-    const lay=e.target.closest('[data-lay]');if(lay){S.layout=lay.dataset.lay;save();closeModal();render();return}
-    const m=e.target.closest('[data-m]');if(m){const a=m.dataset.m;if(a==='texts')textsSheet();if(a==='data')dataSheet();if(a==='theme'){toggleTheme();closeModal()}return}
+    const lay=e.target.closest('[data-lay]');if(lay){S.layout=lay.dataset.lay;touchSettings();closeModal();render();return}
+    const m=e.target.closest('[data-m]');if(m){const a=m.dataset.m;if(a==='texts')textsSheet();if(a==='data')dataSheet();if(a==='acc')accSheet();if(a==='theme'){toggleTheme();closeModal()}return}
+    if(/^acc(In|Up|Magic|Out|Sync)$/.test(e.target.id)){accAct(e.target.id);return}
     if(e.target.id==='exp'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({hl:S.hl,notes:S.notes,wnotes:S.wnotes},null,1)],{type:'application/json'}));a.download='scriptorium-notes.json';a.click()}
   };
   $('#modal').onchange=e=>{
     const t=e.target.dataset&&e.target.dataset.t;
-    if(t){const on=e.target.checked;if(on&&!S.sel.includes(t))S.sel.push(t);if(!on)S.sel=S.sel.filter(x=>x!==t);if(!S.sel.length){S.sel=[t];e.target.checked=true}save();render()}
-    if(e.target.id==='imp'){const f=e.target.files[0];if(!f)return;f.text().then(x=>{const j=JSON.parse(x);Object.assign(S.hl,j.hl||{});Object.assign(S.notes,j.notes||{});Object.assign(S.wnotes,j.wnotes||{});save();render();dataSheet()})}
+    if(t){const on=e.target.checked;if(on&&!S.sel.includes(t))S.sel.push(t);if(!on)S.sel=S.sel.filter(x=>x!==t);if(!S.sel.length){S.sel=[t];e.target.checked=true}touchSettings();render()}
+    if(e.target.id==='imp'){const f=e.target.files[0];if(!f)return;f.text().then(x=>{const j=JSON.parse(x);Object.assign(S.hl,j.hl||{});Object.assign(S.notes,j.notes||{});Object.assign(S.wnotes,j.wnotes||{});const now=Date.now();Object.keys(j.hl||{}).forEach(k=>S.ts['h:'+k]=now);Object.keys(j.notes||{}).forEach(k=>S.ts['n:'+k]=now);Object.keys(j.wnotes||{}).forEach(k=>S.ts['w:'+k]=now);save();render();dataSheet()})}
   };
   addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();$('#menu').hidden=true;closeInsp();document.body.classList.remove('drawer')}
     if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#jumpInp').focus()}
