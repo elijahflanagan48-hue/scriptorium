@@ -1,3 +1,2 @@
-/* Подключение к облаку (Supabase). Заполняется один раз: см. tools/SUPABASE.md.
-   Здесь только публичные данные: адрес проекта и публичный (anon) ключ. */
-window.SCRIPT_CFG={url:'',key:''};
+/* Подключение к личному кабинету (Cloudflare Worker). Адрес вписывается один раз: см. tools/CLOUDFLARE.md */
+window.SCRIPT_CFG={api:''};

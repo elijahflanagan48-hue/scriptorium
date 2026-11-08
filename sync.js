@@ -1,16 +1,21 @@
-/* Личный кабинет и синхронизация между устройствами (Supabase). */
+/* Личный кабинет и синхронизация между устройствами (Cloudflare Worker + D1). */
 'use strict';
 const Sync=(()=>{
   const cfg=window.SCRIPT_CFG||{};
-  const enabled=!!(cfg.url&&cfg.key&&window.supabase);
-  let sb=null,S=null,hooks=null,user=null,timer=null,busy=false,last=null,msg='';
-  const TABLE='user_state';
+  const enabled=!!cfg.api;const API=(cfg.api||'').replace(/\/$/,''),TK='scriptorium.token';
+  let S=null,hooks=null,user=null,timer=null,busy=false,last=null,msg='';
+  const tok=()=>{try{return localStorage.getItem(TK)||''}catch(e){return''}};
+  const setTok=t=>{try{t?localStorage.setItem(TK,t):localStorage.removeItem(TK)}catch(e){}};
+  async function api(path,method='GET',body){
+    const r=await fetch(API+path,{method,headers:{'content-type':'application/json',...(tok()?{authorization:'Bearer '+tok()}:{})},body:body?JSON.stringify(body):undefined});
+    let j={};try{j=await r.json()}catch(e){}
+    if(!r.ok){const e=new Error(j.error||('HTTP '+r.status));e.status=r.status;throw e}
+    return j;
+  }
   function init(state,h){
     S=state;hooks=h;if(!S.ts)S.ts={};if(!S.sts)S.sts=0;
     if(!enabled)return;
-    sb=window.supabase.createClient(cfg.url,cfg.key,{auth:{flowType:'pkce',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-    sb.auth.getSession().then(({data})=>{user=data.session?data.session.user:null;h.status();if(user)syncNow()});
-    sb.auth.onAuthStateChange((ev,sess)=>{const u=sess?sess.user:null;const was=!!user;user=u;h.status();if(u&&!was)syncNow()});
+    if(tok())api('/api/me').then(r=>{user={email:r.email};h.status();syncNow()}).catch(e=>{if(e.status===401)setTok('');h.status()});
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&user)syncNow()});
   }
   const ensureTs=()=>{
@@ -33,31 +38,26 @@ const Sync=(()=>{
     return changed;
   }
   async function syncNow(){
-    if(!sb||!user||busy)return;busy=true;msg='';
+    if(!enabled||!user||busy)return;busy=true;msg='';
     try{
       ensureTs();
-      const {data,error}=await sb.from(TABLE).select('data').eq('user_id',user.id).maybeSingle();
-      if(error)throw error;
-      const remote=data&&data.data||null;
+      const got=await api('/api/state');
+      const remote=got.data||null;
       const changed=remote?merge(remote):false;
       if(changed)hooks.applied();
       const body=payload();
-      if(!remote||JSON.stringify(body)!==JSON.stringify(remote)){
-        const {error:e2}=await sb.from(TABLE).upsert({user_id:user.id,data:body,updated_at:new Date().toISOString()});
-        if(e2)throw e2;
-      }
+      if(!remote||JSON.stringify(body)!==JSON.stringify(remote))await api('/api/state','PUT',{data:body});
       last=new Date();
-    }catch(e){msg='Не удалось синхронизировать: '+(e.message||e)}
+    }catch(e){if(e.status===401){setTok('');user=null}msg='Не удалось синхронизировать: '+(e.message||e)}
     busy=false;hooks.status();
   }
-  function changed(){if(!sb||!user)return;clearTimeout(timer);timer=setTimeout(syncNow,1800)}
-  const wrap=async f=>{try{const {error}=await f();return error?error.message:''}catch(e){return String(e.message||e)}};
+  function changed(){if(!enabled||!user)return;clearTimeout(timer);timer=setTimeout(syncNow,1800)}
+  const auth=async(path,email,password)=>{try{const r=await api(path,'POST',{email,password});setTok(r.token);user={email:r.email};hooks.status();syncNow();return''}catch(e){return e.message==='Failed to fetch'?'Нет связи с сервером':e.message}};
   return{
     enabled,init,changed,syncNow,
     get user(){return user},get last(){return last},get msg(){return msg},
-    signIn:(email,password)=>wrap(()=>sb.auth.signInWithPassword({email,password})),
-    signUp:(email,password)=>wrap(()=>sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}})),
-    magic:email=>wrap(()=>sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}})),
-    signOut:()=>wrap(()=>sb.auth.signOut())
+    signIn:(email,password)=>auth('/api/login',email,password),
+    signUp:(email,password)=>auth('/api/signup',email,password),
+    signOut:async()=>{setTok('');user=null;hooks.status();return''}
   };
 })();

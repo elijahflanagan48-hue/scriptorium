@@ -390,21 +390,20 @@ function accStatus(){
 }
 function accSheet(){
   const mk=h=>openModal(`<div data-acc="1"><h3>Личный кабинет</h3>${h}<div class="hint" id="accMsg">${esc(Sync.msg||'')}</div></div>`);
-  if(!Sync.enabled){mk('<p>Облако пока не подключено, поэтому заметки хранятся только в этом браузере. Когда в файле <code>config.js</code> появятся адрес и ключ проекта Supabase, здесь можно будет войти и синхронизировать устройства.</p>');return}
+  if(!Sync.enabled){mk('<p>Облако пока не подключено, поэтому заметки хранятся только в этом браузере. Когда в файле <code>config.js</code> появится адрес сервера, здесь можно будет войти и синхронизировать устройства.</p>');return}
   if(Sync.user){const t=Sync.last?Sync.last.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'ещё не было';
     mk(`<p>Вы вошли как <b>${esc(Sync.user.email)}</b>.<br>Заметки, выделения и настройки синхронизируются автоматически. Последняя синхронизация: ${t}.</p><div class="acts" style="display:flex;gap:8px;flex-wrap:wrap"><button class="pill" id="accSync">Синхронизировать сейчас</button><button class="pill" id="accOut">Выйти</button></div>`);return}
-  mk(`<p>Войдите, чтобы заметки, выделения и настройки были на всех ваших устройствах.</p><div class="accf"><input id="accEmail" type="email" placeholder="Почта" autocomplete="email"><input id="accPass" type="password" placeholder="Пароль (от 6 символов)" autocomplete="current-password"></div><div class="acts" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="pill" id="accIn">Войти</button><button class="pill" id="accUp">Создать аккаунт</button><button class="pill" id="accMagic">Ссылка на почту</button></div>`);
+  mk(`<p>Войдите, чтобы заметки, выделения и настройки были на всех ваших устройствах.</p><div class="accf"><input id="accEmail" type="email" placeholder="Почта" autocomplete="email"><input id="accPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password"></div><div class="acts" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="pill" id="accIn">Войти</button><button class="pill" id="accUp">Создать аккаунт</button></div>`);
 }
 async function accAct(id){
   const email=($('#accEmail')||{}).value,pass=($('#accPass')||{}).value,m=$('#accMsg');const say=t=>{if($('#accMsg'))$('#accMsg').textContent=t};
   if(id==='accOut'){await Sync.signOut();return}
   if(id==='accSync'){say('Синхронизирую…');await Sync.syncNow();accSheet();return}
   if(!email){say('Введите почту.');return}
-  if(id==='accMagic'){say('Отправляю…');const e=await Sync.magic(email);say(e||'Ссылка отправлена на почту. Откройте её на этом устройстве.');return}
-  if(!pass||pass.length<6){say('Пароль: от 6 символов.');return}
+  if(!pass||pass.length<8){say('Пароль: от 8 символов.');return}
   say('…');
   if(id==='accIn'){const e=await Sync.signIn(email,pass);say(e?'Не получилось войти: '+e:'');if(!e)closeModal()}
-  if(id==='accUp'){const e=await Sync.signUp(email,pass);say(e?'Не получилось: '+e:'Аккаунт создан. Если пришло письмо с подтверждением — нажмите ссылку в нём, затем войдите.')}
+  if(id==='accUp'){const e=await Sync.signUp(email,pass);say(e?'Не получилось: '+e:'');if(!e)closeModal()}
 }
 function toggleTheme(){S.theme=S.theme==='light'?'dark':'light';touchSettings();document.body.className=document.body.className.replace(/theme-\w+/,'theme-'+S.theme)}
 function bind(){
@@ -423,7 +422,7 @@ function bind(){
     const g=e.target.closest('[data-go]');if(g){const [b,c]=g.dataset.go.split('.');closeModal();go(b,+c);scrollTo(0,0);return}
     const lay=e.target.closest('[data-lay]');if(lay){S.layout=lay.dataset.lay;touchSettings();closeModal();render();return}
     const m=e.target.closest('[data-m]');if(m){const a=m.dataset.m;if(a==='texts')textsSheet();if(a==='data')dataSheet();if(a==='acc')accSheet();if(a==='theme'){toggleTheme();closeModal()}return}
-    if(/^acc(In|Up|Magic|Out|Sync)$/.test(e.target.id)){accAct(e.target.id);return}
+    if(/^acc(In|Up|Out|Sync)$/.test(e.target.id)){accAct(e.target.id);return}
     if(e.target.id==='exp'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({hl:S.hl,notes:S.notes,wnotes:S.wnotes},null,1)],{type:'application/json'}));a.download='scriptorium-notes.json';a.click()}
   };
   $('#modal').onchange=e=>{
