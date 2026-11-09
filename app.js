@@ -35,10 +35,7 @@ const shortName=id=>SHORT[id]||id;
   try{speechSynthesis.getVoices()}catch(e){}
   bind();go(cur.book,cur.ch,h&&h.v);
   Sync.init(S,{status:accStatus,applied:()=>{save();cur=S.last;render()}});
-  setTimeout(()=>{const f=BOOKS[BI[cur.book]].testament==='OT'?'H':'G';loadLex(f).then(()=>loadLex(f==='H'?'G':'H'));J('data/occ.json').then(o=>OCC=o)},300);
-  /* фоновая подгрузка: поиск и панель слова открываются мгновенно */
-  const warm=()=>{const p=primary();if(p&&TRS[p])Search.index(p).catch(()=>{});S.sel.filter(x=>x!=='ORIG').forEach(id=>J(`data/rend/${id}.json`));J('data/forms_H.json');J('data/forms_G.json')};
-  (window.requestIdleCallback||(f=>setTimeout(f,2500)))(warm,{timeout:5000});
+  if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 })();
 function parseHash(){const m=(location.hash||'').match(/^#([0-9A-Za-z]+)\.(\d+)(?:\.(\d+))?$/);return m&&BI[m[1]]!==undefined?{book:m[1],ch:+m[2],v:m[3]?+m[3]:0}:null}
 const bookRu=id=>BOOKS[BI[id]].ru, bookAb=id=>BOOKS[BI[id]].ab;
@@ -78,13 +75,19 @@ function parseRef(q,strict){
 const refLabel=r=>`${bookRu(r.book)} ${r.ch}${r.v?':'+r.v:''}`;
 
 /* ---------- data ---------- */
-async function loadChapter(book,ch){
-  const o=await J(`data/orig/${book}.json`);
-  const orig=o?o.chapters[ch]||{}:{},lang=o?o.lang:'heb',tr={},al={};
-  await Promise.all(S.sel.filter(x=>x!=='ORIG'&&TRS[x].books.includes(book)).map(async id=>{const b=await J(`data/tr/${id}/${book}.json`);tr[id]=b?b[ch]||{}:{};const a=await J(`data/align/${id}/${book}.json`);al[id]=a?a[ch]||{}:{}}));
+/* все части главы запрашиваются сразу и параллельно; текст показывается по мере готовности */
+const isPriv=id=>PRIV.test(`data/tr/${id}/x.json`);
+function chapterParts(book){
+  const ids=S.sel.filter(x=>x!=='ORIG'&&TRS[x]&&TRS[x].books.includes(book));
+  return{book,ids,o:J(`data/orig/${book}.json`),t:ids.map(id=>J(`data/tr/${id}/${book}.json`)),a:ids.map(id=>J(`data/align/${id}/${book}.json`))};
+}
+function buildChapter(book,ch,o,ids,T,A){
+  const orig=o?o.chapters[ch]||{}:{},lang=o?o.lang:(BOOKS[BI[book]].testament==='NT'?'grc':'heb'),tr={},al={};
+  ids.forEach((id,i)=>{if(T[i]!==undefined){tr[id]=T[i]?T[i][ch]||{}:{};al[id]=A[i]?A[i][ch]||{}:{}}});
   const nums=new Set(Object.keys(orig).map(Number));for(const id in tr)for(const v in tr[id])nums.add(+v);
   return{orig,lang,tr,al,verses:[...nums].sort((a,b)=>a-b)};
 }
+async function loadChapter(book,ch){const P=chapterParts(book);const[o,T,A]=await Promise.all([P.o,Promise.all(P.t),Promise.all(P.a)]);return buildChapter(book,ch,o,P.ids,T,A)}
 const origHTML=(ws,lang,cls='')=>ws?`<div class="orig ${lang} ${cls}" lang="${lang==='heb'?'he':'grc'}">`+ws.map((w,i)=>`<span class="w" data-i="${i}" data-k="${w[1]}" data-m="${esc(w[2])}">${esc(w[0])}</span>`).join(' ')+'</div>':'';
 const trHTML=(id,v,text,d)=>{const a=d.al&&d.al[id]&&d.al[id][v],ch=text.trim().split(/\s+/),ok=a&&a.length===ch.length;
   return ch.map((c,i)=>{
@@ -99,12 +102,43 @@ async function render(scrollV){
   const t=++token;applyBody();
   $('#bookLabel').textContent=`${bookRu(cur.book)} ${cur.ch}`;$('#bookBtn').className='pill only-m '+gcls();
   renderTabs();buildSide();
-  const d=await loadChapter(cur.book,cur.ch);if(t!==token)return;
-  CUR=d;const R=$('#reader');const ck=cur.book+cur.ch+S.layout;if(R._ck!==ck){R._ck=ck;R.classList.remove('enter');void R.offsetWidth;R.classList.add('enter')}R.innerHTML=({A:viewA,B:viewB,D:viewD})[S.layout](d)+(S.layout==='B'&&isM()?'':navHTML());
-  renderBar();initSplit();
-  if(scrollV){const el=$(`[data-v="${scrollV}"]`,R);if(el){el.scrollIntoView({block:'center'});el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1700)}}
-  const nxt=BOOKS[BI[cur.book]+((cur.ch>=BOOKS[BI[cur.book]].chapters)?1:0)];if(nxt)J(`data/orig/${nxt.id}.json`);
+  const R=$('#reader'),ck=cur.book+cur.ch+S.layout,book=cur.book,ch=cur.ch,P=chapterParts(book);
+  let stage=0;
+  const show=(d,st,final)=>{
+    if(t!==token||st<=stage)return;stage=st;CUR=d;
+    if(R._ck!==ck){R._ck=ck;R.classList.remove('enter');void R.offsetWidth;R.classList.add('enter')}
+    R.innerHTML=({A:viewA,B:viewB,D:viewD})[S.layout](d)+(S.layout==='B'&&isM()?'':navHTML());
+    renderBar();initSplit();
+    if(final&&scrollV){const el=$(`[data-v="${scrollV}"]`,R);if(el){el.scrollIntoView({block:'center'});el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1700)}}
+  };
+  if(R._ck!==ck)setTimeout(()=>{if(t===token&&!stage){R._ck=null;R.innerHTML=head()+`<div class="rsk">`+'<div class="sk"></div>'.repeat(9)+`</div>`}},120);
+  // 1) первый открытый перевод — сразу, как только пришёл
+  const pi=P.ids.findIndex(id=>!isPriv(id));
+  if(pi>=0)P.t[pi].then(tx=>{if(!stage){const T=P.ids.map((_,i)=>i===pi?tx:undefined);show(buildChapter(book,ch,null,P.ids,T,[]),1,false)}});
+  // 2) оригинал и все общедоступные переводы
+  const pub=P.ids.map((id,i)=>isPriv(id)?Promise.resolve(undefined):P.t[i]),pubA=P.ids.map((id,i)=>isPriv(id)?Promise.resolve(null):P.a[i]);
+  const[o,T,A]=await Promise.all([P.o,Promise.all(pub),Promise.all(pubA)]);
+  const hasPriv=P.ids.some(isPriv);
+  show(buildChapter(book,ch,o,P.ids,T,A),2,!hasPriv);
+  // 3) скрытые переводы (через сервер) — дорисовываем, когда придут
+  if(hasPriv){const[T2,A2]=await Promise.all([Promise.all(P.t),Promise.all(P.a)]);show(buildChapter(book,ch,o,P.ids,T2,A2),3,true)}
+  if(t!==token)return;
+  firstDone();
+  const nxt=BOOKS[BI[cur.book]+((cur.ch>=BOOKS[BI[cur.book]].chapters)?1:0)];if(nxt)setTimeout(()=>J(`data/orig/${nxt.id}.json`),1500);
 }
+/* фоновая подгрузка только после того, как глава показана, и по очереди, чтобы не мешать тексту */
+let WARMED=false;
+function firstDone(){
+  if(WARMED)return;WARMED=true;
+  const slow=(navigator.connection&&(navigator.connection.saveData||/2g/.test(navigator.connection.effectiveType||'')));
+  setTimeout(async()=>{const f=BOOKS[BI[cur.book]].testament==='OT'?'H':'G';
+    await loadLex(f);OCC=OCC||await J('data/occ.json');await loadLex(f==='H'?'G':'H');
+    for(const id of S.sel.filter(x=>x!=='ORIG'&&TRS[x]&&!isPriv(x)))await J(`data/rend/${id}.json`);
+    await J('data/forms_H.json');await J('data/forms_G.json');
+    if(!slow)setTimeout(warmSearch,15000);
+  },900);
+}
+function warmSearch(){const p=primary();if(p&&TRS[p]&&!isPriv(p))Search.index(p).catch(()=>{})}
 const gcls=()=>'g-'+genreOf(cur.book);
 const LAYN={A:'Книга',B:'Стол',D:'Манускрипт'};
 const head=()=>{const b=BOOKS[BI[cur.book]];return `<div class="ch-head ${gcls()}"><nav class="crumbs" aria-label="Где я"><button data-gosec="lib">Библия</button><i>›</i><span>${b.testament==='OT'?'Ветхий Завет':'Новый Завет'} · ${GEN[genreOf(cur.book)]}</span><i>›</i><button data-bkopen="${b.id}">${esc(b.ru)}</button></nav>`+
@@ -500,7 +534,7 @@ function applyBody(){
 }
 function showSec(s,fromNav){
   if(s==='read'&&S.sec==='read'&&fromNav&&!isM()){S.side=!S.side;touchSettings();applyBody();return}
-  const was=S.sec;S.sec=s;applyBody();$('#menu').hidden=true;
+  const was=S.sec;S.sec=s;applyBody();$('#menu').hidden=true;if(s==='search')warmSearch();
   if(s==='read'){$('#page').hidden=true;$('#reader').hidden=false;if(was!=='read')scrollTo(0,0)}
   else{$('#reader').hidden=true;$('#page').hidden=false;if(was==='read'||isM())closeInsp();Pages.render(s);scrollTo(0,0)}
 }
@@ -534,7 +568,7 @@ function bind(){
   $('#mSearch').onclick=()=>{showSec('search');setTimeout(()=>{const i=$('#qInp');if(i)i.focus()},50)};
   $('#inspClose').onclick=closeInsp;placeholder();
   const ji=$('#jumpInp');
-  ji.addEventListener('input',omniSugg);ji.addEventListener('focus',omniSugg);
+  ji.addEventListener('input',omniSugg);ji.addEventListener('focus',()=>{omniSugg();warmSearch()});
   ji.addEventListener('keydown',e=>{
     if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(!SG.length)return;SGi=(SGi+(e.key==='ArrowDown'?1:SG.length-1))%SG.length;$$('#sugg button').forEach((b,i)=>b.classList.toggle('on',i===SGi))}
     if(e.key==='Enter'){e.preventDefault();omniRun(SG[SGi]||(ji.value.trim()&&{t:'search',q:ji.value.trim()}))}

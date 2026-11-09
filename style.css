@@ -295,3 +295,5 @@ html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
 #tabbar button svg{transition:transform .2s var(--ease)}
 .sec-read #tabbar [data-sec="read"] svg,.sec-lib #tabbar [data-sec="lib"] svg,.sec-search #tabbar [data-sec="search"] svg,.sec-notes #tabbar [data-sec="notes"] svg{transform:translateY(-1px) scale(1.08)}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+.rsk{width:min(1000px,100%);margin:10px auto 0;padding:18px 22px;border-radius:20px;background:var(--paper)}.rsk .sk{height:15px;margin:14px 0}.rsk .sk:nth-child(3n){width:72%}.rsk .sk:nth-child(4n+1){width:92%}
