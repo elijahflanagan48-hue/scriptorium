@@ -133,8 +133,6 @@ function firstDone(){
   const slow=(navigator.connection&&(navigator.connection.saveData||/2g/.test(navigator.connection.effectiveType||'')));
   setTimeout(async()=>{const f=BOOKS[BI[cur.book]].testament==='OT'?'H':'G';
     await loadLex(f);OCC=OCC||await J('data/occ.json');await loadLex(f==='H'?'G':'H');
-    for(const id of S.sel.filter(x=>x!=='ORIG'&&TRS[x]&&!isPriv(x)))await J(`data/rend/${id}.json`);
-    await J('data/forms_H.json');await J('data/forms_G.json');
     if(!slow)setTimeout(warmSearch,15000);
   },900);
 }
@@ -324,74 +322,7 @@ function tabArticle(){
   h+=`<div class="ih">Моя заметка к слову</div><textarea class="wnote" id="wnote" placeholder="Например: сравнить с φιλέω">${esc(S.wnotes[k]||'')}</textarea>`;
   $('#ipane').innerHTML=h;
 }
-function tabOcc(){
-  const {k}=INSP;$('#ipane').innerHTML=`<div id="occBox"><div class="hint">Загрузка…</div></div>`;
-  if(!k){$('#occBox').innerHTML='<div class="hint">Для этого слова нет номера Стронга.</div>';return}
-  (async()=>{const all=await occOf(k);
-    const by={};all.forEach(n=>{const bi=Math.floor(n/1e6);by[bi]=(by[bi]||0)+1});
-    const rows=Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,8),mx=rows[0]?rows[0][1]:1;
-    const box=$('#occBox');if(!box)return;
-    box.innerHTML=`<div class="ih" style="margin-top:6px">Всего ${all.length} раз в Библии · по книгам</div><div class="bars">`+rows.map(([bi,n])=>`<div class="bar g-${genreOf(BOOKS[bi].id)}"><span>${esc(BOOKS[bi].ru)}</span><i style="width:${Math.max(4,n/mx*100)}%"></i><b>${n}</b></div>`).join('')+`</div><div class="ih">Отрывки</div><div id="occRows"></div>`;
-    occList(k,0)})();
-}
-async function occList(k,from){
-  const all=await occOf(k);
-  const uniq=[...new Set(all)];const part=uniq.slice(from,from+30);const rows=$('#occRows');if(!rows)return;
-  const pid=primary()||'RST';
-  const items=await Promise.all(part.map(async n=>{const b=BOOKS[Math.floor(n/1e6)],c=Math.floor(n/1000)%1000,v=n%1000;
-    const bd=await J(`data/tr/${pid}/${b.id}.json`);const t=bd&&bd[c]&&bd[c][v]||'';return{b,c,v,t}}));
-  items.forEach(it=>{const a=document.createElement('button');a.className='occ';a.innerHTML=`<b>${esc(it.b.ab)} ${it.c}:${it.v}</b><span>${esc(it.t.slice(0,150))}</span>`;a.onclick=()=>{closeInsp();go(it.b.id,it.c,it.v)};rows.appendChild(a)});
-  $('.more',$('#ipane'))&&$('.more',$('#ipane')).remove();
-  if(from+30<uniq.length){const m=document.createElement('button');m.className='more';m.textContent=`Показать ещё (${uniq.length-from-30})`;m.onclick=()=>occList(k,from+30);$('#ipane').appendChild(m)}
-}
-/* sample renderings & forms over the first N verses where the word occurs */
-const SAMPLE=30,SAMP=new Map();
-function sampleOf(k){
-  const key=k+'|'+S.sel.join(',');if(SAMP.has(key))return SAMP.get(key);
-  const p=(async()=>{
-    const uniq=[...new Set(await occOf(k))];
-    const pick=uniq.length<=SAMPLE?uniq:Array.from({length:SAMPLE},(_,i)=>uniq[Math.floor(i*uniq.length/SAMPLE)]);
-    const forms=new Map(),rend={};const ids=S.sel.filter(x=>x!=='ORIG');ids.forEach(i=>rend[i]=new Map());
-    for(const n of pick){
-      const b=BOOKS[Math.floor(n/1e6)],c=Math.floor(n/1000)%1000,v=n%1000;
-      const o=await J(`data/orig/${b.id}.json`);const ws=o&&o.chapters[c]&&o.chapters[c][v];if(!ws)continue;
-      const idx=[];ws.forEach((w,i)=>{if(w[1]===k){idx.push(i);const f=forms.get(w[0])||{n:0,m:w[2]};f.n++;forms.set(w[0],f)}});
-      for(const id of ids){
-        if(!TRS[id].books.includes(b.id))continue;
-        const t=await J(`data/tr/${id}/${b.id}.json`),a=await J(`data/align/${id}/${b.id}.json`);
-        const txt=t&&t[c]&&t[c][v],al=a&&a[c]&&a[c][v];if(!txt||!al)continue;const ch=txt.trim().split(/\s+/);if(al.length!==ch.length)continue;
-        for(const i of idx){const r=ch.filter((_,j)=>al[j]===i).map(clean).filter(Boolean).join(' ')||'—';rend[id].set(r,(rend[id].get(r)||0)+1)}
-      }
-    }
-    return{forms,rend,n:pick.length,total:uniq.length};
-  })();
-  SAMP.set(key,p);return p;
-}
-function tabTr(){
-  const {k}=INSP;$('#ipane').innerHTML=`<div class="hint">Загружаю…</div>`;if(!k){$('#ipane').innerHTML='<div class="hint">Нет номера Стронга.</div>';return}
-  const ids=S.sel.filter(x=>x!=='ORIG'&&TRS[x]);
-  Promise.all(ids.map(id=>J(`data/rend/${id}.json`).catch(()=>null))).then(async pre=>{
-    if(!INSP||INSP.k!==k||INSP.tab!=='t'||!$('#ipane'))return;
-    const rend={};let sampled=null;
-    for(let i=0;i<ids.length;i++){const rows=pre[i]&&pre[i][k];
-      if(pre[i]){if(rows&&rows.length)rend[ids[i]]=rows}
-      else{if(!sampled)sampled=await sampleOf(k);const m=sampled.rend[ids[i]];if(m&&m.size)rend[ids[i]]=[...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6)}}
-    if(!INSP||INSP.k!==k||INSP.tab!=='t'||!$('#ipane'))return;
-    const have=ids.filter(id=>rend[id]);
-    $('#ipane').innerHTML=(have.length?have.map(id=>{const rows=rend[id],mx=rows[0][1];
-      return `<div class="card ${id===primary()?'':'o'}"><h5>${esc(TRS[id].name)}</h5><div class="bars">`+rows.map(([t,n])=>`<div class="bar"><span>${t==='—'?'не передано':esc(t)}</span><i style="width:${Math.max(4,n/mx*100)}%"></i><b>${n}</b></div>`).join('')+`</div></div>`}).join(''):'<div class="hint">Для включённых переводов нет данных соответствия.</div>')+
-      `<div class="hint">По всем вхождениям слова. Соответствие слов определено автоматически и может содержать неточности.</div>`});
-}
-function tabForms(){
-  const {k,isH}=INSP;$('#ipane').innerHTML=`<div class="hint">Загружаю…</div>`;if(!k){$('#ipane').innerHTML='<div class="hint">Нет номера Стронга.</div>';return}
-  J(`data/forms_${isH?'H':'G'}.json`).then(async F=>{
-    if(!INSP||INSP.k!==k||INSP.tab!=='f'||!$('#ipane'))return;
-    let rows,total;
-    if(F&&F[k]){total=F[k][0];rows=F[k].slice(1).map(([f,m,n])=>[f,{n,m}])}
-    else{const s=await sampleOf(k);if(!INSP||INSP.k!==k||INSP.tab!=='f'||!$('#ipane'))return;rows=[...s.forms.entries()].sort((a,b)=>b[1].n-a[1].n)}
-    $('#ipane').innerHTML=`<div class="bars" style="gap:10px">`+rows.map(([f,o])=>{const dm=decode(isH?'H':'G',o.m);return `<div class="ibox warm"><span class="f ${isH?'he':'gr'}">${esc(f)}</span> <b style="float:right">${o.n}×</b><div style="font-size:13.5px;color:var(--mute)">${esc(dm.pos||'')}${dm.detail?', '+esc(dm.detail):''}</div></div>`}).join('')+`</div><div class="hint">${total?`Самые частые формы по всем ${total} стихам с этим словом.`:'По выборке стихов с этим словом.'}</div>`});
-}
-
+/* разделы «Где ещё», «Как переводят», «Формы» — в insight.js */
 /* ---------- verse menu: highlight + note ---------- */
 function verseMenu(el){
   const ref=el.dataset.ref,[b,c,v]=ref.split('.'),menu=$('#menu');
