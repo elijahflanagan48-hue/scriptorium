@@ -36,6 +36,9 @@ const shortName=id=>SHORT[id]||id;
   bind();go(cur.book,cur.ch,h&&h.v);
   Sync.init(S,{status:accStatus,applied:()=>{save();cur=S.last;render()}});
   J('data/occ.json').then(o=>OCC=o);
+  /* фоновая подгрузка: поиск и панель слова открываются мгновенно */
+  const warm=()=>{const p=primary();if(p&&TRS[p])Search.index(p).catch(()=>{});lexOf('G0025');lexOf('H0157');S.sel.filter(x=>x!=='ORIG').forEach(id=>J(`data/rend/${id}.json`));J('data/forms_H.json');J('data/forms_G.json')};
+  (window.requestIdleCallback||(f=>setTimeout(f,2500)))(warm,{timeout:5000});
 })();
 function parseHash(){const m=(location.hash||'').match(/^#([0-9A-Za-z]+)\.(\d+)(?:\.(\d+))?$/);return m&&BI[m[1]]!==undefined?{book:m[1],ch:+m[2],v:m[3]?+m[3]:0}:null}
 const bookRu=id=>BOOKS[BI[id]].ru, bookAb=id=>BOOKS[BI[id]].ab;
@@ -315,18 +318,28 @@ function sampleOf(k){
   SAMP.set(key,p);return p;
 }
 function tabTr(){
-  const {k}=INSP;$('#ipane').innerHTML=`<div class="hint">Считаю по текстам…</div>`;if(!k){$('#ipane').innerHTML='<div class="hint">Нет номера Стронга.</div>';return}
-  sampleOf(k).then(s=>{if(!INSP||INSP.k!==k||INSP.tab!=='t'||!$('#ipane'))return;
-    const ids=Object.keys(s.rend).filter(id=>s.rend[id].size);
-    $('#ipane').innerHTML=(ids.length?ids.map((id,i)=>{const rows=[...s.rend[id].entries()].sort((a,b)=>b[1]-a[1]).slice(0,6),mx=rows[0][1];
+  const {k}=INSP;$('#ipane').innerHTML=`<div class="hint">Загружаю…</div>`;if(!k){$('#ipane').innerHTML='<div class="hint">Нет номера Стронга.</div>';return}
+  const ids=S.sel.filter(x=>x!=='ORIG'&&TRS[x]);
+  Promise.all(ids.map(id=>J(`data/rend/${id}.json`).catch(()=>null))).then(async pre=>{
+    if(!INSP||INSP.k!==k||INSP.tab!=='t'||!$('#ipane'))return;
+    const rend={};let sampled=null;
+    for(let i=0;i<ids.length;i++){const rows=pre[i]&&pre[i][k];
+      if(pre[i]){if(rows&&rows.length)rend[ids[i]]=rows}
+      else{if(!sampled)sampled=await sampleOf(k);const m=sampled.rend[ids[i]];if(m&&m.size)rend[ids[i]]=[...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6)}}
+    if(!INSP||INSP.k!==k||INSP.tab!=='t'||!$('#ipane'))return;
+    const have=ids.filter(id=>rend[id]);
+    $('#ipane').innerHTML=(have.length?have.map(id=>{const rows=rend[id],mx=rows[0][1];
       return `<div class="card ${id===primary()?'':'o'}"><h5>${esc(TRS[id].name)}</h5><div class="bars">`+rows.map(([t,n])=>`<div class="bar"><span>${t==='—'?'не передано':esc(t)}</span><i style="width:${Math.max(4,n/mx*100)}%"></i><b>${n}</b></div>`).join('')+`</div></div>`}).join(''):'<div class="hint">Для включённых переводов нет данных соответствия.</div>')+
-      `<div class="hint">По ${s.n} из ${s.total} стихов с этим словом. Соответствие слов определено автоматически и может содержать неточности.</div>`});
+      `<div class="hint">По всем вхождениям слова. Соответствие слов определено автоматически и может содержать неточности.</div>`});
 }
 function tabForms(){
-  const {k,isH}=INSP;$('#ipane').innerHTML=`<div class="hint">Собираю формы…</div>`;if(!k){$('#ipane').innerHTML='<div class="hint">Нет номера Стронга.</div>';return}
-  sampleOf(k).then(s=>{if(!INSP||INSP.k!==k||INSP.tab!=='f'||!$('#ipane'))return;
-    const rows=[...s.forms.entries()].sort((a,b)=>b[1].n-a[1].n);
-    $('#ipane').innerHTML=`<div class="bars" style="gap:10px">`+rows.map(([f,o])=>{const dm=decode(isH?'H':'G',o.m);return `<div class="ibox warm"><span class="f ${isH?'he':'gr'}">${esc(f)}</span> <b style="float:right">${o.n}×</b><div style="font-size:13.5px;color:var(--mute)">${esc(dm.pos||'')}${dm.detail?', '+esc(dm.detail):''}</div></div>`}).join('')+`</div><div class="hint">По ${s.n} из ${s.total} стихов с этим словом.</div>`});
+  const {k,isH}=INSP;$('#ipane').innerHTML=`<div class="hint">Загружаю…</div>`;if(!k){$('#ipane').innerHTML='<div class="hint">Нет номера Стронга.</div>';return}
+  J(`data/forms_${isH?'H':'G'}.json`).then(async F=>{
+    if(!INSP||INSP.k!==k||INSP.tab!=='f'||!$('#ipane'))return;
+    let rows,total;
+    if(F&&F[k]){total=F[k][0];rows=F[k].slice(1).map(([f,m,n])=>[f,{n,m}])}
+    else{const s=await sampleOf(k);if(!INSP||INSP.k!==k||INSP.tab!=='f'||!$('#ipane'))return;rows=[...s.forms.entries()].sort((a,b)=>b[1].n-a[1].n)}
+    $('#ipane').innerHTML=`<div class="bars" style="gap:10px">`+rows.map(([f,o])=>{const dm=decode(isH?'H':'G',o.m);return `<div class="ibox warm"><span class="f ${isH?'he':'gr'}">${esc(f)}</span> <b style="float:right">${o.n}×</b><div style="font-size:13.5px;color:var(--mute)">${esc(dm.pos||'')}${dm.detail?', '+esc(dm.detail):''}</div></div>`}).join('')+`</div><div class="hint">${total?`Самые частые формы по всем ${total} стихам с этим словом.`:'По выборке стихов с этим словом.'}</div>`});
 }
 
 /* ---------- verse menu: highlight + note ---------- */

@@ -48,6 +48,15 @@ const Search=(()=>{
   async function index(tid,prog){
     if(IX[tid])return IX[tid];
     const T=TRS[tid];let done=0;
+    const pre=await J(`data/ix/${tid}.json`);
+    if(pre){
+      const ids=pre.ids,txt=pre.txt,tok=new Map();
+      for(const w in pre.tok){const d=pre.tok[w];let s=0;const a=new Array(d.length);for(let i=0;i<d.length;i++){s+=d[i];a[i]=s}tok.set(w,a)}
+      const stem=T.lang==='ru'?stemRu:stemEn,stems=new Map();for(const w of tok.keys())stems.set(w,stem(w));
+      const t2s=(await J(`data/t2s/${tid}.json`))||{};
+      const pos=new Map();ids.forEach((n,k)=>pos.set(n,k));prog&&prog(1,1);
+      return IX[tid]={tid,lang:T.lang,ids,txt,tok,stem,stems,t2s,pos,flat:null,rev:null};
+    }
     const parts=await Promise.all(T.books.map(async bid=>{const d=await J(`data/tr/${tid}/${bid}.json`);prog&&prog(++done,T.books.length);return[bid,d]}));
     const rows=[];
     for(const[bid,d]of parts){if(!d)continue;const bi=BI[bid];for(const c in d)for(const v in d[c])rows.push([bi*1e6+(+c)*1000+(+v),d[c][v]])}
