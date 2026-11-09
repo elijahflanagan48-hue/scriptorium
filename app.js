@@ -294,7 +294,11 @@ document.addEventListener('mouseout',e=>{if(e.target.closest&&e.target.closest('
 /* ---------- word article (inspector) ---------- */
 const clean=s=>s.toLowerCase().replace(/[.,;:!?«»"“”‘’()\[\]—–·]/g,'').trim();
 function placeholder(){$('#inspBody').innerHTML=`<div class="insp-empty"><b>Статья слова</b>Нажми на слово оригинала или перевода — здесь появятся разбор формы, значения, места употребления и то, как слово передано в переводах.</div>`}
-function openInsp(){const el=$('#inspector'),was=el.classList.contains('open');el.classList.add('open');if(isM()||innerWidth<1100||S.sec!=='read'||S.layout==='R')document.body.classList.add('insp-open');if(isM()){if(!was){el.scrollTop=0;Sheet.to('half')}const t=LASTTAP&&LASTTAP.isConnected&&!LASTTAP.closest('.pbody')?LASTTAP.getBoundingClientRect():null;if(t&&t.bottom>innerHeight*.44)scrollBy({top:t.top-innerHeight*.22,behavior:'smooth'});LASTTAP=null;lockScroll('insp')}}
+function openInsp(){const el=$('#inspector'),was=el.classList.contains('open');el.classList.add('open');if(isM()){if(!was){el.scrollTop=0;Sheet.to('half')}const t=LASTTAP&&LASTTAP.isConnected&&!LASTTAP.closest('.pbody')?LASTTAP.getBoundingClientRect():null;if(t&&t.bottom>innerHeight*.44)scrollBy({top:t.top-innerHeight*.22,behavior:'smooth'});LASTTAP=null;lockScroll('insp')}}
+const inspOverlay=()=>isM()||innerWidth<1100||S.sec!=='read'||S.layout==='R';
+/* карточка слова без затемнения: закрывается нажатием мимо неё */
+document.addEventListener('click',e=>{const el=$('#inspector');if(!el.classList.contains('open')||!inspOverlay())return;
+  if(e.target.closest('#inspector,.w,.tw,.tw0,.vn,#menu,#modal,#pop,#lbar,#sugg,[data-wart],.fn'))return;closeInsp()},true);
 function closeInsp(){const el=$('#inspector');el.classList.remove('open','full');el.style.transform='';el.style.transition='';document.body.classList.remove('insp-open');unlockScroll('insp');$$('.w.pin').forEach(x=>x.classList.remove('pin'))}
 async function inspect(wd,isH,pinSel,ctx){
   $$('.w.pin').forEach(x=>x.classList.remove('pin'));if(pinSel)$$(pinSel).forEach(x=>x.classList.add('pin'));
