@@ -8,7 +8,7 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(typ
 const stamp=k=>{S.ts[k]=Date.now();save()};
 const touchSettings=()=>{S.sts=Date.now();save()};
 const cache=new Map();
-const PRIV=/^data\/(tr|align)\/BTI\/([^/]+)\.json$/;
+const PRIV=/^data\/(tr|align|nt)\/BTI\/([^/]+)\.json$/;const FNS={};
 const J=p=>{const pm=PRIV.exec(p);if(pm){if(!cache.has(p))cache.set(p,(Sync.user&&Sync.user.access?Sync.pget(pm[1]+'/BTI/'+pm[2]):Promise.resolve(null)).catch(()=>{cache.delete(p);return null}));return cache.get(p)}
   if(!cache.has(p))cache.set(p,fetch(p).then(r=>{if(!r.ok)throw 0;return r.json()}).catch(()=>{cache.delete(p);return null}));return cache.get(p)};
 let PEND=false,CUR=null,IDX,BOOKS,BI={},TRS={},OCC=null,LEX={},cur=S.last,token=0,sideT=null,INSP=null;
@@ -81,21 +81,26 @@ const refLabel=r=>`${bookRu(r.book)} ${r.ch}${r.v?':'+r.v:''}`;
 const isPriv=id=>PRIV.test(`data/tr/${id}/x.json`);
 function chapterParts(book){
   const ids=S.sel.filter(x=>x!=='ORIG'&&TRS[x]&&TRS[x].books.includes(book));
-  return{book,ids,o:J(`data/orig/${book}.json`),t:ids.map(id=>J(`data/tr/${id}/${book}.json`)),a:ids.map(id=>J(`data/align/${id}/${book}.json`))};
+  return{book,ids,o:J(`data/orig/${book}.json`),t:ids.map(id=>J(`data/tr/${id}/${book}.json`)),a:ids.map(id=>isPriv(id)?Promise.all([J(`data/align/${id}/${book}.json`),J(`data/nt/${id}/${book}.json`).then(x=>{FNS[id+'|'+book]=x||{}})]).then(r=>r[0]):J(`data/align/${id}/${book}.json`))};
 }
 function buildChapter(book,ch,o,ids,T,A){
   const orig=o?o.chapters[ch]||{}:{},lang=o?o.lang:(BOOKS[BI[book]].testament==='NT'?'grc':'heb'),tr={},al={};
   ids.forEach((id,i)=>{if(T[i]!==undefined){tr[id]=T[i]?T[i][ch]||{}:{};al[id]=A[i]?A[i][ch]||{}:{}}});
   const nums=new Set(Object.keys(orig).map(Number));for(const id in tr)for(const v in tr[id])nums.add(+v);
-  return{orig,lang,tr,al,verses:[...nums].sort((a,b)=>a-b)};
+  return{orig,lang,tr,al,book,ch,verses:[...nums].sort((a,b)=>a-b)};
 }
 async function loadChapter(book,ch){const P=chapterParts(book);const[o,T,A]=await Promise.all([P.o,Promise.all(P.t),Promise.all(P.a)]);return buildChapter(book,ch,o,P.ids,T,A)}
 const origHTML=(ws,lang,cls='')=>ws?`<div class="orig ${lang} ${cls}" lang="${lang==='heb'?'he':'grc'}">`+ws.map((w,i)=>`<span class="w" data-i="${i}" data-k="${w[1]}" data-m="${esc(w[2])}">${esc(w[0])}</span>`).join(' ')+'</div>':'';
 const trHTML=(id,v,text,d)=>{const a=d.al&&d.al[id]&&d.al[id][v],ch=text.trim().split(/\s+/),ok=a&&a.length===ch.length;
-  return ch.map((c,i)=>{
-    if(ok&&a[i]>=0)return `<span class="tw" data-t="${id}" data-j="${i}" data-a="${a[i]}">${esc(c)}</span>`;
-    if(!/\p{L}/u.test(c))return esc(c);
-    return `<span class="tw0" data-t="${id}" data-j="${i}" data-na="${ok?0:1}">${esc(c)}</span>`}).join(' ')};
+  const fl=FNS[id+'|'+d.book]&&FNS[id+'|'+d.book][d.ch+':'+v],fm={};if(fl)fl.forEach((f,k)=>(fm[f[0]]=fm[f[0]]||[]).push(`<sup class="fn" data-fn="${id}|${d.ch}:${v}|${k}">${esc(f[1]||'•')}</sup>`));
+  return ch.map((c,i)=>{const sp=fm[i]?fm[i].join(''):'';
+    if(ok&&a[i]>=0)return `<span class="tw" data-t="${id}" data-j="${i}" data-a="${a[i]}">${esc(c)}</span>`+sp;
+    if(!/\p{L}/u.test(c))return esc(c)+sp;
+    return `<span class="tw0" data-t="${id}" data-j="${i}" data-na="${ok?0:1}">${esc(c)}</span>`+sp}).join(' ')};
+function fnShow(el){const p=el.dataset.fn.split('|'),f=FNS[p[0]+'|'+(CUR&&CUR.book||'')];const lst=(f&&f[p[1]])||[];const n=lst[+p[2]];if(!n)return;
+  const pop=$('#pop');pop.innerHTML=`<div class="fnt">${esc(n[2])}</div>`;pop.hidden=false;
+  const r=el.getBoundingClientRect(),pw=pop.offsetWidth,ph=pop.offsetHeight;let x=Math.min(Math.max(8,r.left+r.width/2-pw/2),innerWidth-pw-8),y=r.bottom+8;if(y+ph>innerHeight-8)y=r.top-ph-8;pop.style.left=x+'px';pop.style.top=y+'px'}
+
 const vnHTML=(ref,v)=>`<span class="vn" data-ref="${ref}" title="Выделение и заметка">${v}${S.notes[ref]?'<span class="note-dot">✎</span>':''}</span>`;
 const hlc=ref=>S.hl[ref]?' hl'+S.hl[ref]:'';
 
@@ -282,6 +287,8 @@ document.addEventListener('mouseover',e=>{
     $$(`[data-ref="${ref}"] .w[data-i="${t.dataset.a}"]`).forEach(x=>x.classList.add('hi'));
   }
 });
+document.addEventListener('mouseover',e=>{const f=e.target.closest&&e.target.closest('.fn');if(f&&matchMedia('(hover:hover)').matches)fnShow(f)});
+document.addEventListener('mouseout',e=>{if(e.target.closest&&e.target.closest('.fn'))$('#pop').hidden=true});
 document.addEventListener('mouseout',e=>{if(e.target.closest&&e.target.closest('.w,.tw,.tw0')){$('#pop').hidden=true;hiClear()}});
 
 /* ---------- word article (inspector) ---------- */
@@ -367,6 +374,7 @@ document.addEventListener('click',async e=>{
     else{S.sel=S.sel.filter(x=>x!==id);S.sel.unshift(id)}
     touchSettings();render();return}
   const act=t.closest('[data-act]');if(act){if(act.dataset.act==='texts')textsSheet();return}
+  const fnEl=t.closest('.fn');if(fnEl){fnShow(fnEl);return}
   const w=t.closest('.w');if(w){const ref=refOf(w);inspect([w.textContent,w.dataset.k,w.dataset.m],!!w.closest('.heb'),ref?`[data-ref="${ref}"] .w[data-i="${w.dataset.i}"]`:null,ref?{ref,i:w.dataset.i}:null);return}
   const tw=t.closest('.tw');if(tw){const wd=origWord(tw),ref=refOf(tw);if(wd)inspect(wd,CUR.lang==='heb',`[data-ref="${ref}"] .w[data-i="${tw.dataset.a}"]`,{ref,i:tw.dataset.a});return}
   const t0=t.closest('.tw0');if(t0){const m=missInfo(t0);

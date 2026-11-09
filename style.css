@@ -366,3 +366,5 @@ html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
   body.sec-read.layout-R #inspector.open{transform:none}
   body.sec-read.layout-R #inspClose{display:flex}
 }
+
+.fn{font-size:.62em;vertical-align:super;line-height:0;color:var(--accent-ink);cursor:help;font-weight:700;margin:0 1px;padding:0 1px;font-family:var(--ui,inherit)}.fn:hover{background:color-mix(in srgb,var(--accent-ink) 18%,transparent);border-radius:3px}#pop .fnt{font-size:13.5px;line-height:1.45}
