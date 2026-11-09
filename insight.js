@@ -100,8 +100,13 @@ window.tabTr=function(){
       const host=document.createElement('div');card.appendChild(host);
       const mk=(r,label,cls)=>acc(`<span class="al">${label}</span><i style="width:${Math.max(4,r[1].length/mx*100)}%"></i><b>${r[1].length}</b>`,cls,
         b=>vlist(b,dec(r[1]),id,w=>w[1]===k,x=>x===r[0]));
-      const items=real.map(r=>mk(r,esc(r[0])));
-      rowsBox(host,items,8,'варианты');
+      const main=real.filter(r=>r[1].length>1),single=real.filter(r=>r[1].length===1);
+      rowsBox(host,main.map(r=>mk(r,esc(r[0]))),8,'варианты');
+      if(single.length){ // единичные места чаще всего — вольные переводы или сбои выравнивания: держим отдельно
+        const set=new Set(single.map(r=>r[0]));
+        host.appendChild(acc(`<span class="al">единичные варианты (${single.length})</span><i style="width:4%"></i><b>${single.length}</b>`,'none',
+          b=>vlist(b,single.flatMap(r=>dec(r[1])),id,w=>w[1]===k,x=>set.has(x))));
+      }
       if(none)host.appendChild(mk(none,'без соответствия в этом переводе','none'));
     });
     pane.insertAdjacentHTML('beforeend','<div class="hint">Соответствия строятся автоматическим выравниванием слов; откройте строку — слово подсвечено в каждом стихе. «Без соответствия» — места, где выравнивание не нашло слову пары.</div>');
