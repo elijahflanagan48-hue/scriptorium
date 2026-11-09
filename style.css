@@ -362,9 +362,12 @@ html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
 @media(min-width:1100px){
   body.sec-read.layout-R #body{grid-template-columns:292px minmax(0,1fr)}
   body.sec-read.layout-R.side-off #body{grid-template-columns:minmax(0,1fr)}
-  body.sec-read.layout-R #inspector{position:fixed;top:var(--top);right:0;bottom:0;height:auto;width:400px;transform:translateX(105%);box-shadow:var(--shadow)}
-  body.sec-read.layout-R #inspector.open{transform:none}
+  body.sec-read.layout-R:not(.icol) #inspector{display:none}
+  body.sec-read.layout-R.icol #body{grid-template-columns:292px minmax(0,1fr) 400px}
+  body.sec-read.layout-R.icol.side-off #body{grid-template-columns:minmax(0,1fr) 400px}
+  body.sec-read.layout-R.icol #inspector{animation:fadeIn .2s ease-out both}
   body.sec-read.layout-R #inspClose{display:flex}
 }
 
 .fn{font-size:.62em;vertical-align:super;line-height:0;color:var(--accent-ink);cursor:help;font-weight:700;margin:0 1px;padding:0 1px;font-family:var(--ui,inherit)}.fn:hover{background:color-mix(in srgb,var(--accent-ink) 18%,transparent);border-radius:3px}#pop .fnt{font-size:13.5px;line-height:1.45}
+@media(min-width:821px){#scrim{display:none}}
