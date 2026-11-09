@@ -35,9 +35,9 @@ const shortName=id=>SHORT[id]||id;
   try{speechSynthesis.getVoices()}catch(e){}
   bind();go(cur.book,cur.ch,h&&h.v);
   Sync.init(S,{status:accStatus,applied:()=>{save();cur=S.last;render()}});
-  J('data/occ.json').then(o=>OCC=o);
+  setTimeout(()=>{const f=BOOKS[BI[cur.book]].testament==='OT'?'H':'G';loadLex(f).then(()=>loadLex(f==='H'?'G':'H'));J('data/occ.json').then(o=>OCC=o)},300);
   /* фоновая подгрузка: поиск и панель слова открываются мгновенно */
-  const warm=()=>{const p=primary();if(p&&TRS[p])Search.index(p).catch(()=>{});lexOf('G0025');lexOf('H0157');S.sel.filter(x=>x!=='ORIG').forEach(id=>J(`data/rend/${id}.json`));J('data/forms_H.json');J('data/forms_G.json')};
+  const warm=()=>{const p=primary();if(p&&TRS[p])Search.index(p).catch(()=>{});S.sel.filter(x=>x!=='ORIG').forEach(id=>J(`data/rend/${id}.json`));J('data/forms_H.json');J('data/forms_G.json')};
   (window.requestIdleCallback||(f=>setTimeout(f,2500)))(warm,{timeout:5000});
 })();
 function parseHash(){const m=(location.hash||'').match(/^#([0-9A-Za-z]+)\.(\d+)(?:\.(\d+))?$/);return m&&BI[m[1]]!==undefined?{book:m[1],ch:+m[2],v:m[3]?+m[3]:0}:null}
@@ -100,7 +100,7 @@ async function render(scrollV){
   $('#bookLabel').textContent=`${bookRu(cur.book)} ${cur.ch}`;$('#bookBtn').className='pill only-m '+gcls();
   renderTabs();buildSide();
   const d=await loadChapter(cur.book,cur.ch);if(t!==token)return;
-  CUR=d;const R=$('#reader');R.innerHTML=({A:viewA,B:viewB,D:viewD})[S.layout](d)+(S.layout==='B'&&isM()?'':navHTML());
+  CUR=d;const R=$('#reader');const ck=cur.book+cur.ch+S.layout;if(R._ck!==ck){R._ck=ck;R.classList.remove('enter');void R.offsetWidth;R.classList.add('enter')}R.innerHTML=({A:viewA,B:viewB,D:viewD})[S.layout](d)+(S.layout==='B'&&isM()?'':navHTML());
   renderBar();initSplit();
   if(scrollV){const el=$(`[data-v="${scrollV}"]`,R);if(el){el.scrollIntoView({block:'center'});el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1700)}}
   const nxt=BOOKS[BI[cur.book]+((cur.ch>=BOOKS[BI[cur.book]].chapters)?1:0)];if(nxt)J(`data/orig/${nxt.id}.json`);
@@ -188,7 +188,14 @@ function buildSide(){
 }
 
 /* ---------- lexicon / popovers ---------- */
-async function lexOf(k){const f=k[0];if(!LEX[f])LEX[f]=(await J(f==='H'?'data/lex_H.json':'data/lex_G.json'))||{};return LEX[f][k]}
+/* словарь и вхождения: сначала маленькая часть (100 номеров), полный файл грузится в фоне */
+const SH={},LXP={};
+function shard(kind,k){const m=/^([GH])(\d+)/.exec(k||'');if(!m)return Promise.resolve({});const id=`${kind}/${m[1]}${String(Math.floor(+m[2]/100)).padStart(3,'0')}`;return SH[id]||(SH[id]=J(`data/${id}.json`).then(x=>x||{}))}
+function loadLex(f){return LXP[f]||(LXP[f]=J(f==='H'?'data/lex_H.json':'data/lex_G.json').then(x=>LEX[f]=x||{}))}
+async function lexOf(k){if(!k)return null;const f=k[0];if(LEX[f])return LEX[f][k];return (await shard('lx',k))[k]}
+const lexNow=k=>k&&LEX[k[0]]?LEX[k[0]][k]:null;
+async function occOf(k){if(!k)return[];if(OCC)return OCC[k]||[];return (await shard('oc',k))[k]||[]}
+function prefetchWord(k){if(k){lexOf(k);occOf(k)}}
 function decode(k,m){try{return k[0]==='G'||/^[A-Z]{1,2} /.test(m)?decGrc(m):decHeb(m)}catch(e){return{pos:'',detail:m}}}
 async function popWord(anchor,wd,isH,note){
   const [surf,k,m]=wd;const dm=decode(isH?'H':'G',m);const lx=k?await lexOf(k):null;if(!anchor.matches(':hover'))return;
@@ -223,6 +230,9 @@ function popNote(anchor,m){
   let x=Math.min(Math.max(8,r.left+r.width/2-pw/2),innerWidth-pw-8),y=r.bottom+8;if(y+ph>innerHeight-8)y=r.top-ph-8;
   pop.style.left=x+'px';pop.style.top=y+'px';
 }
+const prefetchEl=t=>{if(t.classList.contains('w'))prefetchWord(t.dataset.k);else if(t.classList.contains('tw')&&CUR){const wd=origWord(t);if(wd)prefetchWord(wd[1])}};
+let LASTTAP=null;
+document.addEventListener('touchstart',e=>{const t=e.target.closest&&e.target.closest('.w,.tw,.tw0');if(t){LASTTAP=t;prefetchEl(t)}},{passive:true});
 document.addEventListener('mouseover',e=>{
   if(isM())return;
   const t=e.target.closest&&e.target.closest('.w,.tw,.tw0');if(!t)return;
@@ -243,23 +253,28 @@ document.addEventListener('mouseout',e=>{if(e.target.closest&&e.target.closest('
 /* ---------- word article (inspector) ---------- */
 const clean=s=>s.toLowerCase().replace(/[.,;:!?«»"“”‘’()\[\]—–·]/g,'').trim();
 function placeholder(){$('#inspBody').innerHTML=`<div class="insp-empty"><b>Статья слова</b>Нажми на слово оригинала или перевода — здесь появятся разбор формы, значения, места употребления и то, как слово передано в переводах.</div>`}
-function openInsp(){$('#inspector').classList.add('open');if(isM()||innerWidth<1100||S.sec!=='read')document.body.classList.add('insp-open')}
-function closeInsp(){$('#inspector').classList.remove('open');document.body.classList.remove('insp-open');$$('.w.pin').forEach(x=>x.classList.remove('pin'))}
+function openInsp(){const el=$('#inspector'),was=el.classList.contains('open');el.classList.add('open');if(isM()||innerWidth<1100||S.sec!=='read')document.body.classList.add('insp-open');if(isM()){if(!was){el.scrollTop=0;Sheet.to('half')}const t=LASTTAP&&LASTTAP.isConnected&&!LASTTAP.closest('.pbody')?LASTTAP.getBoundingClientRect():null;if(t&&t.bottom>innerHeight*.44)scrollBy({top:t.top-innerHeight*.22,behavior:'smooth'});LASTTAP=null;lockScroll('insp')}}
+function closeInsp(){const el=$('#inspector');el.classList.remove('open','full');el.style.transform='';el.style.transition='';document.body.classList.remove('insp-open');unlockScroll('insp');$$('.w.pin').forEach(x=>x.classList.remove('pin'))}
 async function inspect(wd,isH,pinSel,ctx){
   $$('.w.pin').forEach(x=>x.classList.remove('pin'));if(pinSel)$$(pinSel).forEach(x=>x.classList.add('pin'));
-  const k=wd[1],dm=decode(isH?'H':'G',wd[2]);const lx=k?await lexOf(k):null;
-  const same=INSP&&INSP.k===k;
-  INSP={wd,isH,k,dm,lx,ctx,tab:same?INSP.tab:'a'};
+  const k=wd[1],dm=decode(isH?'H':'G',wd[2]);const same=INSP&&INSP.k===k;
+  const I=INSP={wd,isH,k,dm,lx:lexNow(k),ctx,tab:same?INSP.tab:'a'};
   renderInsp();openInsp();
+  if(k&&!I.lx){const lx=await lexOf(k);if(INSP===I&&lx){I.lx=lx;fillLex()}}
 }
 function renderInsp(){
   const I=INSP;if(!I)return;const {wd,isH,k,dm,lx}=I;
   const tabs=[['a','Статья'],['o','Где ещё'],['t','Как переводят'],['f','Формы']];
-  const cnt=k&&OCC&&OCC[k]?OCC[k].length:0;
-  $('#inspBody').innerHTML=`<div class="ihero ${isH?'he':''}"><div class="k">${esc(k||'без номера Стронга')} · ${esc(dm.pos||'')}</div><div class="lm ${isH?'he':'gr'}">${esc(lx?lx.lemma:wd[0])}</div><div class="sub">${lx?esc(lx.tr)+' · «'+esc(lx.gloss)+'»':''}</div>
+  $('#inspBody').innerHTML=`<div class="grab" aria-hidden="true"></div><div class="ihero ${isH?'he':''}"><div class="k">${esc(k||'без номера Стронга')} · ${esc(dm.pos||'')}</div><div class="lm ${isH?'he':'gr'}" id="iLemma">${esc(lx?lx.lemma:wd[0])}</div><div class="sub" id="iSub">${lx?esc(lx.tr)+' · «'+esc(lx.gloss)+'»':(k?'<span class="sk" style="width:60%"></span>':'')}</div>
     <div class="say"><button data-say="n" data-w="lemma">🔊 Звучание</button><button data-say="t" data-w="lemma">🔊 Как читается</button></div><div class="trl">читается: <b>${esc(Speech.tr(lx?lx.lemma:wd[0],isH))}</b> · условное чтение</div><div class="saynote" id="saynote"></div></div>`+
     `<div class="itabs">`+tabs.map(([i,n])=>`<button data-it="${i}" class="${I.tab===i?'on':''}">${n}</button>`).join('')+`</div><div class="ipane" id="ipane"></div>`;
   ({a:tabArticle,o:tabOcc,t:tabTr,f:tabForms})[I.tab]();
+}
+function fillLex(){ // словарь пришёл после открытия: дописываем без перерисовки
+  const I=INSP,lx=I&&I.lx;if(!lx)return;const a=$('#iLemma'),b=$('#iSub');
+  if(a)a.textContent=lx.lemma;if(b)b.textContent=lx.tr+' · «'+lx.gloss+'»';
+  const t=$('.trl b',$('.ihero'));if(t)t.textContent=Speech.tr(lx.lemma,I.isH);
+  if(I.tab==='a'){const sc=$('#inspector').scrollTop;tabArticle();$('#inspector').scrollTop=sc}
 }
 function tabArticle(){
   const {wd,isH,k,dm,lx,ctx}=INSP;let h='';
@@ -269,6 +284,7 @@ function tabArticle(){
   if(ctx){const by={};$$(`[data-ref="${ctx.ref}"] .tw[data-a="${ctx.i}"]`).forEach(x=>{(by[x.dataset.t]=by[x.dataset.t]||[]).push(x.textContent)});
     const keys=Object.keys(by);if(keys.length)h+=`<div style="margin-top:6px">`+keys.map(t=>`<b>${esc(shortName(t))}</b>: «${esc(by[t].join(' '))}»`).join(' · ')+`</div>`}
   h+='</div>';
+  if(!lx&&k)h+=`<div class="ih">Значения</div><div class="sk" style="width:45%;height:18px"></div><div class="sk"></div><div class="sk"></div><div class="sk" style="width:70%"></div>`;
   if(lx){h+=`<div class="ih">Значения</div><div style="font-weight:700;margin-bottom:6px">${esc(lx.gloss)}</div><div class="def clamp" id="def">${lx.def.replace(/^(__)+/gm,m=>"\u2003".repeat(m.length/2))}</div><button class="more" id="defMore">Показать полностью</button>`;
     h+=`<div class="hint">Словарь: STEPBible ${isH?'TBESH':'TBESG'}, CC BY 4.0.</div>`}
   h+=`<div class="ih">Моя заметка к слову</div><textarea class="wnote" id="wnote" placeholder="Например: сравнить с φιλέω">${esc(S.wnotes[k]||'')}</textarea>`;
@@ -277,7 +293,7 @@ function tabArticle(){
 function tabOcc(){
   const {k}=INSP;$('#ipane').innerHTML=`<div id="occBox"><div class="hint">Загрузка…</div></div>`;
   if(!k){$('#occBox').innerHTML='<div class="hint">Для этого слова нет номера Стронга.</div>';return}
-  (async()=>{if(!OCC)OCC=await J('data/occ.json');const all=(OCC&&OCC[k])||[];
+  (async()=>{const all=await occOf(k);
     const by={};all.forEach(n=>{const bi=Math.floor(n/1e6);by[bi]=(by[bi]||0)+1});
     const rows=Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,8),mx=rows[0]?rows[0][1]:1;
     const box=$('#occBox');if(!box)return;
@@ -285,7 +301,7 @@ function tabOcc(){
     occList(k,0)})();
 }
 async function occList(k,from){
-  if(!OCC)OCC=await J('data/occ.json');const all=(OCC&&OCC[k])||[];
+  const all=await occOf(k);
   const uniq=[...new Set(all)];const part=uniq.slice(from,from+30);const rows=$('#occRows');if(!rows)return;
   const pid=primary()||'RST';
   const items=await Promise.all(part.map(async n=>{const b=BOOKS[Math.floor(n/1e6)],c=Math.floor(n/1000)%1000,v=n%1000;
@@ -299,7 +315,7 @@ const SAMPLE=30,SAMP=new Map();
 function sampleOf(k){
   const key=k+'|'+S.sel.join(',');if(SAMP.has(key))return SAMP.get(key);
   const p=(async()=>{
-    if(!OCC)OCC=await J('data/occ.json');const uniq=[...new Set((OCC&&OCC[k])||[])];
+    const uniq=[...new Set(await occOf(k))];
     const pick=uniq.length<=SAMPLE?uniq:Array.from({length:SAMPLE},(_,i)=>uniq[Math.floor(i*uniq.length/SAMPLE)]);
     const forms=new Map(),rend={};const ids=S.sel.filter(x=>x!=='ORIG');ids.forEach(i=>rend[i]=new Map());
     for(const n of pick){
@@ -403,8 +419,8 @@ function applyHl(ref){
 }
 
 /* ---------- modals & controls ---------- */
-function openModal(html){$('#sheet').innerHTML=html;$('#modal').hidden=false}
-const closeModal=()=>{$('#modal').hidden=true};
+function openModal(html){const m=$('#modal');$('#sheet').innerHTML=html;$('#sheet').scrollTop=0;clearTimeout(m._t);if(m.hidden){m.hidden=false;m.offsetWidth;}m.classList.add('show');lockScroll('modal')}
+const closeModal=()=>{const m=$('#modal');if(m.hidden)return;m.classList.remove('show');unlockScroll('modal');clearTimeout(m._t);m._t=setTimeout(()=>{if(!m.classList.contains('show'))m.hidden=true},230)};
 function bookSheet(sel){
   if(sel){const b=BOOKS[BI[sel]];openModal(`<h3>${esc(b.ru)}</h3><div class="hint" style="margin:-8px 0 12px"><a href="#" id="back">← все книги</a></div><div class="nums g-${genreOf(b.id)}">`+Array.from({length:b.chapters},(_,i)=>`<button data-go="${b.id}.${i+1}" class="${cur.book===b.id&&cur.ch===i+1?'on':''}">${i+1}</button>`).join('')+'</div>');return}
   let h=`<h3>Книги</h3><div class="pk">`;
@@ -551,3 +567,35 @@ function bind(){
     if(((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k')||(e.key==='/'&&!typing)){e.preventDefault();if(isM()){showSec('search');setTimeout(()=>$('#qInp')&&$('#qInp').focus(),50)}else $('#jumpInp').focus()}
     if(e.altKey&&e.key==='ArrowRight')step(1);if(e.altKey&&e.key==='ArrowLeft')step(-1)});
 }
+
+/* ---------- скролл фона и выдвижная статья на телефоне ---------- */
+const LOCKS=new Set();
+function lockScroll(w){LOCKS.add(w);document.documentElement.classList.add('locked')}
+function unlockScroll(w){LOCKS.delete(w);if(!LOCKS.size)document.documentElement.classList.remove('locked')}
+const Sheet=(()=>{
+  const el=()=>$('#inspector');let st='half',d=null;
+  const H=()=>el().offsetHeight,half=()=>Math.max(0,H()-Math.round(innerHeight*.52));
+  const off=s=>s==='full'?0:s==='half'?half():H()+30;
+  function to(s,v){const e=el();if(!e)return;if(s==='close'){e.style.transition='';e.style.transform=`translateY(${off('close')}px)`;setTimeout(closeInsp,200);return}
+    if(s==='half'&&half()<24)s='full';st=s;e.classList.toggle('full',s==='full');e.style.transition=v?`transform ${Math.max(.16,Math.min(.34,.34-Math.abs(v)*.05))}s cubic-bezier(.2,.9,.25,1)`:'';e.style.transform=`translateY(${off(s)}px)`}
+  function start(e){if(!isM()||!el().classList.contains('open'))return;const p=e.touches[0];d={y:p.clientY,x:p.clientX,t:performance.now(),base:off(st),drag:false,sc:el().scrollTop,last:p.clientY,lt:performance.now(),v:0}}
+  function move(e){if(!d)return;const p=e.touches[0],dy=p.clientY-d.y;
+    if(!d.drag){if(Math.abs(dy)<6||Math.abs(p.clientX-d.x)>Math.abs(dy))return;
+      const canDrag=st==='half'||(el().scrollTop<=0&&dy>0);if(!canDrag){d=null;return}d.drag=true;d.y=p.clientY;}
+    e.preventDefault();const dd=p.clientY-d.y;let y=d.base+dd;if(y<0)y=y/3;
+    const now=performance.now();d.v=(p.clientY-d.last)/Math.max(1,now-d.lt);d.last=p.clientY;d.lt=now;
+    const e2=el();e2.style.transition='none';e2.style.transform=`translateY(${y}px)`}
+  function end(){if(!d)return;const dr=d;d=null;if(!dr.drag)return;
+    const m=/translateY\((-?[\d.]+)px\)/.exec(el().style.transform),y=m?+m[1]:dr.base,v=dr.v,proj=y+v*180,h=half();
+    let s;if(v>0.9||proj>H()*.82)s=(st==='full'&&h>24&&proj<H()*.75)?'half':'close';else if(v<-0.5)s='full';
+    else{const c=[['full',0],['half',h],['close',H()]].filter(x=>x[0]!=='half'||h>24);s=c.reduce((a,b)=>Math.abs(b[1]-proj)<Math.abs(a[1]-proj)?b:a)[0]}
+    to(s,v)}
+  document.addEventListener('DOMContentLoaded',()=>{});
+  const e=$('#inspector');
+  e.addEventListener('touchstart',start,{passive:true});e.addEventListener('touchmove',move,{passive:false});
+  e.addEventListener('touchend',end);e.addEventListener('touchcancel',end);
+  e.addEventListener('click',ev=>{if(isM()&&ev.target.closest('.grab'))to(st==='full'?'half':'full',0)});
+  $('#scrim').addEventListener('touchmove',ev=>ev.preventDefault(),{passive:false});
+  $('#modal').addEventListener('touchmove',ev=>{if(!ev.target.closest('.sheet'))ev.preventDefault()},{passive:false});
+  return{to,get state(){return st}};
+})();

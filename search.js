@@ -76,7 +76,7 @@ const Search=(()=>{
   }
 
   /* ---- lexicon helpers ---- */
-  async function lexAll(){await Promise.all([lexOf('G0025'),lexOf('H0157')]);return{G:LEX.G||{},H:LEX.H||{}}}
+  async function lexAll(){await Promise.all([loadLex('G'),loadLex('H')]);return{G:LEX.G||{},H:LEX.H||{}}}
   const lx=k=>(LEX[k[0]]||{})[k];
   const lemKey=k=>{const e=lx(k);return e?letters(e.lemma):''};
   function sameFamily(a,b){
