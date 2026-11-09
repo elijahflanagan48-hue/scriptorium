@@ -2,7 +2,7 @@
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const KEY='scriptorium.v1';
-let S={layout:'A',theme:'light',last:{book:'Gen',ch:1},sel:['ORIG','RST','BTI'],hl:{},notes:{},wnotes:{},recent:[],ts:{},sts:0,side:true,tabs:[],tab:0,qhist:[],saved:[]};
+let S={layout:'R',rmode:1,theme:'light',last:{book:'Gen',ch:1},sel:['ORIG','RST','BTI'],hl:{},notes:{},wnotes:{},recent:[],ts:{},sts:0,side:true,tabs:[],tab:0,qhist:[],saved:[]};
 try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(typeof Sync!=='undefined')Sync.changed()};
 const stamp=k=>{S.ts[k]=Date.now();save()};
@@ -28,6 +28,7 @@ const shortName=id=>SHORT[id]||id;
   BOOKS=IDX.books;BOOKS.forEach((b,i)=>BI[b.id]=i);IDX.translations.forEach(t=>TRS[t.id]=t);
   PEND=S.sel.includes('BTI');S.sel=S.sel.filter(x=>x==='ORIG'||TRS[x]);if(!S.sel.length)S.sel=['ORIG','RST'];
   if(!S.recent)S.recent=[];if(!S.wnotes)S.wnotes={};if(!S.ts)S.ts={};if(!S.qhist)S.qhist=[];if(!S.saved)S.saved=[];if(S.side===undefined)S.side=true;
+  if(!S.rmode){S.rmode=1;S.layout='R'}if(!S.done)S.done={};
   if(BI[cur.book]===undefined)cur={book:'Gen',ch:1};
   const h=parseHash();if(h)cur=h;
   S.tabs=(S.tabs||[]).filter(t=>t&&BI[t.book]!==undefined);if(!S.tabs.length){S.tabs=[{book:cur.book,ch:cur.ch}];S.tab=0}
@@ -37,6 +38,7 @@ const shortName=id=>SHORT[id]||id;
   Sync.init(S,{status:accStatus,applied:()=>{save();cur=S.last;render()}});
   if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 })();
+addEventListener('hashchange',()=>{const h=parseHash();if(h&&BOOKS.length&&(h.book!==cur.book||h.ch!==cur.ch||h.v))go(h.book,h.ch,h.v)});
 function parseHash(){const m=(location.hash||'').match(/^#([0-9A-Za-z]+)\.(\d+)(?:\.(\d+))?$/);return m&&BI[m[1]]!==undefined?{book:m[1],ch:+m[2],v:m[3]?+m[3]:0}:null}
 const bookRu=id=>BOOKS[BI[id]].ru, bookAb=id=>BOOKS[BI[id]].ab;
 function primary(){return S.sel.find(x=>x!=='ORIG')||null}
@@ -107,7 +109,7 @@ async function render(scrollV){
   const show=(d,st,final)=>{
     if(t!==token||st<=stage)return;stage=st;CUR=d;
     if(R._ck!==ck){R._ck=ck;R.classList.remove('enter');void R.offsetWidth;R.classList.add('enter')}
-    R.innerHTML=({A:viewA,B:viewB,D:viewD})[S.layout](d)+(S.layout==='B'&&isM()?'':navHTML());
+    R.innerHTML=({R:viewR,A:viewA,B:viewB,D:viewD}[S.layout]||viewR)(d)+(S.layout==='B'&&isM()?'':navHTML());
     renderBar();initSplit();
     if(final&&scrollV){const el=$(`[data-v="${scrollV}"]`,R);if(el){el.scrollIntoView({block:'center'});el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1700)}}
   };
@@ -138,7 +140,7 @@ function firstDone(){
 }
 function warmSearch(){const p=primary();if(p&&TRS[p]&&!isPriv(p))Search.index(p).catch(()=>{})}
 const gcls=()=>'g-'+genreOf(cur.book);
-const LAYN={A:'Книга',B:'Стол',D:'Манускрипт'};
+const LAYN={R:'Чтение',A:'Книга',B:'Стол',D:'Манускрипт'};
 const head=()=>{const b=BOOKS[BI[cur.book]];return `<div class="ch-head ${gcls()}"><nav class="crumbs" aria-label="Где я"><button data-gosec="lib">Библия</button><i>›</i><span>${b.testament==='OT'?'Ветхий Завет':'Новый Завет'} · ${GEN[genreOf(cur.book)]}</span><i>›</i><button data-bkopen="${b.id}">${esc(b.ru)}</button></nav>`+
   `<div class="hrow"><h1>${esc(bookRu(cur.book))} <em>${cur.ch}</em></h1><span class="spacer"></span><div class="seg only-d" role="tablist" aria-label="Раскладка">`+Object.entries(LAYN).map(([l,n])=>`<button data-l="${l}" class="${S.layout===l?'on':''}">${n}</button>`).join('')+`</div></div></div>`};
 function navHTML(){
@@ -213,7 +215,7 @@ function buildSide(){
   for(const g of GORD){
     const bs=BOOKS.filter(b=>b.testament===t&&genreOf(b.id)===g);if(!bs.length)continue;
     h+=`<div class="g-${g}"><div class="gh">${GEN[g]}</div>`+bs.map(b=>`<button class="bk ${b.id===cur.book?'on':''}" data-bk="${b.id}">${esc(b.ru)}<small>${b.chapters}</small></button>`+
-      (b.id===cur.book?`<div class="chs">`+Array.from({length:b.chapters},(_,i)=>`<button data-go="${b.id}.${i+1}" class="${cur.ch===i+1?'on':''}">${i+1}</button>`).join('')+`</div>`:'')).join('')+`</div>`;
+      (b.id===cur.book?`<div class="chs">`+Array.from({length:b.chapters},(_,i)=>`<button data-go="${b.id}.${i+1}" class="${cur.ch===i+1?'on':''}${S.done&&S.done[b.id+'.'+(i+1)]?' rd':''}">${i+1}</button>`).join('')+`</div>`:'')).join('')+`</div>`;
   }
   side.innerHTML=h;
   const on=$('.bk.on',side);if(on&&!side._did){side._did=1;on.scrollIntoView({block:'center'})}
@@ -285,7 +287,7 @@ document.addEventListener('mouseout',e=>{if(e.target.closest&&e.target.closest('
 /* ---------- word article (inspector) ---------- */
 const clean=s=>s.toLowerCase().replace(/[.,;:!?«»"“”‘’()\[\]—–·]/g,'').trim();
 function placeholder(){$('#inspBody').innerHTML=`<div class="insp-empty"><b>Статья слова</b>Нажми на слово оригинала или перевода — здесь появятся разбор формы, значения, места употребления и то, как слово передано в переводах.</div>`}
-function openInsp(){const el=$('#inspector'),was=el.classList.contains('open');el.classList.add('open');if(isM()||innerWidth<1100||S.sec!=='read')document.body.classList.add('insp-open');if(isM()){if(!was){el.scrollTop=0;Sheet.to('half')}const t=LASTTAP&&LASTTAP.isConnected&&!LASTTAP.closest('.pbody')?LASTTAP.getBoundingClientRect():null;if(t&&t.bottom>innerHeight*.44)scrollBy({top:t.top-innerHeight*.22,behavior:'smooth'});LASTTAP=null;lockScroll('insp')}}
+function openInsp(){const el=$('#inspector'),was=el.classList.contains('open');el.classList.add('open');if(isM()||innerWidth<1100||S.sec!=='read'||S.layout==='R')document.body.classList.add('insp-open');if(isM()){if(!was){el.scrollTop=0;Sheet.to('half')}const t=LASTTAP&&LASTTAP.isConnected&&!LASTTAP.closest('.pbody')?LASTTAP.getBoundingClientRect():null;if(t&&t.bottom>innerHeight*.44)scrollBy({top:t.top-innerHeight*.22,behavior:'smooth'});LASTTAP=null;lockScroll('insp')}}
 function closeInsp(){const el=$('#inspector');el.classList.remove('open','full');el.style.transform='';el.style.transition='';document.body.classList.remove('insp-open');unlockScroll('insp');$$('.w.pin').forEach(x=>x.classList.remove('pin'))}
 async function inspect(wd,isH,pinSel,ctx){
   $$('.w.pin').forEach(x=>x.classList.remove('pin'));if(pinSel)$$(pinSel).forEach(x=>x.classList.add('pin'));
@@ -328,7 +330,7 @@ function verseMenu(el){
   const ref=el.dataset.ref,[b,c,v]=ref.split('.'),menu=$('#menu');
   menu.innerHTML=`<div class="ref">${esc(bookAb(b))} ${c}:${v}</div><div class="cols">`+
    [['1','--hl1'],['2','--hl2'],['3','--hl3'],['4','--hl4']].map(([n,cv])=>`<button data-c="${n}" style="background:var(${cv})" title="Выделить"></button>`).join('')+
-   `<button data-c="0" title="Снять выделение" style="border:1px solid var(--line)">✕</button></div><textarea placeholder="Заметка к стиху…">${esc(S.notes[ref]||'')}</textarea><div class="acts"><button id="mCopy">Копировать</button><button id="mClose">Закрыть</button></div>`;
+   `<button data-c="0" title="Снять выделение" style="border:1px solid var(--line)">✕</button></div><textarea placeholder="Заметка к стиху…">${esc(S.notes[ref]||'')}</textarea><div class="acts"><button id="mCopy">Копировать</button>${navigator.share?'<button id="mShare">Поделиться</button>':''}<button id="mClose">Закрыть</button></div>`;
   menu.hidden=false;const r=el.getBoundingClientRect();menu.style.left=Math.min(Math.max(8,r.left),innerWidth-300)+'px';menu.style.top=Math.min(r.bottom+8,innerHeight-260)+'px';
   menu.dataset.ref=ref;
 }
@@ -348,7 +350,8 @@ document.addEventListener('click',async e=>{
     const bc=t.closest('[data-c]'),ref=$('#menu').dataset.ref;
     if(bc){const n=bc.dataset.c;if(n==='0')delete S.hl[ref];else S.hl[ref]=n;stamp('h:'+ref);applyHl(ref)}
     if(t.id==='mClose')$('#menu').hidden=true;
-    if(t.id==='mCopy'){const [b,c,v]=ref.split('.'),d=await loadChapter(b,+c),p=primary();const tx=p&&d.tr[p]&&d.tr[p][v]||'';navigator.clipboard&&navigator.clipboard.writeText(`${bookRu(b)} ${c}:${v} — ${tx}`);t.textContent='Скопировано'}
+    if(t.id==='mShare'){const [b,c,v]=ref.split('.'),d=await loadChapter(b,+c),p=primary();const tx=p&&d.tr[p]&&d.tr[p][v]||'';navigator.share({text:`${tx}\n— ${bookRu(b)} ${c}:${v}${p?' ('+shortName(p)+')':''}`,url:location.origin+location.pathname+`#${b}.${c}.${v}`}).catch(()=>{})}
+    if(t.id==='mCopy'){const [b,c,v]=ref.split('.'),d=await loadChapter(b,+c),p=primary();const tx=p&&d.tr[p]&&d.tr[p][v]||'';navigator.clipboard&&navigator.clipboard.writeText(`${tx}\n— ${bookRu(b)} ${c}:${v}${p?' ('+shortName(p)+')':''}`);t.textContent='Скопировано'}
     return}
   $('#menu').hidden=true;
   if(t.id==='defMore'){const d=$('#def');d.classList.toggle('clamp');t.textContent=d.classList.contains('clamp')?'Показать полностью':'Свернуть';return}
@@ -387,7 +390,7 @@ function applyHl(ref){
 function openModal(html){const m=$('#modal');$('#sheet').innerHTML=html;$('#sheet').scrollTop=0;clearTimeout(m._t);if(m.hidden){m.hidden=false;m.offsetWidth;}m.classList.add('show');lockScroll('modal')}
 const closeModal=()=>{const m=$('#modal');if(m.hidden)return;m.classList.remove('show');unlockScroll('modal');clearTimeout(m._t);m._t=setTimeout(()=>{if(!m.classList.contains('show'))m.hidden=true},230)};
 function bookSheet(sel){
-  if(sel){const b=BOOKS[BI[sel]];openModal(`<h3>${esc(b.ru)}</h3><div class="hint" style="margin:-8px 0 12px"><a href="#" id="back">← все книги</a></div><div class="nums g-${genreOf(b.id)}">`+Array.from({length:b.chapters},(_,i)=>`<button data-go="${b.id}.${i+1}" class="${cur.book===b.id&&cur.ch===i+1?'on':''}">${i+1}</button>`).join('')+'</div>');return}
+  if(sel){const b=BOOKS[BI[sel]];const nd=Array.from({length:b.chapters},(_,i)=>S.done&&S.done[b.id+'.'+(i+1)]).filter(Boolean).length;openModal(`<h3>${esc(b.ru)}</h3><div class="hint" style="margin:-8px 0 12px"><a href="#" id="back">← все книги</a>${nd?` · прочитано ${nd} из ${b.chapters}`:''}</div><div class="nums g-${genreOf(b.id)}">`+Array.from({length:b.chapters},(_,i)=>`<button data-go="${b.id}.${i+1}" class="${cur.book===b.id&&cur.ch===i+1?'on':''}${S.done&&S.done[b.id+'.'+(i+1)]?' rd':''}">${i+1}</button>`).join('')+'</div>');return}
   let h=`<h3>Книги</h3><div class="pk">`;
   for(const t of ['OT','NT']){h+=`<h5>${t==='OT'?'Ветхий Завет':'Новый Завет'}</h5>`;
     for(const g of GORD){const bs=BOOKS.filter(b=>b.testament===t&&genreOf(b.id)===g);if(!bs.length)continue;
@@ -404,7 +407,7 @@ function dataSheet(){
   openModal(`<h3>Заметки и выделения</h3><p>Сейчас: заметок к стихам — ${n}, выделенных стихов — ${h}, заметок к словам — ${w}. Они хранятся в этом браузере.</p><div class="acts" style="display:flex;gap:8px;flex-wrap:wrap"><button class="pill" id="exp">Сохранить в файл</button><label class="pill" style="cursor:pointer">Загрузить из файла<input id="imp" type="file" accept=".json" hidden></label></div>`);
 }
 function moreSheet(){
-  openModal(`<h3>Настройки</h3><h5>Раскладка текста</h5><div class="mlist">`+Object.entries(LAYN).map(([l,n])=>`<button data-lay="${l}" class="${S.layout===l?'on':''}">${n}${l==='B'&&isM()?' · сравнение':''}</button>`).join('')+`</div><h5>Ещё</h5><div class="mlist"><button data-m="texts">Тексты и переводы</button><button data-m="theme">Тема: ${S.theme==='light'?'светлая → тёмная':'тёмная → светлая'}</button><button data-m="hist">История</button><button data-m="data">Заметки: сохранить в файл и загрузить</button><button data-m="acc">Личный кабинет${Sync.user?' · '+esc(Sync.user.email):''}</button></div>`);
+  openModal(`<h3>Настройки</h3><h5>Раскладка текста</h5><div class="mlist">`+Object.entries(LAYN).map(([l,n])=>`<button data-lay="${l}" class="${S.layout===l?'on':''}">${n}${l==='B'&&isM()?' · сравнение':''}</button>`).join('')+`</div><h5>Ещё</h5><div class="mlist"><button data-m="texts">Тексты и переводы</button><button data-m="view">Вид текста: шрифт, размер, тема</button><button data-m="theme">Тема: ${({light:'светлая',sepia:'бумага',dark:'тёмная'})[S.theme]||'светлая'} → сменить</button><button data-m="hist">История</button><button data-m="data">Заметки: сохранить в файл и загрузить</button><button data-m="acc">Личный кабинет${Sync.user?' · '+esc(Sync.user.email):''}</button></div>`);
 }
 function syncPrivate(){
   if(!IDX)return;const ok=!!(Sync.user&&Sync.user.access);
@@ -457,7 +460,7 @@ async function accAct(id){
   if(id==='accIn'){const e=await Sync.signIn(email,pass);say(e?'Не получилось войти: '+e:'');if(!e)closeModal()}
   if(id==='accUp'){const e=await Sync.signUp(email,pass);say(e?'Не получилось: '+e:'');if(!e)closeModal()}
 }
-function toggleTheme(){S.theme=S.theme==='light'?'dark':'light';touchSettings();applyBody()}
+function toggleTheme(){S.theme=S.theme==='light'?'sepia':S.theme==='sepia'?'dark':'light';touchSettings();applyBody()}
 /* ---------- sections, tabs, omnibox ---------- */
 function applyBody(){
   const keep=['drawer','insp-open'].filter(c=>document.body.classList.contains(c));
@@ -495,7 +498,7 @@ function omniRun(x){
   else Pages.search(x.q);
 }
 function bind(){
-  $('#bookBtn').onclick=()=>bookSheet();$('#setBtn').onclick=moreSheet;$('#aaBtn').onclick=moreSheet;$('#mMore').onclick=moreSheet;$('#accBtn').onclick=accSheet;
+  $('#bookBtn').onclick=()=>bookSheet();$('#setBtn').onclick=moreSheet;$('#aaBtn').onclick=()=>readSheet();$('#mMore').onclick=moreSheet;$('#accBtn').onclick=accSheet;
   $('#mSearch').onclick=()=>{showSec('search');setTimeout(()=>{const i=$('#qInp');if(i)i.focus()},50)};
   $('#inspClose').onclick=closeInsp;placeholder();
   const ji=$('#jumpInp');
@@ -515,7 +518,7 @@ function bind(){
     if(e.target.id==='back'){e.preventDefault();bookSheet();return}
     const g=e.target.closest('[data-go]');if(g){const [b,c]=g.dataset.go.split('.');closeModal();go(b,+c);scrollTo(0,0);return}
     const lay=e.target.closest('[data-lay]');if(lay){S.layout=lay.dataset.lay;touchSettings();closeModal();render();return}
-    const m=e.target.closest('[data-m]');if(m){const a=m.dataset.m;if(a==='texts')textsSheet();if(a==='data')dataSheet();if(a==='acc')accSheet();if(a==='hist'){closeModal();showSec('hist')}if(a==='theme'){toggleTheme();closeModal()}return}
+    const m=e.target.closest('[data-m]');if(m){const a=m.dataset.m;if(a==='texts')textsSheet();if(a==='view')readSheet();if(a==='data')dataSheet();if(a==='acc')accSheet();if(a==='hist'){closeModal();showSec('hist')}if(a==='theme'){toggleTheme();closeModal()}return}
     if(/^acc(In|Up|Out|Sync|Forgot|Send|Reset|Redeem|NewCode)$/.test(e.target.id)){accAct(e.target.id);return}
     const rv=e.target.closest('[data-revoke]');if(rv){Sync.admin('revoke',{code:rv.dataset.revoke}).then(loadCodes);return}
     if(e.target.id==='exp'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({hl:S.hl,notes:S.notes,wnotes:S.wnotes},null,1)],{type:'application/json'}));a.download='scriptorium-notes.json';a.click()}
