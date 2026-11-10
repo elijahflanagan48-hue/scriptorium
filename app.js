@@ -581,3 +581,8 @@ const Sheet=(()=>{
   $('#modal').addEventListener('touchmove',ev=>{if(!ev.target.closest('.sheet'))ev.preventDefault()},{passive:false});
   return{to,get state(){return st}};
 })();
+
+/* запрет зума на iOS Safari (user-scalable=no он игнорирует) */
+['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault()));
+document.addEventListener('touchmove',e=>{if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});
+let _lt=0;document.addEventListener('touchend',e=>{const n=Date.now();if(n-_lt<350&&!(e.target.closest&&e.target.closest('input,textarea,select')))e.preventDefault();_lt=n},{passive:false});

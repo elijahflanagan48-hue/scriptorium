@@ -390,3 +390,7 @@ html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
 .thquick button span{width:12px;height:12px;border-radius:50%}
 .thquick button.on{outline:3px solid var(--accent);outline-offset:2px}
 .thquick button:hover{transform:scale(1.08)}
+
+/* без масштабирования щипком и двойным касанием (телефон) */
+html,body{touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+input,textarea,select{font-size:max(16px,1em)}
