@@ -10,6 +10,7 @@ const touchSettings=()=>{S.sts=Date.now();save()};
 const cache=new Map();
 const PRIV=/^data\/(tr|align|nt)\/BTI\/([^/]+)\.json$/;const FNS={};
 const J=p=>{const pm=PRIV.exec(p);if(pm){if(!cache.has(p))cache.set(p,(Sync.user&&Sync.user.access?Sync.pget(pm[1]+'/BTI/'+pm[2]):Promise.resolve(null)).catch(()=>{cache.delete(p);return null}));return cache.get(p)}
+  if(!cache.has(p)){const pr=window.__pre&&window.__pre[p];if(pr){delete window.__pre[p];cache.set(p,pr.then(x=>{if(x==null)throw 0;return x}).catch(()=>{cache.delete(p);return null}))}}
   if(!cache.has(p))cache.set(p,fetch(p).then(r=>{if(!r.ok)throw 0;return r.json()}).catch(()=>{cache.delete(p);return null}));return cache.get(p)};
 let PEND=false,CUR=null,IDX,BOOKS,BI={},TRS={},OCC=null,LEX={},cur=S.last,token=0,sideT=null,INSP=null;
 const MQ=window.matchMedia('(max-width:820px)'),isM=()=>MQ.matches;
@@ -138,10 +139,12 @@ let WARMED=false;
 function firstDone(){
   if(WARMED)return;WARMED=true;
   const slow=(navigator.connection&&(navigator.connection.saveData||/2g/.test(navigator.connection.effectiveType||'')));
-  setTimeout(async()=>{const f=BOOKS[BI[cur.book]].testament==='OT'?'H':'G';
-    await loadLex(f);OCC=OCC||await J('data/occ.json');await loadLex(f==='H'?'G':'H');
-    if(!slow)setTimeout(warmSearch,15000);
-  },900);
+  const cell=navigator.connection&&(navigator.connection.saveData||navigator.connection.type==='cellular');
+  const idle=(fn,ms)=>setTimeout(()=>('requestIdleCallback' in window)?requestIdleCallback(fn,{timeout:4000}):fn(),ms);
+  idle(async()=>{const f=BOOKS[BI[cur.book]].testament==='OT'?'H':'G';
+    await loadLex(f);if(slow||cell)return;
+    idle(async()=>{OCC=OCC||await J('data/occ.json');idle(()=>loadLex(f==='H'?'G':'H'),4000);if(!slow&&!cell)setTimeout(warmSearch,15000)},6000);
+  },2500);
 }
 function warmSearch(){const p=primary();if(p&&TRS[p]&&!isPriv(p))Search.index(p).catch(()=>{})}
 const gcls=()=>'g-'+genreOf(cur.book);
