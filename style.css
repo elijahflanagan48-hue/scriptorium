@@ -394,3 +394,20 @@ html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
 /* без масштабирования щипком и двойным касанием (телефон) */
 html,body{touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 input,textarea,select{font-size:max(16px,1em)}
+
+/* ---------- нижняя панель на телефоне ---------- */
+@media(max-width:820px){
+  :root{--bar:68px}
+  #tabbar{background:color-mix(in srgb,var(--paper) 92%,transparent);-webkit-backdrop-filter:saturate(1.5) blur(20px);backdrop-filter:saturate(1.5) blur(18px);border-top:1px solid color-mix(in srgb,var(--line) 75%,transparent);box-shadow:0 -8px 28px rgba(0,0,0,.05);padding:4px 6px env(safe-area-inset-bottom)}
+  #tabbar button{gap:3px;font-size:10.5px;font-weight:700;letter-spacing:.01em;color:var(--mute)}
+  #tabbar .tbi{width:60px;height:34px;border-radius:17px;display:grid;place-items:center;transition:background-color .28s var(--ease)}
+  #tabbar svg{width:26px;height:26px;stroke-width:1.65}
+  #tabbar svg .f{fill:currentColor;stroke:none;opacity:0;transition:opacity .28s var(--ease)}
+  .sec-read #tabbar [data-sec="read"],.sec-lib #tabbar [data-sec="lib"],.sec-search #tabbar [data-sec="search"],.sec-notes #tabbar [data-sec="notes"]{color:var(--accent-ink)}
+  .sec-read #tabbar [data-sec="read"] .tbi,.sec-lib #tabbar [data-sec="lib"] .tbi,.sec-search #tabbar [data-sec="search"] .tbi,.sec-notes #tabbar [data-sec="notes"] .tbi{background:color-mix(in srgb,var(--accent) 15%,transparent)}
+  .sec-read #tabbar [data-sec="read"] svg .f,.sec-lib #tabbar [data-sec="lib"] svg .f,.sec-search #tabbar [data-sec="search"] svg .f,.sec-notes #tabbar [data-sec="notes"] svg .f{opacity:.22}
+  .sec-read #tabbar [data-sec="read"] svg,.sec-lib #tabbar [data-sec="lib"] svg,.sec-search #tabbar [data-sec="search"] svg,.sec-notes #tabbar [data-sec="notes"] svg{transform:none;animation:tbpop .38s var(--ease)}
+  #tabbar button:active .tbi{background:color-mix(in srgb,var(--ink) 7%,transparent)}
+}
+@keyframes tbpop{0%{transform:scale(.86)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){#tabbar svg{animation:none!important}}
