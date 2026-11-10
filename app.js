@@ -403,15 +403,18 @@ function applyHl(ref){
 }
 
 /* ---------- modals & controls ---------- */
-function openModal(html){const m=$('#modal');$('#sheet').innerHTML=html;$('#sheet').scrollTop=0;clearTimeout(m._t);if(m.hidden){m.hidden=false;m.offsetWidth;}m.classList.add('show');lockScroll('modal')}
-const closeModal=()=>{const m=$('#modal');if(m.hidden)return;m.classList.remove('show');unlockScroll('modal');clearTimeout(m._t);m._t=setTimeout(()=>{if(!m.classList.contains('show'))m.hidden=true},230)};
+function openModal(html,o){const m=$('#modal'),drop=!!(o&&o.drop)&&isM();
+  m.classList.toggle('drop',drop);
+  $('#sheet').style.transform='';$('#sheet').innerHTML=html+(drop?'<div class="dgrab" id="dgrab" role="button" aria-label="Закрыть"><i></i></div>':'');$('#sheet').scrollTop=0;
+  clearTimeout(m._t);if(m.hidden){m.hidden=false;m.offsetWidth;}m.classList.add('show');lockScroll('modal')}
+const closeModal=()=>{const m=$('#modal');if(m.hidden)return;m.classList.remove('show');unlockScroll('modal');clearTimeout(m._t);m._t=setTimeout(()=>{if(!m.classList.contains('show'))m.hidden=true},m.classList.contains('drop')?380:230)};
 function bookSheet(sel){
-  if(sel){const b=BOOKS[BI[sel]];const nd=Array.from({length:b.chapters},(_,i)=>S.done&&S.done[b.id+'.'+(i+1)]).filter(Boolean).length;openModal(`<h3>${esc(b.ru)}</h3><div class="hint" style="margin:-8px 0 12px"><a href="#" id="back">← все книги</a>${nd?` · прочитано ${nd} из ${b.chapters}`:''}</div><div class="nums g-${genreOf(b.id)}">`+Array.from({length:b.chapters},(_,i)=>`<button data-go="${b.id}.${i+1}" class="${cur.book===b.id&&cur.ch===i+1?'on':''}${S.done&&S.done[b.id+'.'+(i+1)]?' rd':''}">${i+1}</button>`).join('')+'</div>');return}
+  if(sel){const b=BOOKS[BI[sel]];const nd=Array.from({length:b.chapters},(_,i)=>S.done&&S.done[b.id+'.'+(i+1)]).filter(Boolean).length;openModal(`<h3>${esc(b.ru)}</h3><div class="hint" style="margin:-8px 0 12px"><a href="#" id="back">← все книги</a>${nd?` · прочитано ${nd} из ${b.chapters}`:''}</div><div class="nums g-${genreOf(b.id)}">`+Array.from({length:b.chapters},(_,i)=>`<button data-go="${b.id}.${i+1}" class="${cur.book===b.id&&cur.ch===i+1?'on':''}${S.done&&S.done[b.id+'.'+(i+1)]?' rd':''}">${i+1}</button>`).join('')+'</div>',{drop:1});return}
   let h=`<h3>Книги</h3><div class="pk">`;
   for(const t of ['OT','NT']){h+=`<h5>${t==='OT'?'Ветхий Завет':'Новый Завет'}</h5>`;
     for(const g of GORD){const bs=BOOKS.filter(b=>b.testament===t&&genreOf(b.id)===g);if(!bs.length)continue;
       h+=`<div class="g-${g}"><div class="gh">${GEN[g]}</div><div class="row">`+bs.map(b=>`<button data-bk="${b.id}" class="${cur.book===b.id?'on':''}">${esc(b.ab)}</button>`).join('')+`</div></div>`}}
-  openModal(h+'</div>');const on=$('#sheet .pk .on');if(on)on.scrollIntoView({block:'center'});
+  openModal(h+'</div>',{drop:1});const sh=$('#sheet'),on=$('#sheet .pk .on');if(on)sh.scrollTop=Math.max(0,sh.scrollTop+on.getBoundingClientRect().top-sh.getBoundingClientRect().top-sh.clientHeight/2+on.offsetHeight/2);
 }
 function textsSheet(){
   const row=(id,name,sub)=>`<label><input type="checkbox" data-t="${id}" ${S.sel.includes(id)?'checked':''}><span><b>${esc(name)}</b><small>${esc(sub)}</small></span></label>`;
@@ -589,3 +592,11 @@ const Sheet=(()=>{
 ['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault()));
 document.addEventListener('touchmove',e=>{if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});
 let _lt=0;document.addEventListener('touchend',e=>{const n=Date.now();if(n-_lt<350&&!(e.target.closest&&e.target.closest('input,textarea,select')))e.preventDefault();_lt=n},{passive:false});
+
+/* окно выбора книги: потянуть за ручку вверх, чтобы закрыть */
+(function(){let y0=null,dy=0;const sh=()=>$('#sheet');
+  document.addEventListener('touchstart',e=>{const g=e.target.closest('#dgrab');if(!g)return;y0=e.touches[0].clientY;dy=0;sh().style.transition='none'},{passive:true});
+  document.addEventListener('touchmove',e=>{if(y0==null)return;dy=Math.min(0,e.touches[0].clientY-y0);sh().style.transform=`translateY(${dy}px)`;e.preventDefault()},{passive:false});
+  document.addEventListener('touchend',()=>{if(y0==null)return;const s=sh();s.style.transition='';y0=null;if(dy<-70){s.style.transform='';closeModal()}else{s.style.transform=''}dy=0});
+  document.addEventListener('click',e=>{if(e.target.closest('#dgrab'))closeModal()});
+})();

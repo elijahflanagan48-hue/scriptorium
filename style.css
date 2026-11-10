@@ -415,3 +415,13 @@ input,textarea,select{font-size:max(16px,1em)}
 /* убрать серый квадрат при нажатии на iPhone */
 html,body,button,a,[role="button"]{-webkit-tap-highlight-color:transparent}
 #tabbar button:focus{outline:none}#tabbar button:focus-visible .tbi{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- выбор книги на телефоне: окно «висит» сверху ---------- */
+@media(max-width:820px){
+  #modal.drop{align-items:flex-start;padding:calc(env(safe-area-inset-top,0px) + 8px) 8px 0;transition:opacity .3s var(--ease);background:rgba(10,14,28,.34)}
+  #modal.drop .sheet{border-radius:26px;max-height:min(74dvh,640px);padding:20px 16px 0;transform:translateY(calc(-100% - 24px));transition:transform .38s var(--ease);box-shadow:0 18px 50px rgba(10,14,28,.28)}
+  #modal.drop.show .sheet{transform:none;transition:transform .42s var(--ease)}
+  .dgrab{position:sticky;bottom:0;display:flex;justify-content:center;align-items:center;height:34px;margin:0 -16px;background:linear-gradient(to bottom,color-mix(in srgb,var(--paper) 0%,transparent),var(--paper) 55%);cursor:pointer}
+  .dgrab i{display:block;width:44px;height:5px;border-radius:3px;background:var(--line);filter:brightness(.82)}
+}
+@media(prefers-reduced-motion:reduce){#modal.drop .sheet{transition-duration:.01s!important}}
