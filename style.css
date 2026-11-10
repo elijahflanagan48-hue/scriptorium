@@ -372,3 +372,21 @@ html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
 
 .fn{font-size:.62em;vertical-align:super;line-height:0;color:var(--accent-ink);cursor:help;font-weight:700;margin:0 1px;padding:0 1px;font-family:var(--ui,inherit)}.fn:hover{background:color-mix(in srgb,var(--accent-ink) 18%,transparent);border-radius:3px}#pop .fnt{font-size:13.5px;line-height:1.45}
 @media(min-width:821px){#scrim{display:none}}
+
+/* ---------- темы оформления ---------- */
+.thgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.thc{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:16px;text-align:left;border:1px solid rgba(127,127,127,.18);transition:transform .2s var(--ease),box-shadow .2s var(--ease)}
+.thc:hover{transform:translateY(-2px)}
+.thc.on{outline:3px solid var(--accent);outline-offset:2px}
+.thp{position:relative;display:flex;flex-direction:column;gap:5px;height:64px;padding:10px;border-radius:10px;border:1px solid}
+.thp i{display:block;height:4px;border-radius:3px;opacity:.85}
+.thp b{position:absolute;right:10px;bottom:10px;width:18px;height:6px;border-radius:3px}
+.thn{display:flex;align-items:center;gap:6px;font-weight:800;font-size:14px}
+.thn em{font-style:normal;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px}
+.thc small{font-size:12px;line-height:1.3}
+.thmode{margin-bottom:4px}
+.thquick{display:flex;flex-wrap:wrap;gap:8px}
+.thquick button{width:40px;height:40px;border-radius:50%;border:1px solid;display:grid;place-items:center;transition:transform .2s var(--ease)}
+.thquick button span{width:12px;height:12px;border-radius:50%}
+.thquick button.on{outline:3px solid var(--accent);outline-offset:2px}
+.thquick button:hover{transform:scale(1.08)}

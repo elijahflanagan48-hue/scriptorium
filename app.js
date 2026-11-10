@@ -420,7 +420,7 @@ function dataSheet(){
   openModal(`<h3>Заметки и выделения</h3><p>Сейчас: заметок к стихам — ${n}, выделенных стихов — ${h}, заметок к словам — ${w}. Они хранятся в этом браузере.</p><div class="acts" style="display:flex;gap:8px;flex-wrap:wrap"><button class="pill" id="exp">Сохранить в файл</button><label class="pill" style="cursor:pointer">Загрузить из файла<input id="imp" type="file" accept=".json" hidden></label></div>`);
 }
 function moreSheet(){
-  openModal(`<h3>Настройки</h3><h5>Раскладка текста</h5><div class="mlist">`+Object.entries(LAYN).map(([l,n])=>`<button data-lay="${l}" class="${S.layout===l?'on':''}">${n}${l==='B'&&isM()?' · сравнение':''}</button>`).join('')+`</div><h5>Ещё</h5><div class="mlist"><button data-m="texts">Тексты и переводы</button><button data-m="view">Вид текста: шрифт, размер, тема</button><button data-m="theme">Тема: ${({light:'светлая',sepia:'бумага',dark:'тёмная'})[S.theme]||'светлая'} → сменить</button><button data-m="hist">История</button><button data-m="data">Заметки: сохранить в файл и загрузить</button><button data-m="acc">Личный кабинет${Sync.user?' · '+esc(Sync.user.email):''}</button></div>`);
+  openModal(`<h3>Настройки</h3><h5>Раскладка текста</h5><div class="mlist">`+Object.entries(LAYN).map(([l,n])=>`<button data-lay="${l}" class="${S.layout===l?'on':''}">${n}${l==='B'&&isM()?' · сравнение':''}</button>`).join('')+`</div><h5>Ещё</h5><div class="mlist"><button data-m="texts">Тексты и переводы</button><button data-m="view">Вид текста: шрифт, размер, тема</button><button data-m="theme">Оформление: ${S.tAuto?themeById(S.tDay||'light').name+' / '+themeById(S.tNight||'dark').name:themeById(S.theme).name}<small>дневные и ночные темы</small></button><button data-m="hist">История</button><button data-m="data">Заметки: сохранить в файл и загрузить</button><button data-m="acc">Личный кабинет${Sync.user?' · '+esc(Sync.user.email):''}</button></div>`);
 }
 function syncPrivate(){
   if(!IDX)return;const ok=!!(Sync.user&&Sync.user.access);
@@ -477,7 +477,8 @@ function toggleTheme(){S.theme=S.theme==='light'?'sepia':S.theme==='sepia'?'dark
 /* ---------- sections, tabs, omnibox ---------- */
 function applyBody(){
   const keep=['drawer','insp-open','icol'].filter(c=>document.body.classList.contains(c));
-  document.body.className=[`theme-${S.theme}`,`layout-${S.layout}`,`sec-${S.sec||'read'}`,S.side===false?'side-off':'',...keep].filter(Boolean).join(' ');
+  document.body.className=[`theme-${effTheme()}`,`layout-${S.layout}`,`sec-${S.sec||'read'}`,S.side===false?'side-off':'',...keep].filter(Boolean).join(' ');
+  syncThemeColor();
 }
 function showSec(s,fromNav){
   if(s==='read'&&S.sec==='read'&&fromNav&&!isM()){S.side=!S.side;touchSettings();applyBody();return}
@@ -531,7 +532,7 @@ function bind(){
     if(e.target.id==='back'){e.preventDefault();bookSheet();return}
     const g=e.target.closest('[data-go]');if(g){const [b,c]=g.dataset.go.split('.');closeModal();go(b,+c);scrollTo(0,0);return}
     const lay=e.target.closest('[data-lay]');if(lay){S.layout=lay.dataset.lay;touchSettings();closeModal();render();return}
-    const m=e.target.closest('[data-m]');if(m){const a=m.dataset.m;if(a==='texts')textsSheet();if(a==='view')readSheet();if(a==='data')dataSheet();if(a==='acc')accSheet();if(a==='hist'){closeModal();showSec('hist')}if(a==='theme'){toggleTheme();closeModal()}return}
+    const m=e.target.closest('[data-m]');if(m){const a=m.dataset.m;if(a==='texts')textsSheet();if(a==='view')readSheet();if(a==='data')dataSheet();if(a==='acc')accSheet();if(a==='hist'){closeModal();showSec('hist')}if(a==='theme')themeSheet();return}
     if(/^acc(In|Up|Out|Sync|Forgot|Send|Reset|Redeem|NewCode)$/.test(e.target.id)){accAct(e.target.id);return}
     const rv=e.target.closest('[data-revoke]');if(rv){Sync.admin('revoke',{code:rv.dataset.revoke}).then(loadCodes);return}
     if(e.target.id==='exp'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({hl:S.hl,notes:S.notes,wnotes:S.wnotes},null,1)],{type:'application/json'}));a.download='adfontes-notes.json';a.click()}

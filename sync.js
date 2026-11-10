@@ -22,7 +22,7 @@ const Sync=(()=>{
     for(const [t,store] of [['h','hl'],['n','notes'],['w','wnotes']])for(const k in S[store]||{}){const key=t+':'+k;if(!S.ts[key])S.ts[key]=1}
   };
   const payload=()=>({v:1,hl:S.hl,notes:S.notes,wnotes:S.wnotes||{},ts:S.ts,sts:S.sts||0,
-    settings:{layout:S.layout,theme:S.theme,sel:S.sel,last:S.last,recent:S.recent}});
+    settings:{layout:S.layout,theme:S.theme,tAuto:S.tAuto||'',tDay:S.tDay,tNight:S.tNight,sel:S.sel,last:S.last,recent:S.recent}});
   function merge(R){
     let changed=false;const map={h:'hl',n:'notes',w:'wnotes'};
     if(!S.wnotes)S.wnotes={};
@@ -33,7 +33,7 @@ const Sync=(()=>{
       if(rv==null)delete S[store][key];else S[store][key]=rv;S.ts[k]=b;changed=true;
     }
     if((R.sts||0)>(S.sts||0)&&R.settings){const r=R.settings;
-      if(r.layout)S.layout=r.layout;if(r.theme)S.theme=r.theme;if(Array.isArray(r.sel))S.sel=r.sel;if(r.last)S.last=r.last;if(Array.isArray(r.recent))S.recent=r.recent;
+      if(r.layout)S.layout=r.layout;if(r.theme)S.theme=r.theme;if(r.tAuto!==undefined)S.tAuto=r.tAuto;if(r.tDay)S.tDay=r.tDay;if(r.tNight)S.tNight=r.tNight;if(Array.isArray(r.sel))S.sel=r.sel;if(r.last)S.last=r.last;if(Array.isArray(r.recent))S.recent=r.recent;
       S.sts=R.sts;changed=true}
     return changed;
   }
