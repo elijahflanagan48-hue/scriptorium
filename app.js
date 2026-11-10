@@ -534,7 +534,7 @@ function bind(){
     const m=e.target.closest('[data-m]');if(m){const a=m.dataset.m;if(a==='texts')textsSheet();if(a==='view')readSheet();if(a==='data')dataSheet();if(a==='acc')accSheet();if(a==='hist'){closeModal();showSec('hist')}if(a==='theme'){toggleTheme();closeModal()}return}
     if(/^acc(In|Up|Out|Sync|Forgot|Send|Reset|Redeem|NewCode)$/.test(e.target.id)){accAct(e.target.id);return}
     const rv=e.target.closest('[data-revoke]');if(rv){Sync.admin('revoke',{code:rv.dataset.revoke}).then(loadCodes);return}
-    if(e.target.id==='exp'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({hl:S.hl,notes:S.notes,wnotes:S.wnotes},null,1)],{type:'application/json'}));a.download='scriptorium-notes.json';a.click()}
+    if(e.target.id==='exp'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({hl:S.hl,notes:S.notes,wnotes:S.wnotes},null,1)],{type:'application/json'}));a.download='adfontes-notes.json';a.click()}
   };
   $('#modal').onchange=e=>{
     const t=e.target.dataset&&e.target.dataset.t;
