@@ -411,3 +411,7 @@ input,textarea,select{font-size:max(16px,1em)}
 }
 @keyframes tbpop{0%{transform:scale(.86)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
 @media(prefers-reduced-motion:reduce){#tabbar svg{animation:none!important}}
+
+/* убрать серый квадрат при нажатии на iPhone */
+html,body,button,a,[role="button"]{-webkit-tap-highlight-color:transparent}
+#tabbar button:focus{outline:none}#tabbar button:focus-visible .tbi{outline:2px solid var(--accent);outline-offset:2px}
