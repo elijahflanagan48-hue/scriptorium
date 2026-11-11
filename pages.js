@@ -92,7 +92,12 @@ const Pages=(()=>{
       (S.saved.length?`<div class="cap">Подборки</div><div class="qh">`+S.saved.map(x=>`<button data-q="${esc(x.q)}">★ ${esc(x.q)}</button>`).join('')+`</div>`:'')+
       `<div class="cap">Что умеет поиск</div><ul class="can"><li><b>Везде</b> — Библия, библиотека, ваши заметки и словарь сразу; результаты по разделам, наверху — сколько где нашлось</li><li>Можно искать только в Библии, в отдельных книгах или группах книг (Закон, Пророки, Послания…), в нескольких переводах сразу</li><li>Слово находится во всех формах: «любовь» → любви, возлюбил, любить; опечатки прощаются</li><li>Через оригинал: те же места, где слово переведено иначе; G26, ἀγάπη, агапе</li><li>Библиотека: Септуагинта, апокрифы, Иосиф Флавий, Филон, Кумран — по их языку</li><li>«Точная фраза» в кавычках, исключение — знак минус: любовь -бог</li></ul></div>`;return}
     const P0=Search.parseQ(Q.q);
-    const ref=parseRef(Q.q,true)||(/\d/.test(Q.q)&&!/^[GHgh]\d/.test(Q.q)&&parseRef(Q.q));
+    if(Q.mode==='phrase'&&!P0.phrases.length&&P0.terms.length){P0.phrases.push(Q.q.replace(/["«»“”]/g,'').replace(/(^|\s)-\S+/g,' ').trim());P0.terms=[]}
+    const ref=!/^[GHgh]\d+\s*$/.test(Q.q)&&(parseRef(Q.q,true)||(/\d/.test(Q.q)&&!/^[GHgh]\d/.test(Q.q)&&parseRef(Q.q)));
+    if(P0.empty){
+      box.innerHTML=(ref?`<button class="gotoref" data-goref="${ref.book}.${ref.ch}.${ref.v}"><span class="ab g-${genreOf(ref.book)}">${esc(bookAb(ref.book))}</span>Перейти: <b>${esc(refLabel(ref))}</b><span class="spacer"></span>↗</button>`:'')+
+        `<div class="sempty"><p>${P0.bad.length?`«${esc(P0.bad[0])}» — такого номера Стронга нет. Номера: G1–G5624 (греч.), H1–H8674 (евр.).`:P0.neg.length?'Знак минус только исключает слово. Добавьте, что искать, например: любовь -бог':ref?'':'Не понял запрос — введите слово, фразу или номер Стронга.'}</p></div>`;
+      return}
     const C={b:null,n:null,d:null,l:{}};Q.R={};
     box.innerHTML=(ref?`<button class="gotoref" data-goref="${ref.book}.${ref.ch}.${ref.v}"><span class="ab g-${genreOf(ref.book)}">${esc(bookAb(ref.book))}</span>Перейти: <b>${esc(refLabel(ref))}</b><span class="spacer"></span>↗</button>`:'')+
       `<div class="sum" id="sum"></div><div id="gB"></div><div id="gN"></div><div id="gD"></div><div id="gL"></div><div id="gE"></div>`;
@@ -103,17 +108,20 @@ const Pages=(()=>{
       if(wantN())ch.push(['gN','Заметки',C.n]);
       if(wantD())ch.push(['gD','Словарь',C.d]);
       if(wantL())for(const id of Q.works){const nm=(LSearch.WORKS.find(x=>x[0]===id)||[])[1]||id;ch.push(['gw-'+id,nm,C.l[id]])}
-      const show=ch.filter(([,,n])=>Q.scope!=='all'||n===null||n===undefined||n!==0);
+      const show=ch.filter(([,,n])=>Q.scope!=='all'||n===null||n===undefined||n>0);
+      const lk=Q.scope==='all'?ch.filter(([,,n])=>n<0).map(x=>x[1]):[];
       const el=$('#sum');if(!el)return;
       el.innerHTML=`<span class="cap">Нашлось</span>`+show.map(([id,n,v])=>`<button data-jump="${id}" class="${v===0||v<0?'zero':''}" ${v<0?'title="Нужен вход в личный кабинет"':''}>${esc(n)}<b>${v===null||v===undefined?'…':v<0?'🔒':cnt(v)}</b></button>`).join('')+
-        `<span class="spacer"></span><button class="mini" data-save>${S.saved.some(x=>x.q===Q.q)?'★ В подборках':'☆ Сохранить как подборку'}</button>`;
+        (lk.length?`<span class="hint lk" title="Откроются после входа в личный кабинет">🔒 ${esc(lk.join(', '))}</span>`:'')+`<span class="spacer"></span><button class="mini" data-save>${S.saved.some(x=>x.q===Q.q)?'★ В подборках':'☆ Сохранить как подборку'}</button>`;
       const all=[C.b,C.n,C.d,...Object.values(C.l)];
-      const ge=$('#gE');if(ge)ge.innerHTML=(Q.scope==='all'&&all.every(v=>v===0)&&Object.keys(C.l).length===Q.works.length&&C.b===0)?`<div class="sempty"><p>Нигде ничего не нашлось.</p><p class="hint">Попробуйте другое слово, уберите кавычки или минус, или переключите режим на «Слова и формы».</p></div>`:'';
+      const ge=$('#gE');if(ge)ge.innerHTML=(Q.scope==='all'&&all.every(v=>v===0||v<0)&&Object.keys(C.l).length===Q.works.length&&C.b===0)?`<div class="sempty"><p>Нигде ничего не нашлось.</p><p class="hint">Попробуйте другое слово, уберите кавычки или минус, или переключите режим на «Слова и формы».</p></div>`:'';
     }
     sum();
     let bible=null; // единый запуск поиска по Библии: нужен и для словаря
     const runBible=async(render)=>{
-      const T=wantB()?tids():[tids()[0]],my2=++Q.tb,alive2=()=>my2===Q.tb&&alive(),runs=[];
+      const T=wantB()?tids().slice():[tids()[0]],my2=++Q.tb,alive2=()=>my2===Q.tb&&alive(),runs=[];
+      const ql=({en:'en',ru:'ru'})[LSearch.scriptOf(Q.q)];Q.auto=null;
+      if(Q.scope==='all'&&ql&&!T.some(t=>TRS[t].lang===ql)){const a=IDX.translations.find(t=>t.lang===ql&&!isPriv(t.id));if(a){T.push(a.id);Q.auto=a.id}}
       const gb=$('#gB');
       for(const tid of T){
         if(render&&gb)gb.innerHTML=`<div class="hint">${Search.isReady(tid)?'Ищу в Библии…':'Готовлю текст к поиску (один раз)…'}</div>`;
@@ -145,7 +153,7 @@ const Pages=(()=>{
         if(Q.mode==='orig'){const ss=[...new Set(info.flatMap(i=>i.strongs||[]))];
           if(ss.length)h+=`<details class="forms" open><summary>Слова оригинала в поиске</summary><div>`+ss.map(k=>`<button data-strong="${k}" class="${Q.offS.has(k)?'':'on'}"><span class="${k[0]==='H'?'he':'gr'}">${esc(Search.lx(k).lemma)}</span><small>${k}</small></button>`).join('')+`</div></details>`;
           else h+=`<div class="hint">Для этого запроса не нашлось слов оригинала, ищу по тексту перевода.</div>`}
-        h+=`<div class="rhead"><h2>Библия · ${order.length} ${plural(order.length,'стих','стиха','стихов')}</h2><span class="hint">${esc(runs.map(r=>TRS[r.ix.tid].name).join(' · '))}${Q.books&&Q.books.size?' · '+esc(presetLabel()):''}</span><span class="spacer"></span>`+
+        h+=`<div class="rhead"><h2>Библия · ${order.length} ${plural(order.length,'стих','стиха','стихов')}</h2><span class="hint">${esc(runs.map(r=>TRS[r.ix.tid].name).join(' · '))}${Q.auto?` (${esc(shortName(Q.auto))} добавлен по языку запроса)`:''}${Q.books&&Q.books.size?' · '+esc(presetLabel()):''}</span><span class="spacer"></span>`+
           (Q.books&&Q.books.size?`<button class="mini" data-hb="all">Все книги ✕</button>`:'')+`</div>`;
         const byBook=r0.byBook;
         if(byBook.size>1){const rows=[...byBook.entries()].sort((a,b)=>b[1]-a[1]);const top=rows.slice(0,isM()?8:14),mx=top[0][1];
@@ -260,7 +268,7 @@ const Pages=(()=>{
     const op=t.closest('[data-open]');if(op){if(op.dataset.open==='bible')showSec('read');else Lib.open(op.dataset.open);return}
     const q=t.closest('[data-q]');if(q){Q.mode='forms';search(q.dataset.q);return}
     const us=t.closest('[data-unsave]');if(us){S.saved.splice(+us.dataset.unsave,1);save();lib();return}
-    const m=t.closest('[data-mode]');if(m){Q.mode=m.dataset.mode;Q.limit=60;$$('[data-mode]').forEach(b=>b.classList.toggle('on',b===m));Q.rerunB&&Q.rerunB();return}
+    const m=t.closest('[data-mode]');if(m){Q.mode=m.dataset.mode;Q.limit=60;$$('[data-mode]').forEach(b=>b.classList.toggle('on',b===m));results();return}
     if(t.id==='qClr'){Q.q='';srch();$('#qInp').focus();return}
     const sc=t.closest('[data-scope]');if(sc){Q.scope=sc.dataset.scope;persist();srch();return}
     const pr=t.closest('[data-preset]');if(pr){const v=pr.dataset.preset;Q.preset=v;Q.books=v==='pick'?(Q.books&&Q.preset==='pick'?Q.books:new Set()):presetSet(v);if(v==='pick'&&!Q.books)Q.books=new Set();Q.limit=60;persist();refreshFilt();results();return}
@@ -268,7 +276,7 @@ const Pages=(()=>{
     if(t.closest('[data-bkall]')){Q.books=new Set();persist();refreshFilt();Q.rerunB&&Q.rerunB();return}
     const fm=t.closest('[data-form]');if(fm){const w=fm.dataset.form;Q.toggled.has(w)?Q.toggled.delete(w):Q.toggled.add(w);Q.rerunB&&Q.rerunB();return}
     const sg=t.closest('[data-strong]');if(sg){const k=sg.dataset.strong;Q.offS.has(k)?Q.offS.delete(k):Q.offS.add(k);Q.rerunB&&Q.rerunB();return}
-    const hb=t.closest('[data-hb]');if(hb){const v=hb.dataset.hb;if(v==='all'){Q.preset='all';Q.books=null}else{const b=+v;if(Q.books&&Q.books.size===1&&Q.books.has(b)){Q.preset='all';Q.books=null}else{Q.preset='pick';Q.books=new Set([b])}}Q.limit=60;persist();refreshFilt();Q.rerunB&&Q.rerunB();return}
+    const hb=t.closest('[data-hb]');if(hb){const v=hb.dataset.hb;if(v==='all'){Q.preset='all';Q.books=null}else{const b=+v;if(Q.books&&Q.books.size===1&&Q.books.has(b)){Q.preset='all';Q.books=null}else{Q.preset='pick';Q.books=new Set([b])}}Q.limit=60;refreshFilt();Q.rerunB&&Q.rerunB();return}
     if(t.closest('[data-more]')){Q.limit+=100;Q.R.B&&Q.R.B();return}
     if(t.closest('[data-dmore]')){Q.lim.D=(Q.lim.D||12)+24;Q.R.D&&Q.R.D();return}
     const lm=t.closest('[data-lm]');if(lm){const id=lm.dataset.lm;Q.lim[id]=(Q.lim[id]||30)+60;Q.R['L'+id]&&Q.R['L'+id]();return}

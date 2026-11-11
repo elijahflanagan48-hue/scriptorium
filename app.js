@@ -72,6 +72,7 @@ function findBook(raw){
     ||(x.length>=4?BOOKS.find(b=>{const r=rn(b);let i=0;while(i<r.length&&i<x.length&&r[i]===x[i])i++;return i>=4&&i>=Math.min(r.length,x.length)-1}):null);
 }
 function parseRef(q,strict){
+  if(/^\s*[GHgh]\s*\d+[a-zA-Z]?\s*$/.test(q))return null; /* номер Стронга, не ссылка */
   const m=q.trim().toLowerCase().replace(/ё/g,'е').match(/^(\d?\s*[^\d:.,]+?)\s*\.?\s*(\d+)?(?:\s*[:.,]\s*(\d+)|\s+(\d+))?\s*$/);if(!m)return null;
   const b=findBook(m[1]);if(!b)return null;
   if(strict&&!m[2]){const x=norm(m[1]);if(!(norm(b.ab)===x||norm(b.ru)===x||stripRu(norm(b.ru))===x))return null}

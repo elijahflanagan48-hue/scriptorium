@@ -99,15 +99,16 @@ const Search=(()=>{
 
   /* ---- query ---- */
   function parseQ(q){
-    const phrases=[],terms=[],neg=[],strongs=[],script=[];
+    const phrases=[],terms=[],neg=[],strongs=[],script=[],bad=[];
     q=q.replace(/"([^"]+)"|«([^»]+)»|“([^”]+)”/g,(_,a,b,c)=>{phrases.push(a||b||c);return' '});
     for(const p of q.split(/\s+/).filter(Boolean)){
       if(/^[-−]\S/.test(p)){const x=nrm(p.slice(1));if(x)neg.push(x);continue}
       const sm=p.match(/^([GHgh])0*(\d{1,4})([a-zA-Z]?)$/);if(sm){strongs.push(sm[1].toUpperCase()+sm[2].padStart(4,'0'));continue}
+      if(/^[GHgh]\d+$/.test(p)){bad.push(p);continue}
       if(/[Ͱ-Ͽἀ-῿֐-׿]/.test(p)){script.push(p);continue}
       const x=nrm(p);if(x)terms.push(x);
     }
-    return{phrases,terms,neg,strongs,script};
+    return{phrases,terms,neg,strongs,script,bad,empty:!phrases.length&&!terms.length&&!strongs.length&&!script.length};
   }
   function formsOf(ix,term){
     const st=ix.stem(term),root=rootOf(st,ix.lang),t1=[],t2=[];

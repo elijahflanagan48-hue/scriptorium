@@ -10,7 +10,7 @@ const LSearch=(()=>{
   const esc2=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   const textOfV=v=>Array.isArray(v)?v.map(x=>x[0]).join(' '):String(v==null?'':v);
   const strongsOf=v=>Array.isArray(v)?' '+v.map(x=>(String(x[1]||'').match(/[GH]\d{4}/g)||[]).join(' ')).join(' ')+' ':'';
-  const isScript=q=>/[Ͱ-Ͽἀ-῿֐-׿]/.test(q);
+  const _isScript=q=>/[Ͱ-Ͽἀ-῿֐-׿]/.test(q);
   function scriptOf(q){
     const x=q.replace(/(^|\s)[GHgh]\d{1,4}[a-zA-Z]?(?=\s|$)/g,' ');
     return /[Ͱ-Ͽἀ-῿]/.test(x)?'grc':/[֐-׿]/.test(x)?'heb':/[а-яё]/i.test(x)?'ru':/[a-z]/i.test(x)?'en':'';
@@ -20,10 +20,11 @@ const LSearch=(()=>{
     const T=lang==='grc'||lang==='heb'?P.script.map(strip):P.terms;
     const rx=T.map(term=>{
       let t=strip(term).replace(/[^\p{L}\p{N}]/gu,'');if(!t)return null;
+      if(/\d/.test(t))return new RegExp('(?<![\\p{L}\\p{N}])'+esc2(t)+'(?![\\p{L}\\p{N}])','u');
       if(lang==='ru'||lang==='en'){
         const st=lang==='ru'?Search.stemRu(t):Search.stemEn(t);let root=lang==='ru'&&st.length===5&&/[ое]в$/.test(st)?st.slice(0,3):st.length>5?st.slice(0,-1):st;if(root.length<3)root=t;
         return new RegExp('(?<![\\p{L}\\p{N}])'+esc2(root)+(t.length<=3?'(?![\\p{L}\\p{N}])':''),'u')}
-      if(lang==='grc'){const root=t.length>6?t.slice(0,-2):t.length>4?t.slice(0,-1):t;return new RegExp('(?<![\\p{L}\\p{N}])'+esc2(root),'u')}
+      if(lang==='grc'){const root=t.length>6?t.slice(0,-2):t.length>4?t.slice(0,-1):t;return new RegExp('(?<![\\p{L}\\p{N}])'+esc2(root)+(t.length<=3?'(?![\\p{L}\\p{N}])':''),'u')}
       return new RegExp(esc2(t),'u');
     }).filter(Boolean);
     const phr=P.phrases.map(norm),neg=P.neg.map(w=>new RegExp('(?<![\\p{L}\\p{N}])'+esc2(strip(w)),'u')),st=P.strongs;
@@ -81,9 +82,9 @@ const LSearch=(()=>{
     const res={id:wid,title:w.title_ru,abbr:w.abbr_ru||w.title_ru,items:[],total:0,locked:false,noLang:!cand.length,texts:[],pt:Object.fromEntries(w.parts.map(p=>[p.id,p.title_ru])),langs:[...new Set(w.texts.map(t=>({grc:'гречески',heb:'еврейски',en:'английски',ru:'русски'})[t.lang]))].join(' или ')};
     if(!cand.length)return res;
     for(const t of cand){
+      const m=matcher(P,t.lang);if(m.empty)continue;
       if(t.access==='account'&&!Lib.hasAcc()){res.locked=true;continue}
       res.texts.push(t.tid);
-      const m=matcher(P,t.lang);if(m.empty)continue;
       const docs=await docsFor(w,t,(a,b)=>o.prog&&o.prog(wid,a,b));
       if(!o.alive())return null;
       for(const p of docs){for(const[c,k,v,n,sg]of p.rows){
