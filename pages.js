@@ -10,11 +10,11 @@ const Pages=(()=>{
   const LIB=[
     {shelf:'Писание',refs:'ссылки вида Ин 3:16',items:[
       {id:'bible',title:'Библия',cover:'Библия',color:'#4C7DFF',ready:true,sub:()=>IDX.translations.map(t=>shortName(t.id)).join(' · ')+' · иврит WLC · греч. SBLGNT'},
-      {title:'Септуагинта',cover:'LXX',sub:'Греческий Ветхий Завет'},
-      {title:'Апокрифы и псевдоэпиграфы',cover:'Апокр.',sub:'Неканонические книги'}]},
+      {id:'lxx',title:'Септуагинта',cover:'LXX',color:'#7C5CFF',ready:true,sub:'Греческий Ветхий Завет (Ральфс), слова со Стронгом · с соответствием еврейской нумерации · после входа'},
+      {id:'apocrypha',title:'Апокрифы и псевдоэпиграфы',cover:'Апокр.',color:'#E056A0',ready:true,sub:'Неканонические книги: Синодальный перевод · KJV (после входа)'}]},
     {shelf:'Иудейские авторы',refs:'ссылки вида Древн. 18.3.3',items:[
-      {title:'Иосиф Флавий',cover:'Флавий',sub:'Иудейские древности · Иудейская война'},
-      {title:'Филон Александрийский',cover:'Филон',sub:'Трактаты'},
+      {id:'josephus',title:'Иосиф Флавий',cover:'Флавий',color:'#FFB020',ready:true,sub:'Древности · Война · Жизнь · Против Апиона — греч. и англ.'},
+      {id:'philo',title:'Филон Александрийский',cover:'Филон',color:'#12B5C4',ready:true,sub:'31 трактат — греч. (Кон–Вендланд) и англ. (Йонг)'},
       {title:'Свитки Мёртвого моря',cover:'Кумран',sub:'Избранные тексты'}]},
     {shelf:'Ранняя церковь',refs:'ссылки вида ЦИ 3.39.4',items:[
       {title:'Евсевий Кесарийский',cover:'Евсевий',sub:'Церковная история'},
@@ -138,7 +138,7 @@ const Pages=(()=>{
     const t=e.target;
     const g=t.closest('[data-go]');if(g){const[b,c]=g.dataset.go.split('.');go(b,+c);return}
     const gr=t.closest('[data-goref]');if(gr){const[b,c,v]=gr.dataset.goref.split('.');go(b,+c,+v||0);if(!+v)scrollTo(0,0);return}
-    const op=t.closest('[data-open]');if(op){showSec('read');return}
+    const op=t.closest('[data-open]');if(op){if(op.dataset.open==='bible')showSec('read');else Lib.open(op.dataset.open);return}
     const q=t.closest('[data-q]');if(q){Q.mode='forms';search(q.dataset.q);return}
     const us=t.closest('[data-unsave]');if(us){S.saved.splice(+us.dataset.unsave,1);save();lib();return}
     const m=t.closest('[data-mode]');if(m){Q.mode=m.dataset.mode;Q.limit=60;$$('[data-mode]').forEach(b=>b.classList.toggle('on',b===m));results();return}
