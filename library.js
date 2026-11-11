@@ -10,7 +10,7 @@ const Lib=(()=>{
   const hasAcc=()=>!!(Sync.user&&Sync.user.access);
   const num=k=>{const m=/^\d+/.exec(k);return m?+m[0]:0};
   const cmp=(a,b)=>num(a)-num(b)||(a<b?-1:a>b?1:0);
-  const LBL={NIESE:'Греч. · Нисе',WHISTON:'Англ. · Уистон',CW:'Греч. · Кон–Вендланд',YONGE:'Англ. · Йонг',RST:'Синод.',KJVA:'KJV',RAHLFS:'LXX · Ральфс',KAHANA:'Евр. · Кахана',DSS:'Иврит · рукопись'};
+  const LBL={NIESE:'Греч. · Нисе',WHISTON:'Англ. · Уистон',CW:'Греч. · Кон–Вендланд',YONGE:'Англ. · Йонг',RST:'Синод.',KJVA:'KJV',RAHLFS:'LXX · Ральфс',KAHANA:'Евр. · Кахана',DSS:'Иврит · рукопись',RU:'Рус. · перевод'};
   const lbl=t=>LBL[t.tid]||t.tid;
   const plain=t=>t.lang==='grc'?'grc':t.lang==='heb'?'heb':t.lang==='en'?'en':'ru';
 
@@ -65,7 +65,8 @@ const Lib=(()=>{
   }
   const body=(v,t)=>Array.isArray(v)?v.map(x=>`<span class="w" data-f="${esc(x[0])}" data-s="${esc(x[1]||'')}">${esc(x[0])}</span>`).join(' '):esc(v);
   const VOC={josephus:{p:'Книга',c:'Глава',vs:'разделы',c0:'Содержание книги'},philo:{p:'Трактат',c:'Глава',vs:'параграфы'},lxx:{p:'Книга',c:'Глава',vs:'стихи',c0:'Пролог'},
-    apocrypha:{p:'Книга',c:'Глава',vs:'стихи',c0:'Пролог'},qumran:{p:'Свиток',c:'Фрагмент',vs:'строки'}};
+    apocrypha:{p:'Книга',c:'Глава',vs:'стихи',c0:'Пролог'},qumran:{p:'Свиток',c:'Фрагмент',vs:'строки'},
+    eusebius:{p:'Книга',c:'Глава',vs:'параграфы'},apfathers:{p:'Сочинение',c:'Глава',vs:'абзацы'}};
   const voc=w=>VOC[w.id]||{p:'Часть',c:'Глава',vs:'стихи'};
   const disp=(w,c,k)=>k==='0'?'загл.':w.id==='josephus'?`${c}.${k}`:w.id==='philo'?`§${k}`:`${c}:${k}`;
 

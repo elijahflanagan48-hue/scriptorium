@@ -13,12 +13,12 @@ const Pages=(()=>{
       {id:'lxx',title:'Септуагинта',cover:'LXX',color:'#7C5CFF',ready:true,sub:'Греческий Ветхий Завет (Ральфс), слова со Стронгом · с соответствием еврейской нумерации · после входа'},
       {id:'apocrypha',title:'Апокрифы и псевдоэпиграфы',cover:'Апокр.',color:'#E056A0',ready:true,sub:'Неканонические книги: Синодальный перевод · KJV (после входа)'}]},
     {shelf:'Иудейские авторы',refs:'ссылки вида Древн. 18.3.3',items:[
-      {id:'josephus',title:'Иосиф Флавий',cover:'Флавий',color:'#FFB020',ready:true,sub:'Древности · Война · Жизнь · Против Апиона — греч. и англ.'},
+      {id:'josephus',title:'Иосиф Флавий',cover:'Флавий',color:'#FFB020',ready:true,sub:'Древности · Война · Жизнь · Против Апиона — греч., англ. и рус. (после входа)'},
       {id:'philo',title:'Филон Александрийский',cover:'Филон',color:'#12B5C4',ready:true,sub:'31 трактат — греч. (Кон–Вендланд) и англ. (Йонг)'},
       {id:'qumran',title:'Свитки Мёртвого моря',cover:'Кумран',color:'#2BB673',ready:true,sub:'~1000 свитков, иврит (Абегг, CACCHT) · после входа'}]},
     {shelf:'Ранняя церковь',refs:'ссылки вида ЦИ 3.39.4',items:[
-      {title:'Евсевий Кесарийский',cover:'Евсевий',sub:'Церковная история'},
-      {title:'Апостольские мужи',cover:'Отцы',sub:'Климент, Игнатий, Дидахе…'}]}
+      {id:'eusebius',title:'Евсевий Кесарийский',cover:'Евсевий',color:'#D9663B',ready:true,sub:'Церковная история, 10 книг — рус. · после входа'},
+      {id:'apfathers',title:'Апостольские мужи',cover:'Отцы',color:'#8A6FD1',ready:true,sub:'Дидахе, Варнава, Климент, Игнатий, Поликарп, Ерм, Папий — рус. · после входа'}]}
   ];
   const card=it=>`<button class="lcard ${it.ready?'':'plan'}" ${it.id?`data-open="${it.id}"`:'disabled'}><div class="cv" style="${it.ready?`background:${it.color}`:''}"><b>${esc(it.cover)}</b></div><div class="bd"><span class="t">${esc(it.title)}</span><span class="s">${esc(typeof it.sub==='function'?it.sub():it.sub)}</span><span class="st ${it.ready?'ok':''}">${it.ready?'Готово':'В плане'}</span></div></button>`;
   function lib(){
