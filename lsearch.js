@@ -15,7 +15,9 @@ const LSearch=(()=>{
     const x=q.replace(/(^|\s)[GHgh]\d{1,4}[a-zA-Z]?(?=\s|$)/g,' ');
     return /[Ͱ-Ͽἀ-῿]/.test(x)?'grc':/[֐-׿]/.test(x)?'heb':/[а-яё]/i.test(x)?'ru':/[a-z]/i.test(x)?'en':'';
   }
-  /* ---------- сопоставление слов ---------- */
+  /* греческая основа: отбрасываем частые окончания (лемма и формы сходятся к одной основе) */
+  const GEND=['ομενοσ','ομαι','ουσιν','ουσι','εσθαι','ειν','ησασ','οντα','οντοσ','ματοσ','ματα','εωσ','ευσ','ησ','οσ','ον','ου','ων','οισ','αισ','ασ','ην','αν','ω','η','α','ι','ε','σ'];
+  function grcRoot(t){if(t.length<=4)return t;for(const e of GEND)if(t.endsWith(e)&&t.length-e.length>=3)return t.slice(0,-e.length);return t}
   function matcher(P,lang){
     const T=lang==='grc'||lang==='heb'?P.script.map(strip):P.terms;
     const rx=T.map(term=>{
@@ -24,7 +26,7 @@ const LSearch=(()=>{
       if(lang==='ru'||lang==='en'){
         const st=lang==='ru'?Search.stemRu(t):Search.stemEn(t);let root=lang==='ru'&&st.length===5&&/[ое]в$/.test(st)?st.slice(0,3):st.length>5?st.slice(0,-1):st;if(root.length<3)root=t;
         return new RegExp('(?<![\\p{L}\\p{N}])'+esc2(root)+(t.length<=3?'(?![\\p{L}\\p{N}])':''),'u')}
-      if(lang==='grc'){const root=t.length>6?t.slice(0,-2):t.length>4?t.slice(0,-1):t;return new RegExp('(?<![\\p{L}\\p{N}])'+esc2(root)+(t.length<=3?'(?![\\p{L}\\p{N}])':''),'u')}
+      if(lang==='grc'){const root=grcRoot(t);return new RegExp('(?<![\\p{L}\\p{N}])'+esc2(root)+(t.length<=3?'(?![\\p{L}\\p{N}])':''),'u')}
       return new RegExp(esc2(t),'u');
     }).filter(Boolean);
     const phr=P.phrases.map(norm),neg=P.neg.map(w=>new RegExp('(?<![\\p{L}\\p{N}])'+esc2(strip(w)),'u')),st=P.strongs;

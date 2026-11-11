@@ -83,9 +83,9 @@ const refLabel=r=>`${bookRu(r.book)} ${r.ch}${r.v?':'+r.v:''}`;
 /* ---------- data ---------- */
 /* все части главы запрашиваются сразу и параллельно; текст показывается по мере готовности */
 const isPriv=id=>PRIV.test(`data/tr/${id}/x.json`);
-function chapterParts(book){
+function chapterParts(book,ch){
   const ids=S.sel.filter(x=>x!=='ORIG'&&TRS[x]&&TRS[x].books.includes(book));
-  return{book,ids,o:J(`data/orig/${book}.json`),t:ids.map(id=>J(`data/tr/${id}/${book}.json`)),a:ids.map(id=>isPriv(id)?Promise.all([J(`data/align/${id}/${book}.json`),J(`data/nt/${id}/${book}.json`).then(x=>{FNS[id+'|'+book]=x||{}})]).then(r=>r[0]):J(`data/align/${id}/${book}.json`))};
+  return{book,ids,o:J(`data/origc/${book}/${ch}.json`),t:ids.map(id=>J(`data/tr/${id}/${book}.json`)),a:ids.map(id=>isPriv(id)?Promise.all([J(`data/align/${id}/${book}.json`),J(`data/nt/${id}/${book}.json`).then(x=>{FNS[id+'|'+book]=x||{}})]).then(r=>r[0]):J(`data/align/${id}/${book}.json`))};
 }
 function buildChapter(book,ch,o,ids,T,A){
   const orig=o?o.chapters[ch]||{}:{},lang=o?o.lang:(BOOKS[BI[book]].testament==='NT'?'grc':'heb'),tr={},al={};
@@ -93,7 +93,7 @@ function buildChapter(book,ch,o,ids,T,A){
   const nums=new Set(Object.keys(orig).map(Number));for(const id in tr)for(const v in tr[id])nums.add(+v);
   return{orig,lang,tr,al,book,ch,verses:[...nums].sort((a,b)=>a-b)};
 }
-async function loadChapter(book,ch){const P=chapterParts(book);const[o,T,A]=await Promise.all([P.o,Promise.all(P.t),Promise.all(P.a)]);return buildChapter(book,ch,o,P.ids,T,A)}
+async function loadChapter(book,ch){const P=chapterParts(book,ch);const[o,T,A]=await Promise.all([P.o,Promise.all(P.t),Promise.all(P.a)]);return buildChapter(book,ch,o,P.ids,T,A)}
 const origHTML=(ws,lang,cls='')=>ws?`<div class="orig ${lang} ${cls}" lang="${lang==='heb'?'he':'grc'}">`+ws.map((w,i)=>`<span class="w" data-i="${i}" data-k="${w[1]}" data-m="${esc(w[2])}">${esc(w[0])}</span>`).join(' ')+'</div>':'';
 const trHTML=(id,v,text,d)=>{const a=d.al&&d.al[id]&&d.al[id][v],ch=text.trim().split(/\s+/),ok=a&&a.length===ch.length;
   const fl=FNS[id+'|'+d.book]&&FNS[id+'|'+d.book][d.ch+':'+v],fm={};if(fl)fl.forEach((f,k)=>(fm[f[0]]=fm[f[0]]||[]).push(`<sup class="fn" data-fn="${id}|${d.ch}:${v}|${k}">${esc(f[1]||'•')}</sup>`));
@@ -113,7 +113,7 @@ async function render(scrollV){
   const t=++token;applyBody();
   $('#bookLabel').textContent=`${bookRu(cur.book)} ${cur.ch}`;$('#bookBtn').className='pill only-m '+gcls();
   renderTabs();buildSide();
-  const R=$('#reader'),ck=cur.book+cur.ch+S.layout,book=cur.book,ch=cur.ch,P=chapterParts(book);
+  const R=$('#reader'),ck=cur.book+cur.ch+S.layout,book=cur.book,ch=cur.ch,P=chapterParts(book,ch);
   let stage=0;
   const show=(d,st,final)=>{
     if(t!==token||st<=stage)return;stage=st;CUR=d;
@@ -135,7 +135,7 @@ async function render(scrollV){
   if(hasPriv){const[T2,A2]=await Promise.all([Promise.all(P.t),Promise.all(P.a)]);show(buildChapter(book,ch,o,P.ids,T2,A2),3,true)}
   if(t!==token)return;
   firstDone();
-  const nxt=BOOKS[BI[cur.book]+((cur.ch>=BOOKS[BI[cur.book]].chapters)?1:0)];if(nxt)setTimeout(()=>J(`data/orig/${nxt.id}.json`),1500);
+  {const last=ch>=BOOKS[BI[book]].chapters,nb=BOOKS[BI[book]+(last?1:0)];if(nb)setTimeout(()=>J(`data/origc/${nb.id}/${last?1:ch+1}.json`),1500)}
 }
 /* фоновая подгрузка только после того, как глава показана, и по очереди, чтобы не мешать тексту */
 let WARMED=false;
@@ -339,6 +339,9 @@ function tabArticle(){
   if(!lx&&k)h+=`<div class="ih">Значения</div><div class="sk" style="width:45%;height:18px"></div><div class="sk"></div><div class="sk"></div><div class="sk" style="width:70%"></div>`;
   if(lx){h+=`<div class="ih">Значения</div><div style="font-weight:700;margin-bottom:6px">${esc(lx.gloss)}</div><div class="def clamp" id="def">${lx.def.replace(/^(__)+/gm,m=>"\u2003".repeat(m.length/2))}</div><button class="more" id="defMore">Показать полностью</button>`;
     h+=`<div class="hint">Словарь: STEPBible ${isH?'TBESH':'TBESG'}, CC BY 4.0.</div>`}
+  if(lx&&!/^H900\d$/.test(k)&&lx.lemma.replace(/[\u0591-\u05C7\/]/g,'').length>1){const lem=lx.lemma.split(',')[0].trim();
+    h+=`<div class="ih">В библиотеке и везде</div><div class="ibox libx"><div class="hint" style="margin:0 0 8px">${isH?'Кумран, еврейский Сирах':'Септуагинта, апокрифы, Иосиф Флавий, Филон'} — где встречается «<span class="${isH?'he':'gr'}">${esc(lem)}</span>»</div>`+
+      `<button class="mini" data-libq="${esc(lem)}">Искать в библиотеке</button> <button class="mini" data-allq="${esc(k)}">Везде по номеру ${esc(k)}</button></div>`}
   h+=`<div class="ih">Моя заметка к слову</div><textarea class="wnote" id="wnote" placeholder="Например: сравнить с φιλέω">${esc(S.wnotes[k]||'')}</textarea>`;
   $('#ipane').innerHTML=h;
 }
@@ -603,3 +606,6 @@ let _lt=0;document.addEventListener('touchend',e=>{const n=Date.now();if(n-_lt<3
   document.addEventListener('touchend',()=>{if(y0==null)return;const s=sh();s.style.transition='';y0=null;if(dy<-70){s.style.transform='';closeModal()}else{s.style.transform=''}dy=0});
   document.addEventListener('click',e=>{if(e.target.closest('#dgrab'))closeModal()});
 })();
+/* панель слова → поиск в библиотеке / везде */
+document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('[data-libq],[data-allq]');if(!a)return;
+  if(isM())closeInsp();if(a.dataset.libq)Pages.search(a.dataset.libq,{scope:'lib',mode:'forms'});else Pages.search(a.dataset.allq,{scope:'all',mode:'forms'})});

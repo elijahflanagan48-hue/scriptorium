@@ -10,14 +10,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <script>/* ранняя загрузка данных текущей главы — параллельно со скриптами */
 (function(){try{window.__pre={};var P=window.__pre,f=function(p){P[p]=fetch(p).then(function(r){return r.ok?r.json():null}).catch(function(){return null})};
-f('data/index.json');var S=JSON.parse(localStorage.getItem('scriptorium.v1')||'{}'),b=(S.last&&S.last.book)||'Gen',m=(location.hash||'').match(/^#([0-9A-Za-z]+)\./);if(m)b=m[1];
+f('data/index.json');var S=JSON.parse(localStorage.getItem('scriptorium.v1')||'{}'),b=(S.last&&S.last.book)||'Gen',c=(S.last&&S.last.ch)||1,m=(location.hash||'').match(/^#([0-9A-Za-z]+)\.(\d+)/);if(m){b=m[1];c=+m[2]}
 var sel=(S.sel||['ORIG','RST']).filter(function(x){return x!=='ORIG'&&x!=='BTI'});if(!sel.length)sel=['RST'];
-f('data/orig/'+b+'.json');sel.forEach(function(t){f('data/tr/'+t+'/'+b+'.json');f('data/align/'+t+'/'+b+'.json')})}catch(e){}})();</script>
+f('data/origc/'+b+'/'+c+'.json');sel.forEach(function(t){f('data/tr/'+t+'/'+b+'.json');f('data/align/'+t+'/'+b+'.json')})}catch(e){}})();</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Frank+Ruhl+Libre:wght@400;500&family=Gentium+Plus:ital@0;1&display=swap" rel="stylesheet" media="print" onload="this.media='all'"><noscript><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Frank+Ruhl+Libre:wght@400;500&family=Gentium+Plus:ital@0;1&display=swap" rel="stylesheet"></noscript>
-<link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="alternate icon" type="image/png" href="icon-192.png"><link rel="stylesheet" href="style.css?v=20261111g">
+<link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="alternate icon" type="image/png" href="icon-192.png"><link rel="stylesheet" href="style.css?v=20261111i">
 </head>
 <body class="theme-light layout-A sec-read">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -74,17 +74,17 @@ f('data/orig/'+b+'.json');sel.forEach(function(t){f('data/tr/'+t+'/'+b+'.json');
 <div id="pop" hidden></div>
 <div id="menu" hidden></div>
 <div id="modal" hidden><div class="sheet" id="sheet"></div></div>
-<script defer src="config.js?v=20261111g"></script>
-<script defer src="decoders.js?v=20261111g"></script>
-<script defer src="speech.js?v=20261111g"></script>
-<script defer src="sync.js?v=20261111g"></script>
-<script defer src="themes.js?v=20261111g"></script>
-<script defer src="app.js?v=20261111g"></script>
-<script defer src="search.js?v=20261111g"></script>
-<script defer src="pages.js?v=20261111g"></script>
-<script defer src="reading.js?v=20261111g"></script>
-<script defer src="library.js?v=20261111g"></script>
-<script defer src="lsearch.js?v=20261111g"></script>
-<script defer src="insight.js?v=20261111g"></script>
+<script defer src="config.js?v=20261111i"></script>
+<script defer src="decoders.js?v=20261111i"></script>
+<script defer src="speech.js?v=20261111i"></script>
+<script defer src="sync.js?v=20261111i"></script>
+<script defer src="themes.js?v=20261111i"></script>
+<script defer src="app.js?v=20261111i"></script>
+<script defer src="search.js?v=20261111i"></script>
+<script defer src="pages.js?v=20261111i"></script>
+<script defer src="reading.js?v=20261111i"></script>
+<script defer src="library.js?v=20261111i"></script>
+<script defer src="lsearch.js?v=20261111i"></script>
+<script defer src="insight.js?v=20261111i"></script>
 </body>
 </html>

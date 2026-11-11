@@ -53,7 +53,7 @@ const Search=(()=>{
       const ids=pre.ids,txt=pre.txt,tok=new Map();
       for(const w in pre.tok){const d=pre.tok[w];let s=0;const a=new Array(d.length);for(let i=0;i<d.length;i++){s+=d[i];a[i]=s}tok.set(w,a)}
       const stem=T.lang==='ru'?stemRu:stemEn,stems=new Map();for(const w of tok.keys())stems.set(w,stem(w));
-      const t2s=(await J(`data/t2s/${tid}.json`))||{};
+      const t2s=(isPriv(tid)?(Sync.user&&Sync.user.access?await Sync.pget('t2s/'+tid+'/all').catch(()=>null):null):await J(`data/t2s/${tid}.json`))||{};
       const pos=new Map();ids.forEach((n,k)=>pos.set(n,k));prog&&prog(1,1);
       return IX[tid]={tid,lang:T.lang,ids,txt,tok,stem,stems,t2s,pos,flat:null,rev:null};
     }
@@ -65,7 +65,7 @@ const Search=(()=>{
     rows.forEach(([n,t],k)=>{ids[k]=n;txt[k]=t;const seen=new Set();
       for(const w of t.split(/\s+/)){const x=nrm(w);if(x&&!seen.has(x)){seen.add(x);let a=tok.get(x);if(!a)tok.set(x,a=[]);a.push(k)}}});
     const stem=T.lang==='ru'?stemRu:stemEn,stems=new Map();for(const w of tok.keys())stems.set(w,stem(w));
-    const t2s=(await J(`data/t2s/${tid}.json`))||{};
+    const t2s=(isPriv(tid)?(Sync.user&&Sync.user.access?await Sync.pget('t2s/'+tid+'/all').catch(()=>null):null):await J(`data/t2s/${tid}.json`))||{};
     const pos=new Map();ids.forEach((n,k)=>pos.set(n,k));
     return IX[tid]={tid,lang:T.lang,ids,txt,tok,stem,stems,t2s,pos,flat:null,rev:null};
   }
@@ -144,7 +144,7 @@ const Search=(()=>{
         const c=correct(ix,term);if(c){fixed=term;term=c;f=formsOf(ix,term)}}
       const core=coreStrongs(ix,ix.t2s[term]?[term]:f.t1);
       const fits=w=>{const ts=(ix.t2s[w]||[]).slice(0,2).map(x=>x[0]);return !ts.length||ts.some(k=>core.some(c=>sameFamily(k,c)))};
-      const ok2=f.t2.filter(w=>{const ts=(ix.t2s[w]||[]).slice(0,2).map(x=>x[0]);return core.length?ts.length&&fits(w):f.root.length>=4});
+      const ok2=f.t2.filter(w=>{const ts=(ix.t2s[w]||[]).slice(0,2).map(x=>x[0]);return core.length?ts.length&&fits(w):f.root.length>=4&&ix.stems.get(w).startsWith(f.root)});
       const forms=[...f.t1.map(w=>({w,n:ix.tok.get(w).length,t:1,def:!core.length||w===term||fits(w)})),...ok2.map(w=>({w,n:ix.tok.get(w).length,t:2,def:true}))].sort((a,b)=>b.def-a.def||b.n-a.n);
       const fam=new Set(core);for(const w of ok2)for(const[k]of (ix.t2s[w]||[]).slice(0,1))if(core.some(c=>sameFamily(k,c)))fam.add(k);
       const strongs=[...fam].filter(k=>lx(k));
