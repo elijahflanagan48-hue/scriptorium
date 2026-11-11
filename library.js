@@ -18,7 +18,17 @@ const Lib=(()=>{
   function textOf(w,t,pid){
     const key=`${w.id}/${t.tid}/${pid}`;
     if(!dc.has(key)){
-      const pr=t.access==='account'?(hasAcc()?Sync.pget('lib/'+key):Promise.resolve({locked:true})):J(`data/lib/${w.id}/tr/${t.tid}/${pid}.json`);
+      let pr;
+      if(t.from){/* производный текст: берём часть чужого сочинения (оригинал апокрифов из Септуагинты) */
+        const sp=t.from.map[pid],spec=typeof sp==='string'?{p:sp}:sp;
+        pr=hasAcc()?Sync.pget(`lib/${t.from.work}/${t.from.tid}/${spec.p}`).then(d=>{d=d.chapters||d;
+          if(!spec.c)return d;const cv=d[spec.c]||{},o={};
+          for(const k of Object.keys(cv))if(!spec.v||(num(k)>=spec.v[0]&&num(k)<=spec.v[1]))o[k]=cv[k];
+          return {[spec.c]:o}}):Promise.resolve({locked:true});
+        dc.set(key,Promise.resolve(pr).catch(()=>null).then(d=>{if(!d||d.locked){dc.delete(key);return d||null}return d}));
+        return dc.get(key);
+      }
+      pr=t.access==='account'?(hasAcc()?Sync.pget('lib/'+key):Promise.resolve({locked:true})):J(`data/lib/${w.id}/tr/${t.tid}/${pid}.json`);
       dc.set(key,Promise.resolve(pr).catch(()=>null).then(d=>{if(!d||d.locked){dc.delete(key);return d||null}return d.chapters||d}));
     }
     return dc.get(key);
@@ -54,7 +64,10 @@ const Lib=(()=>{
     return rows;
   }
   const body=(v,t)=>Array.isArray(v)?v.map(x=>`<span class="w" data-f="${esc(x[0])}" data-s="${esc(x[1]||'')}">${esc(x[0])}</span>`).join(' '):esc(v);
-  const disp=(w,c,k)=>w.id==='josephus'?`${c}.${k}`:w.id==='philo'?`§${k}`:`${c}:${k}`;
+  const VOC={josephus:{p:'Книга',c:'Глава',vs:'разделы',c0:'Содержание книги'},philo:{p:'Трактат',c:'Глава',vs:'параграфы'},lxx:{p:'Книга',c:'Глава',vs:'стихи',c0:'Пролог'},
+    apocrypha:{p:'Книга',c:'Глава',vs:'стихи',c0:'Пролог'},qumran:{p:'Свиток',c:'Фрагмент',vs:'строки'}};
+  const voc=w=>VOC[w.id]||{p:'Часть',c:'Глава',vs:'стихи'};
+  const disp=(w,c,k)=>k==='0'?'загл.':w.id==='josephus'?`${c}.${k}`:w.id==='philo'?`§${k}`:`${c}:${k}`;
 
   /* ---------- вход и навигация ---------- */
   async function open(id,pid,c){
@@ -80,11 +93,17 @@ const Lib=(()=>{
     const c=chs.includes(s.c)?s.c:(chs[0]||'');if(c!==s.c){s.c=c;save()}
     const cd=ds.map(d=>d&&!d.locked?d[c]||null:null);
     const rows=plan(w,cd),multi=chs.length>1;
+    const V=voc(w),ttl={};
+    if(w.id==='josephus')chs.forEach(k=>{for(const d of ds){const x=d&&!d.locked&&d[k]&&d[k]['0'];if(typeof x==='string'&&x.trim()){let y=x.trim();if(y===y.toUpperCase())y=y.charAt(0)+y.slice(1).toLowerCase();ttl[k]=y.replace(/^CHAPTER\s+\S+\.?\s*/i,'').replace(/^[A-Za-zα-ωΑ-Ω]+\.\s*/,'');break}}});
+    const part=w.parts.find(p=>p.id===s.p)||{},nch=chs.filter(x=>x!=='0').length;
+    const chLbl=k=>k==='0'?(V.c0||'Заглавие'):`${V.c} ${k}${ttl[k]?' — '+(ttl[k].length>46?ttl[k].slice(0,46)+'…':ttl[k]):''}`;
     const sel=w.parts.map(p=>`<option value="${esc(p.id)}" ${p.id===s.p?'selected':''}>${esc(p.title_ru)}</option>`).join('');
-    const chsel=multi?`<select id="lch" aria-label="Глава">${chs.map(k=>`<option ${k===c?'selected':''}>${esc(k)}</option>`).join('')}</select>`:'';
+    const chsel=multi?`<label class="lsel"><span>${esc(V.c)}</span><select id="lch" aria-label="${esc(V.c)}">${chs.map(k=>`<option value="${esc(k)}" ${k===c?'selected':''}>${esc(chLbl(k))}</option>`).join('')}</select></label>`:'';
+    const nums=rows.map(r=>r.k).filter(k=>k!=='0'),pos=`${esc(part.title_ru||'')}${multi?` · ${c==='0'?esc(V.c0||'заглавие'):esc(V.c.toLowerCase())+' '+esc(c)+' из '+nch}`:''}${nums.length?` · ${esc(V.vs)} ${esc(nums[0])}–${esc(nums[nums.length-1])}`:''}`;
     const chips=w.texts.map(t=>{const on=ts.includes(t),lock=t.access==='account'&&!hasAcc();return `<button data-ltid="${esc(t.tid)}" class="${on?'on':''}" title="${esc(t.name)}">${lock?'🔒 ':''}${esc(lbl(t))}</button>`}).join('');
     let h=`<div class="pg lrd-pg"><div class="lhd"><button class="mini" data-lb="back">‹ Полки</button><h1>${esc(w.title_ru)}</h1></div>`+
-      `<div class="lbar"><select id="lpart" aria-label="Часть">${sel}</select>${chsel}<button class="mini" data-lstep="-1" aria-label="Назад">‹</button><button class="mini" data-lstep="1" aria-label="Вперёд">›</button></div>`+
+      `<div class="lbar"><label class="lsel"><span>${esc(V.p)}</span><select id="lpart" aria-label="${esc(V.p)}">${sel}</select></label>${chsel}<button class="mini" data-lstep="-1" title="Предыдущая ${esc(V.c.toLowerCase())}">‹ Назад</button><button class="mini" data-lstep="1" title="Следующая ${esc(V.c.toLowerCase())}">Дальше ›</button></div>`+
+      `<div class="lpos">${pos}</div>`+
       `<div class="lchips">${chips}</div>`+`<form class="lsf" id="lsf"><input id="lq" value="${esc(QS)}" placeholder="Поиск по этому сочинению (первый выбранный текст)" autocomplete="off" enterkeyhint="search"><button class="mini">Найти</button></form><div id="lres"></div>`;
     if(locked)h+=`<div class="lnote warm">Этот текст открывается после входа в личный кабинет с доступом. <button class="mini" data-lacct>Войти</button></div>`;
     if(w.id==='lxx')h+=`<div class="lnote">Нумерация Септуагинты. Справа от каждого стиха — соответствие в еврейском тексте (по таблице TVTMS, Tyndale House); нажмите, чтобы открыть Библию на этом месте. Нажмите на слово — карточка слова.</div>`;

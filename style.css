@@ -443,3 +443,6 @@ html,body,button,a,[role="button"]{-webkit-tap-highlight-color:transparent}
 
 .lsf{display:flex;gap:8px;margin:8px 0}.lsf input{flex:1;min-width:0;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--paper);color:inherit;font:inherit}
 .lv.hit{background:var(--chip);box-shadow:inset 3px 0 var(--accent)}
+.lsel{display:flex;flex-direction:column;gap:2px;min-width:0}.lsel span{font:600 11px var(--ui);color:var(--mute);letter-spacing:.03em;text-transform:uppercase}
+.lbar{align-items:flex-end}.lpos{font:600 13px var(--ui);color:var(--mute);margin:4px 0 8px}
+.lsel select{max-width:min(100%,520px)}
