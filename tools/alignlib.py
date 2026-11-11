@@ -82,6 +82,7 @@ def direct(cp, testament):
     """Прямое выравнивание перевод<->оригинал: {key: (js, F)}, F[(n,m)] = f(j->i) * r(i->j)^REVW."""
     src_vocab, tgt_vocab = {'<NULL>': 0}, {}
     vs = [v for v in cp.verses if v[1] == testament]
+    if not vs: return {}   # перевод только одного завета (напр. Кассиан — только НЗ)
     SA, TA = [], []
     for key, _, ws, chunks in vs:
         S = [src_vocab.setdefault(w[1] or ('~' + w[0]), len(src_vocab)) for w in ws]
