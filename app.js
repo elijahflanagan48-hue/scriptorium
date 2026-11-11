@@ -83,7 +83,7 @@ const refLabel=r=>`${bookRu(r.book)} ${r.ch}${r.v?':'+r.v:''}`;
 
 /* ---------- data ---------- */
 /* все части главы запрашиваются сразу и параллельно; текст показывается по мере готовности */
-const isPriv=id=>id==='BTI';
+const isPriv=id=>PRIV.test(`data/tr/${id}/x.json`);
 function chapterParts(book,ch){
   const ids=S.sel.filter(x=>x!=='ORIG'&&TRS[x]&&TRS[x].books.includes(book));
   return{book,ids,o:J(`data/origc/${book}/${ch}.json`),t:ids.map(id=>J(`data/tr/${id}/${book}.json`)),a:ids.map(id=>isPriv(id)?Promise.all([J(`data/align/${id}/${book}.json`),J(`data/nt/${id}/${book}.json`).then(x=>{FNS[id+'|'+book]=x||{}})]).then(r=>r[0]):J(`data/align/${id}/${book}.json`))};
