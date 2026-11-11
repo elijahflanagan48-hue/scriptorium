@@ -32,8 +32,8 @@ const Sync=(()=>{
       const store=map[k[0]],key=k.slice(2),rv=R[store]&&R[store][key];
       if(rv==null)delete S[store][key];else S[store][key]=rv;S.ts[k]=b;changed=true;
     }
-    if(R.days){S.days=S.days||{};for(const [k,v] of Object.entries(R.days)){const l=S.days[k]||(S.days[k]={s:0,r:[]});
-      if((v.s||0)>(l.s||0)){l.s=v.s;changed=true}for(const c of v.r||[])if(!l.r.includes(c)){l.r.push(c);changed=true}}}
+    if(R.days){S.days=S.days||{};for(const [k,v] of Object.entries(R.days)){const l=S.days[k]||(S.days[k]={s:0,c:{}});
+      if((v.s||0)>(l.s||0)){l.s=v.s;changed=true}if(v.c){l.c=l.c||{};for(const [c,x] of Object.entries(v.c))if(x>(l.c[c]||0)){l.c[c]=x;changed=true}}}}
     if(R.settings&&(R.settings.best||0)>(S.bestStreak||0)){S.bestStreak=R.settings.best;changed=true}
     if(R.settings&&R.settings.celebrated&&R.settings.celebrated>(S.celebrated||'')){S.celebrated=R.settings.celebrated}
     if((R.sts||0)>(S.sts||0)&&R.settings){const r=R.settings;

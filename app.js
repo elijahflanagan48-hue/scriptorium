@@ -227,7 +227,7 @@ function buildSide(){
   for(const g of GORD){
     const bs=BOOKS.filter(b=>b.testament===t&&genreOf(b.id)===g);if(!bs.length)continue;
     h+=`<div class="g-${g}"><div class="gh">${GEN[g]}</div>`+bs.map(b=>`<button class="bk ${b.id===cur.book?'on':''}" data-bk="${b.id}">${esc(b.ru)}<small>${b.chapters}</small></button>`+
-      (b.id===cur.book?`<div class="chs">`+Array.from({length:b.chapters},(_,i)=>`<button data-go="${b.id}.${i+1}" class="${cur.ch===i+1?'on':''}${S.done&&S.done[b.id+'.'+(i+1)]?' rd':''}">${i+1}</button>`).join('')+`</div>`:'')).join('')+`</div>`;
+      (b.id===cur.book?`<div class="chs">`+Array.from({length:b.chapters},(_,i)=>`<button data-go="${b.id}.${i+1}" class="${cur.ch===i+1?'on':''}">${i+1}</button>`).join('')+`</div>`:'')).join('')+`</div>`;
   }
   side.innerHTML=h;
   const on=$('.bk.on',side);if(on&&!side._did){side._did=1;on.scrollIntoView({block:'center'})}
@@ -416,7 +416,7 @@ function openModal(html,o){const m=$('#modal'),drop=!!(o&&o.drop)&&isM();
   clearTimeout(m._t);if(m.hidden){m.hidden=false;m.offsetWidth;}m.classList.add('show');lockScroll('modal')}
 const closeModal=()=>{const m=$('#modal');if(m.hidden)return;m.classList.remove('show');unlockScroll('modal');clearTimeout(m._t);m._t=setTimeout(()=>{if(!m.classList.contains('show'))m.hidden=true},m.classList.contains('drop')?380:230)};
 function bookSheet(sel){
-  if(sel){const b=BOOKS[BI[sel]];const nd=Array.from({length:b.chapters},(_,i)=>S.done&&S.done[b.id+'.'+(i+1)]).filter(Boolean).length;openModal(`<h3>${esc(b.ru)}</h3><div class="hint" style="margin:-8px 0 12px"><a href="#" id="back">← все книги</a>${nd?` · прочитано ${nd} из ${b.chapters}`:''}</div><div class="nums g-${genreOf(b.id)}">`+Array.from({length:b.chapters},(_,i)=>`<button data-go="${b.id}.${i+1}" class="${cur.book===b.id&&cur.ch===i+1?'on':''}${S.done&&S.done[b.id+'.'+(i+1)]?' rd':''}">${i+1}</button>`).join('')+'</div>',{drop:1});return}
+  if(sel){const b=BOOKS[BI[sel]];openModal(`<h3>${esc(b.ru)}</h3><div class="hint" style="margin:-8px 0 12px"><a href="#" id="back">← все книги</a></div><div class="nums g-${genreOf(b.id)}">`+Array.from({length:b.chapters},(_,i)=>`<button data-go="${b.id}.${i+1}" class="${cur.book===b.id&&cur.ch===i+1?'on':''}">${i+1}</button>`).join('')+'</div>',{drop:1});return}
   let h=`<h3>Книги</h3><div class="pk">`;
   for(const t of ['OT','NT']){h+=`<h5>${t==='OT'?'Ветхий Завет':'Новый Завет'}</h5>`;
     for(const g of GORD){const bs=BOOKS.filter(b=>b.testament===t&&genreOf(b.id)===g);if(!bs.length)continue;

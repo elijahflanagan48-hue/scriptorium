@@ -28,8 +28,7 @@ function viewR(d){
   for(const v of d.verses){const txt=tr[v];if(!txt)continue;const ref=`${cur.book}.${cur.ch}.${v}`;
     h+=`<span class="rv${hlc(ref)}" data-v="${v}" data-ref="${ref}">${vnHTML(ref,v)}${trHTML(p,v,txt,d)}</span>${perVerse?'':' '}`}
   h+=`</div>`;
-  const k=cur.book+'.'+cur.ch,done=!!(S.done||{})[k];
-  h+=`<div class="rdone"><button class="${done?'on':''}" data-done="${k}">${done?'✓ Глава прочитана':'Отметить главу прочитанной'}</button></div></article>`;
+  h+=`</article>`;
   return h;
 }
 const svgI=n=>n==='play'?'<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>':n==='pause'?'<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>':'';
@@ -73,8 +72,7 @@ const Listen=(()=>{
   function speak(){
     if(!on)return;const cv=list[idx];
     if(!cv){// конец главы → следующая
-      const k=cur.book+'.'+cur.ch;S.done=S.done||{};S.done[k]=Date.now();save();
-      const i=BI[cur.book];const nb=cur.ch<BOOKS[i].chapters?[cur.book,cur.ch+1]:(i<BOOKS.length-1?[BOOKS[i+1].id,1]:null);
+            const i=BI[cur.book];const nb=cur.ch<BOOKS[i].chapters?[cur.book,cur.ch+1]:(i<BOOKS.length-1?[BOOKS[i+1].id,1]:null);
       if(!nb){stop();return}
       go(nb[0],nb[1]);scrollTo(0,0);waitChapter().then(()=>{load();speak()});return}
     mark();ui();
@@ -104,8 +102,6 @@ document.addEventListener('click',e=>{
   if(t.closest('[data-lp]')){Listen.toggle();return}
   if(t.closest('[data-lx]')){Listen.stop();return}
   if(t.closest('[data-lr]')){Listen.cycleRate();return}
-  const dn=t.closest('[data-done]');if(dn){const k=dn.dataset.done;S.done=S.done||{};if(S.done[k])delete S.done[k];else S.done[k]=Date.now();save();
-    dn.classList.toggle('on',!!S.done[k]);dn.textContent=S.done[k]?'✓ Глава прочитана':'Отметить главу прочитанной';buildSide();if(S.done[k])setTimeout(()=>step(1),450);return}
 });
 $('#modal').addEventListener('click',e=>{
   const t=e.target;

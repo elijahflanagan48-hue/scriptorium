@@ -1,19 +1,19 @@
 /* Ad fontes: «Светильник» — ежедневная серия чтения.
-   День засчитывается, когда выполнена цель дня (главы или минуты чтения).
+   День засчитывается по времени живого чтения или слушания (минуты), без отметок глав:
+   Библию читают местами, а не подряд.
    Один пропущенный день в неделю прощается («фитиль ещё тлеет»), два подряд гасят серию.
-   S.days = {'2026-11-11': {s: секунды чтения, r: ['John.3', ...] прочитанные главы}} */
+   S.days = {'2026-11-11': {s: секунды чтения, c: {'John.3': секунды на главе}}} */
 const Streak=(()=>{
-  const GOALS=[['ch1','1 глава'],['ch3','3 главы'],['m5','5 минут'],['m10','10 минут'],['m20','20 минут']];
+  const GOALS=[['m3','3 минуты'],['m5','5 минут'],['m10','10 минут'],['m15','15 минут'],['m30','30 минут']];
   const ANIMS=[['lamp','Лампа разгорается','пламя вспыхивает и согревает экран'],['water','Круги на воде','капля падает в источник'],['embers','Золотые искры','искры поднимаются вверх'],['light','Луч света','свет сходит сверху'],['seal','Печать','сургучная печать с числом дней'],['ink','Чернила','число пишется пером'],['quiet','Тихо','короткая подсказка внизу']];
   const pad=n=>String(n).padStart(2,'0');
   const dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const today=()=>dkey(new Date());
   const shift=(k,n)=>{const [y,m,d]=k.split('-').map(Number);return dkey(new Date(y,m-1,d+n))};
-  const day=k=>{S.days=S.days||{};return S.days[k]||(S.days[k]={s:0,r:[]})};
-  const goal=()=>S.goal||'ch1';
-  const need=()=>{const g=goal();return g.startsWith('ch')?{ch:+g.slice(2)}:{min:+g.slice(1)}};
-  const prog=k=>{const d=(S.days||{})[k];const n=need();if(!d)return 0;
-    return n.ch?Math.min(1,(d.r||[]).length/n.ch):Math.min(1,(d.s||0)/60/n.min)};
+  const day=k=>{S.days=S.days||{};const d=S.days[k]||(S.days[k]={s:0});if(!d.c)d.c={};return d};
+  const goal=()=>GOALS.some(g=>g[0]===S.goal)?S.goal:'m5';
+  const need=()=>+goal().slice(1);
+  const prog=k=>{const d=(S.days||{})[k];return d?Math.min(1,(d.s||0)/60/need()):0};
   const met=k=>prog(k)>=1;
   const plural=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&&(h<12||h>14)?b:c};
   const dn=n=>plural(n,'день','дня','дней');
@@ -39,21 +39,14 @@ const Streak=(()=>{
   const best=()=>{const c=calc().n;if(c>(S.bestStreak||0)){S.bestStreak=c}return S.bestStreak||0};
 
   /* учёт чтения */
-  let lastAct=Date.now(),chStart=Date.now(),chKey='';
+  let lastAct=Date.now();
   ['scroll','touchstart','keydown','pointerdown','wheel'].forEach(e=>addEventListener(e,()=>{lastAct=Date.now()},{passive:true}));
   function tick(){
     if(typeof cur==='undefined'||!S)return;
-    const t=today(),d=day(t);let ch=false,rc=false;
-    const k=cur.book+'.'+cur.ch;if(k!==chKey){chKey=k;chStart=Date.now()}
+    const t=today(),d=day(t),k=cur.book+'.'+cur.ch;
     const reading=document.visibilityState==='visible'&&S.sec==='read'&&$('#modal').hidden;
     const listening=!!document.querySelector('.rv.playing,[data-v].playing');
-    if(reading&&(Date.now()-lastAct<120000||listening)){d.s=(d.s||0)+5;ch=true}
-    // глава засчитывается: отмечена прочитанной сегодня или дочитана до конца (≥40 с на главе)
-    const t0=new Date();t0.setHours(0,0,0,0);
-    for(const [key,ts] of Object.entries(S.done||{}))if(ts>=t0&&!d.r.includes(key)){d.r.push(key);ch=rc=true}
-    const end=$('#reader [data-done]');
-    if(reading&&end&&!d.r.includes(k)&&Date.now()-chStart>40000){const r=end.getBoundingClientRect();if(r.top<innerHeight&&r.bottom>0){d.r.push(k);ch=rc=true}}
-    if(ch){check();if(rc||d.s%60===0)save()}
+    if(reading&&(Date.now()-lastAct<120000||listening)){d.s=(d.s||0)+5;d.c[k]=(d.c[k]||0)+5;check();if(d.s%60===0)save()}
     ui();
   }
   function check(){
@@ -81,12 +74,10 @@ const Streak=(()=>{
 
   /* окно серии */
   const MS=[[7,'Неделя'],[30,'Месяц'],[100,'Сто дней'],[365,'Год']];
-  const bookSet=f=>BOOKS.filter(f).flatMap(b=>Array.from({length:b.chapters},(_,i)=>b.id+'.'+(i+1)));
-  function readAll(){const s=new Set(Object.keys(S.done||{}));for(const d of Object.values(S.days||{}))(d.r||[]).forEach(k=>s.add(k));return s}
   function sheet(keep){
-    const c=calc(),bst=best(),all=readAll(),t=today(),n=need();
-    const d=day(t),left=n.ch?`${Math.max(0,n.ch-(d.r||[]).length)} ${plural(n.ch,'глава','главы','глав')}`:`${Math.max(1,Math.ceil(n.min-(d.s||0)/60))} мин`;
-    const state=c.today?'Цель дня выполнена. Светильник горит.':c.risk?`Вчера был пропуск — фитиль ещё тлеет. Осталось сегодня: ${left}.`:c.n?`Сегодня осталось: ${left}, и серия продолжится.`:`Прочитайте сегодня ${n.ch?n.ch+' '+plural(n.ch,'главу','главы','глав'):n.min+' минут'}, чтобы зажечь светильник.`;
+    const c=calc(),bst=best(),t=today(),n=need();
+    const d=day(t),left=`${Math.max(1,Math.ceil(n-(d.s||0)/60))} мин`;
+    const state=c.today?'Цель дня выполнена. Светильник горит.':c.risk?`Вчера был пропуск — фитиль ещё тлеет. Осталось сегодня: ${left}.`:c.n?`Сегодня осталось: ${left}, и серия продолжится.`:`Почитайте сегодня ${n} ${plural(n,'минуту','минуты','минут')}, чтобы зажечь светильник.`;
     // календарь: 20 недель, столбцы — недели (пн…вс)
     const W=isM()?17:24,now=new Date(),wd=(now.getDay()+6)%7;
     const start=shift(t,-(W-1)*7-wd);let cells='',months='',lastM=-1;
@@ -94,24 +85,28 @@ const Streak=(()=>{
       const wk=shift(start,w*7),m=+wk.split('-')[1];
       months+=`<span>${m!==lastM&&+wk.split('-')[2]<=7||w===0?['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'][m-1]:''}</span>`;if(+wk.split('-')[2]<=7||w===0)lastM=m;
       for(let i=0;i<7;i++){const k=shift(start,w*7+i);if(k>t){cells+='<i class="fut"></i>';continue}
-        const p=prog(k),dd=(S.days||{})[k],more=dd&&n.ch?(dd.r||[]).length>=n.ch*2:dd&&(dd.s||0)/60>=n.min*2;
+        const p=prog(k),dd=(S.days||{})[k],more=dd&&(dd.s||0)/60>=n*2;
         const lv=p>=1?(more?4:3):p>=.5?2:p>0?1:0;
-        cells+=`<i class="c${lv}${k===t?' td':''}${c.grace.includes(k)?' gr':''}" title="${k.split('-').reverse().join('.')}${dd?` · ${(dd.r||[]).length} гл. · ${Math.round((dd.s||0)/60)} мин`:''}"></i>`}
+        cells+=`<i class="c${lv}${k===t?' td':''}${c.grace.includes(k)?' gr':''}" title="${k.split('-').reverse().join('.')}${dd&&dd.s?` · ${Math.round(dd.s/60)} мин`:''}"></i>`}
     }
-    const mon=Object.entries(S.days||{}).filter(([k])=>k.slice(0,7)===t.slice(0,7)).reduce((a,[,v])=>a+(v.r||[]).length,0);
-    const totalDays=Object.keys(S.days||{}).filter(met).length;
-    const sets=[['Псалтирь',bookSet(b=>b.id==='Ps')],['Евангелия',bookSet(b=>['Matt','Mark','Luke','John'].includes(b.id))],['Новый Завет',bookSet(b=>b.testament==='NT')],['Вся Библия',bookSet(()=>1)]];
+    const mins=f=>Math.round(Object.entries(S.days||{}).filter(([k])=>f(k)).reduce((a,[,v])=>a+(v.s||0),0)/60);
+    const mon=mins(k=>k.slice(0,7)===t.slice(0,7)),tot=mins(()=>1),totalDays=Object.keys(S.days||{}).filter(met).length;
+    const hm=m=>m<60?`${m} мин`:`${Math.floor(m/60)} ч${m%60?' '+m%60+' мин':''}`;
+    // где читали за последнюю неделю: главы, на которых провели хотя бы минуту
+    const wk={};for(let i=0;i<7;i++){const dd=(S.days||{})[shift(t,-i)];if(dd&&dd.c)for(const [k,v] of Object.entries(dd.c))wk[k]=(wk[k]||0)+v}
+    const recent=Object.entries(wk).filter(([,v])=>v>=60).sort((a,b)=>b[1]-a[1]).slice(0,12);
     const medal=(on,big,name,sub)=>`<div class="md${on?' on':''}"><span>${big}</span><b>${name}</b><small>${sub}</small></div>`;
     const html=`<div class="stk">
       <div class="shero ${c.today?'lit':c.n?'wait':'off'} lv${lvl(c.n)}">${LAMP}<div><div class="snum">${c.n}<small>${dn(c.n)} подряд</small></div><p>${state}</p>
         <div class="sbar"><i style="width:${Math.round(c.p*100)}%"></i></div></div></div>
-      <div class="sstats"><div><b>${bst}</b><small>лучшая серия</small></div><div><b>${totalDays}</b><small>дней с целью</small></div><div><b>${mon}</b><small>глав за месяц</small></div><div><b>${all.size}</b><small>глав всего</small></div></div>
+      <div class="sstats"><div><b>${hm(Math.round((d.s||0)/60))}</b><small>сегодня</small></div><div><b>${bst}</b><small>лучшая серия</small></div><div><b>${hm(mon)}</b><small>за этот месяц</small></div><div><b>${hm(tot)}</b><small>всего чтения</small></div></div>
       <h5>Календарь чтения</h5>
       <div class="scal" style="--w:${W}"><div class="sm">${months}</div><div class="sd"><span>пн</span><span></span><span>ср</span><span></span><span>пт</span><span></span><span>вс</span></div><div class="sg">${cells}</div></div>
       <div class="slegend">меньше <i class="c0"></i><i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="c4"></i> больше · <i class="c3 gr"></i> прощённый пропуск</div>
+      ${recent.length?`<h5>Читали на этой неделе</h5><div class="srecent">${recent.map(([k,v])=>{const [b,ch]=k.split('.');const bk=BOOKS[BI[b]];return bk?`<button data-go="${k}">${esc(bk.ab)} ${ch}<small>${Math.round(v/60)} мин</small></button>`:''}).join('')}</div>`:''}
       <h5>Цель дня</h5><div class="rseg sgoal">${GOALS.map(([k,v])=>`<button data-sgoal="${k}" class="${goal()===k?'on':''}">${v}</button>`).join('')}</div>
-      <p class="hint">Глава засчитывается, когда вы отметили её прочитанной или дочитали до конца. Один пропуск в неделю прощается.</p>
-      <h5>Вехи</h5><div class="smed">${MS.map(([d,nm])=>medal(bst>=d,d,nm,plural(d,'день','дня','дней')+' подряд')).join('')}${sets.map(([nm,ks])=>{const r=ks.filter(k=>all.has(k)).length;return medal(r===ks.length,Math.round(r/ks.length*100)+'%',nm,`${r} из ${ks.length} глав`)}).join('')}</div>
+      <p class="hint">Считается только время, когда вы читаете или слушаете: листаете, нажимаете на слова, включено чтение вслух. Если приложение просто открыто, время не идёт. Один пропуск в неделю прощается.</p>
+      <h5>Вехи</h5><div class="smed">${MS.map(([d,nm])=>medal(bst>=d,d,nm,plural(d,'день','дня','дней')+' подряд')).join('')}${[[10,'Десять часов'],[50,'Пятьдесят часов'],[100,'Сто часов']].map(([h,nm])=>medal(tot>=h*60,h+' ч',nm,`${hm(Math.min(tot,h*60))} из ${h} ч`)).join('')}${medal(totalDays>=40,totalDays,'Сорок дней',`${Math.min(totalDays,40)} из 40 дней с целью`)}</div>
       <h5>Анимация праздника</h5><div class="sanim">${ANIMS.map(([k,v,s])=>`<button data-sanim="${k}" class="${(S.anim||'lamp')===k?'on':''}"><b>${v}</b><small>${s}</small><span data-sprev="${k}">▶ Показать</span></button>`).join('')}</div>
     </div>`;
     if(keep&&!$('#modal').hidden&&$('#sheet .stk')){const sc=$('#sheet').scrollTop;$('#sheet').innerHTML=html;$('#sheet').scrollTop=sc}else openModal(html);
@@ -121,7 +116,7 @@ const Streak=(()=>{
     const pv=e.target.closest('#sheet [data-sprev]');if(pv){e.stopPropagation();const c=calc();celebrate(pv.dataset.sprev,Math.max(c.n,1),'');return}
     const g=e.target.closest('#sheet [data-sgoal]');if(g){S.goal=g.dataset.sgoal;touch();save();check();ui();sheet(true);return}
     const a=e.target.closest('#sheet [data-sanim]');if(a){S.anim=a.dataset.sanim;touch();save();sheet(true);return}
-    if(e.target.closest('[data-done]'))setTimeout(tick,60);
+    const rg=e.target.closest('#sheet .srecent [data-go]');if(rg){closeModal()}
   });
 
   /* ---------- праздник ---------- */
