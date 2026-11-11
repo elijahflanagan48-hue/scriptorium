@@ -4,7 +4,7 @@
    Септуагинта сопоставлена с еврейской нумерацией (data/lib/xref/lxx_heb.json). */
 const Lib=(()=>{
   const P=()=>$('#page');
-  const mans={},dc=new Map();let XR=null,LIM=120,CHS=[],LAST=false;
+  const mans={},dc=new Map();let QS='',XR=null,LIM=120,CHS=[],LAST=false,HIT=null;
   const ST=()=>S.lib||(S.lib={});
   const man=async id=>mans[id]||(mans[id]=await J(`data/lib/${id}/work.json`));
   const hasAcc=()=>!!(Sync.user&&Sync.user.access);
@@ -85,7 +85,7 @@ const Lib=(()=>{
     const chips=w.texts.map(t=>{const on=ts.includes(t),lock=t.access==='account'&&!hasAcc();return `<button data-ltid="${esc(t.tid)}" class="${on?'on':''}" title="${esc(t.name)}">${lock?'🔒 ':''}${esc(lbl(t))}</button>`}).join('');
     let h=`<div class="pg lrd-pg"><div class="lhd"><button class="mini" data-lb="back">‹ Полки</button><h1>${esc(w.title_ru)}</h1></div>`+
       `<div class="lbar"><select id="lpart" aria-label="Часть">${sel}</select>${chsel}<button class="mini" data-lstep="-1" aria-label="Назад">‹</button><button class="mini" data-lstep="1" aria-label="Вперёд">›</button></div>`+
-      `<div class="lchips">${chips}</div>`;
+      `<div class="lchips">${chips}</div>`+`<form class="lsf" id="lsf"><input id="lq" value="${esc(QS)}" placeholder="Поиск по этому сочинению (первый выбранный текст)" autocomplete="off" enterkeyhint="search"><button class="mini">Найти</button></form><div id="lres"></div>`;
     if(locked)h+=`<div class="lnote warm">Этот текст открывается после входа в личный кабинет с доступом. <button class="mini" data-lacct>Войти</button></div>`;
     if(w.id==='lxx')h+=`<div class="lnote">Нумерация Септуагинты. Справа от каждого стиха — соответствие в еврейском тексте (по таблице TVTMS, Tyndale House); нажмите, чтобы открыть Библию на этом месте. Нажмите на слово — карточка слова.</div>`;
     if(w.id==='apocrypha'&&ts.length>1)h+=`<div class="lnote">У переводов разная нумерация стихов. Где число стихов в главе не совпадает, соответствие приблизительное — такие строки помечены «≈».</div>`;
@@ -98,16 +98,52 @@ const Lib=(()=>{
         const txt=ks.map(k=>(ks.length>1?`<sup>${esc(k)}</sup> `:'')+body(d[k],t)).join(' ');
         return `<div class="lt ${plain(t)}" ${t.lang==='grc'?'lang="grc"':''}>${ts.length>1?`<span class="tl">${esc(lbl(t))}</span>`:''}${txt}</div>`}).join('');
       const x=hb==='-'?`<span class="bx no">нет в еврейском тексте</span>`:hb?`<button class="bx" data-bible="${hb.b}.${hb.c}.${hb.v}">≈ ${esc(bookAb(hb.b))} ${hb.c}:${hb.v}</button>`:'';
-      return `<div class="lv${r.ap?' ap':''}"><span class="ln">${r.ap?'≈':''}${esc(disp(w,c,r.k))}</span><div class="ll">${lines}${x}</div></div>`}).join('')+`</article>`;
+      return `<div class="lv${r.ap?' ap':''}${HIT&&HIT.k===r.k&&HIT.c===c?' hit':''}" id="lv-${esc(r.k)}"><span class="ln">${r.ap?'≈':''}${esc(disp(w,c,r.k))}</span><div class="ll">${lines}${x}</div></div>`}).join('')+`</article>`;
     if(rows.length>LIM)h+=`<button class="more wide" data-lmore>Показать ещё (${rows.length-LIM})</button>`;
     h+=`<div class="lsrc">${ts.map(t=>`<div><b>${esc(lbl(t))}</b>: ${esc(t.name)}. ${esc(t.license)}.</div>`).join('')}</div></div>`;
     box.innerHTML=h;
+    if(HIT){const el=document.getElementById('lv-'+HIT.k);HIT=null;if(el)el.scrollIntoView({block:'center'})}
   }
   async function step(d){
     const s=ST(),w=await man(s.w),i=CHS.indexOf(s.c),n=i+d;
     if(i>=0&&n>=0&&n<CHS.length){s.c=CHS[n];save();LIM=120;view();scrollTo(0,0);return}
     const pi=w.parts.findIndex(p=>p.id===s.p),np=w.parts[pi+d];
     if(np){s.p=np.id;s.c='';LAST=d<0;LIM=120;save();view();scrollTo(0,0)}
+  }
+
+
+  /* ---------- поиск по сочинению ---------- */
+  const nrm=s=>s.normalize('NFD').replace(/\p{M}/gu,'').toLowerCase().replace(/ς/g,'σ').replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim();
+  let RUN=0;
+  async function searchWork(q){
+    QS=q;const my=++RUN,box=$('#lres');if(!box)return;const qn=nrm(q);
+    if(!qn){box.innerHTML='';return}
+    const s=ST(),w=await man(s.w),t=w.texts.find(x=>x.tid===chosen(w)[0]);
+    if(t.access==='account'&&!hasAcc()){box.innerHTML='<div class="lnote warm">Для поиска по этому тексту нужен вход в личный кабинет с доступом.</div>';return}
+    const out=[];let i=0;const order=w.parts.map(p=>p.id).filter(id=>t.parts.includes(id));
+    for(const pid of order){
+      if(my!==RUN)return;box.innerHTML=`<div class="hint">Ищу… ${++i} из ${t.parts.length}, найдено ${out.length}</div>`;
+      const d=await textOf(w,t,pid);if(!d||d.locked)continue;
+      for(const c of Object.keys(d).sort(cmp))for(const k of Object.keys(d[c]).sort(cmp)){
+        const v=d[c][k],txt=Array.isArray(v)?v.map(x=>x[0]).join(' '):v;
+        if((' '+nrm(txt)+' ').includes(' '+qn)||nrm(txt).includes(qn))out.push({pid,c,k,txt});
+        if(out.length>=400)break}
+      if(out.length>=400)break}
+    if(my!==RUN)return;
+    const pt=id=>(w.parts.find(p=>p.id===id)||{}).title_ru||id;
+    box.innerHTML=`<div class="rhead"><h2>${out.length}${out.length>=400?'+':''} ${out.length%10===1&&out.length%100!==11?'место':'мест'}</h2><span class="hint">в тексте: ${esc(lbl(t))}</span><span class="spacer"></span><button class="mini" data-lclr>Закрыть результаты</button></div><div class="rlist">`+
+      out.map(r=>`<button class="res" data-lgo="${esc(r.pid)}|${esc(r.c)}|${esc(r.k)}"><span class="ref">${esc(pt(r.pid))} ${esc(disp(w,r.c,r.k))}</span><span class="txt">${esc(r.txt.length>240?r.txt.slice(0,240)+'…':r.txt)}</span></button>`).join('')+'</div>';
+  }
+  /* из Библии — к тому же месту Септуагинты */
+  async function openHeb(b,c){
+    const w=await man('lxx');if(!w)return;XR=XR||await J('data/lib/xref/lxx_heb.json');
+    const inv={Song:'Cant',Eccl:'Qoh',Josh:'JoshB',Judg:'JudgB'};let pid=inv[b]||b,off=0;
+    if(b==='Ezra')pid='2Esdr';if(b==='Neh'){pid='2Esdr';off=10}
+    if(!w.parts.some(p=>p.id===pid)){open('lxx');return}
+    const g=XR.books[b]&&XR.books[b].g2h,cnt={};
+    if(g)for(const[k,v]of Object.entries(g)){if(v==='-'||v.includes(' '))continue;const[hc]=v.split(':');if(+hc===+c){const gc=k.split(':')[0];cnt[gc]=(cnt[gc]||0)+1}}
+    const best=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];
+    open('lxx',pid,String((best?+best[0]:+c)+off));
   }
 
   /* ---------- клики ---------- */
@@ -118,14 +154,17 @@ const Lib=(()=>{
     const bb=t.closest('[data-bible]');if(bb){const[x,c,v]=bb.dataset.bible.split('.');go(x,+c,+v);return}
     const tg=t.closest('[data-ltid]');if(tg){const s=ST();man(s.w).then(w=>{let ids=chosen(w),id=tg.dataset.ltid;
         ids=ids.includes(id)?ids.filter(x=>x!==id):[...ids,id];if(!ids.length)ids=[id];(s.t=s.t||{})[w.id]=ids;save();view()});return}
+    if(t.closest('[data-lclr]')){QS='';RUN++;const r=$('#lres');if(r)r.innerHTML='';const q=$('#lq');if(q)q.value='';return}
+    const lg=t.closest('[data-lgo]');if(lg){const[pid,c,k]=lg.dataset.lgo.split('|');HIT={k,c};ST().p=pid;ST().c=c;save();LIM=Math.max(LIM,400);view();return}
     if(t.closest('[data-lmore]')){LIM+=150;view();return}
     if(t.closest('[data-lacct]')){moreSheet();return}
     const w=t.closest('.lrd .w[data-s]');if(w){inspect([w.dataset.f,w.dataset.s,''],false,null,null)}
   });
+  document.addEventListener('submit',e=>{if(e.target.id==='lsf'){e.preventDefault();searchWork($('#lq').value)}});
   document.addEventListener('change',e=>{
     if(!$('.lrd-pg'))return;const s=ST();
     if(e.target.id==='lpart'){s.p=e.target.value;s.c='';save();LIM=120;view();scrollTo(0,0)}
     if(e.target.id==='lch'){s.c=e.target.value;save();LIM=120;view();scrollTo(0,0)}
   });
-  return{open,view};
+  return{open,view,openHeb,searchWork};
 })();

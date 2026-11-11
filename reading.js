@@ -20,7 +20,7 @@ function viewR(d){
   const perVerse=r.flow==='verse'||(r.flow==='auto'&&poetry);
   const b=BOOKS[BI[cur.book]];
   let h=`<article class="rdg ${perVerse?'perv':'flow'} ${gcls()}"><header class="rhead2"><div class="rbook">${esc(b.ru)}</div><div class="rch">${cur.ch}</div>`+
-    `<div class="rtools"><button class="rbtn" data-rtr>${esc(p?TRS[p].name.replace(/ \(.*\)/,''):'Перевод')} <i>▾</i></button><button class="rbtn" data-listen title="Слушать главу">${svgI('play')} Слушать</button><button class="rbtn only-d" data-rset title="Шрифт и вид">Аа</button></div></header>`;
+    `<div class="rtools"><button class="rbtn" data-rtr>${esc(p?TRS[p].name.replace(/ \(.*\)/,''):'Перевод')} <i>▾</i></button><button class="rbtn" data-listen title="Слушать главу">${svgI('play')} Слушать</button><button class="rbtn only-d" data-rset title="Шрифт и вид">Аа</button>${BI[cur.book]<39?'<button class="rbtn" data-lxx title="Тот же текст в Септуагинте">LXX</button>':''}</div></header>`;
   if(!p){h+=`<p class="hint">Выберите перевод для чтения.</p></article>`;return h}
   const tr=d.tr[p];
   if(!tr){h+=`<div class="rsk">`+'<div class="sk"></div>'.repeat(8)+`</div></article>`;return h}
@@ -99,6 +99,7 @@ document.addEventListener('click',e=>{
   const t=e.target;
   if(t.closest('[data-rtr]')){readTrSheet();return}
   if(t.closest('[data-rset]')){readSheet();return}
+  if(t.closest('[data-lxx]')){Lib.openHeb(cur.book,cur.ch);return}
   if(t.closest('[data-listen]')){Listen.on?Listen.stop():Listen.start();return}
   if(t.closest('[data-lp]')){Listen.toggle();return}
   if(t.closest('[data-lx]')){Listen.stop();return}
