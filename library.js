@@ -70,12 +70,12 @@ const Lib=(()=>{
   const disp=(w,c,k)=>k==='0'?'загл.':w.id==='josephus'?`${c}.${k}`:w.id==='philo'?`§${k}`:`${c}:${k}`;
 
   /* ---------- вход и навигация ---------- */
-  async function open(id,pid,c){
+  async function open(id,pid,c,hit){
     const w=await man(id);if(!w){P().innerHTML='<div class="pg"><p class="hint">Не удалось открыть сочинение.</p></div>';return}
     const s=ST();
     if(!pid&&s.w===id){pid=s.p;c=s.c}
     if(!pid||!w.parts.some(p=>p.id===pid)){pid=w.parts[0].id;c=null}
-    s.w=id;s.p=pid;s.c=c==null?'':String(c);LIM=120;save();
+    s.w=id;s.p=pid;s.c=c==null?'':String(c);LIM=120;if(hit){HIT=hit;LIM=400}save();
     if(id==='lxx'&&!XR)XR=await J('data/lib/xref/lxx_heb.json');
     if(S.sec!=='lib')showSec('lib');
     view();
@@ -185,5 +185,5 @@ const Lib=(()=>{
     if(e.target.id==='lpart'){s.p=e.target.value;s.c='';save();LIM=120;view();scrollTo(0,0)}
     if(e.target.id==='lch'){s.c=e.target.value;save();LIM=120;view();scrollTo(0,0)}
   });
-  return{open,view,openHeb,searchWork};
+  return{open,view,openHeb,searchWork,man,textOf,hasAcc,disp,lbl,cmp,part:(w,id)=>(w.parts.find(p=>p.id===id)||{}).title_ru||id};
 })();

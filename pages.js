@@ -33,73 +33,192 @@ const Pages=(()=>{
       (S.saved.length?`<div class="saved">`+S.saved.map((x,i)=>`<span class="sv"><button data-q="${esc(x.q)}">${esc(x.q)}</button><button class="x" data-unsave="${i}" aria-label="Удалить подборку">✕</button></span>`).join('')+`</div>`:'')+`</section></div>`;
   }
 
-  /* ---------- поиск ---------- */
-  const Q={q:'',mode:'forms',tid:null,part:'all',book:null,toggled:new Set(),offS:new Set(),limit:60,notes:true,run:0};
-  const tidDef=()=>Q.tid||(S.sel.find(x=>x!=='ORIG'&&TRS[x])||'RST');
+  /* ---------- поиск: единый, по всем материалам ---------- */
+  const SC=[['all','Везде'],['bible','Библия'],['lib','Библиотека'],['notes','Заметки'],['dict','Словарь']];
+  const PRESETS=[['all','Вся Библия'],['OT','Ветхий Завет'],['NT','Новый Завет'],['law','Закон'],['hist','История'],['poe','Поэзия'],['pro','Пророки'],['gos','Евангелия и Деяния'],['epi','Послания'],['rev','Откровение']];
+  const GORD2=['law','hist','poe','pro','gos','epi','rev'];
+  const presetSet=p=>p==='all'?null:new Set(BOOKS.map((b,i)=>[b,i]).filter(([b])=>p==='OT'||p==='NT'?b.testament===p:genreOf(b.id)===p).map(x=>x[1]));
+  const LN={grc:'греч.',heb:'евр.',en:'англ.',ru:'рус.'};
+  const Q={q:'',mode:'forms',scope:'all',tids:null,preset:'all',books:null,works:null,toggled:new Set(),offS:new Set(),limit:60,run:0,tb:0,lim:{},R:{},inited:false};
+  const sq=()=>S.sq||(S.sq={});
+  function qinit(){
+    if(Q.inited)return;Q.inited=true;const s=sq();
+    Q.scope=SC.some(x=>x[0]===s.scope)?s.scope:'all';Q.preset=s.preset||'all';
+    Q.books=Q.preset==='pick'?(Array.isArray(s.books)&&s.books.length?new Set(s.books):new Set()):presetSet(Q.preset);
+    Q.tids=(s.tids||[]).filter(t=>TRS[t]);Q.works=Array.isArray(s.works)&&s.works.length?s.works:LSearch.WORKS.map(w=>w[0]);
+  }
+  const persist=()=>{const s=sq();s.scope=Q.scope;s.preset=Q.preset;s.books=Q.books?[...Q.books]:[];s.tids=Q.tids||[];s.works=Q.works;save()};
+  const tids=()=>{qinit();const l=(Q.tids||[]).filter(t=>TRS[t]);return l.length?l:[S.sel.find(x=>x!=='ORIG'&&TRS[x])||'RST']};
+  const wantB=()=>Q.scope==='all'||Q.scope==='bible',wantL=()=>Q.scope==='all'||Q.scope==='lib',wantN=()=>Q.scope==='all'||Q.scope==='notes',wantD=()=>Q.scope==='all'||Q.scope==='dict';
+  function presetLabel(){if(Q.preset==='all')return'';if(Q.preset==='pick')return Q.books&&Q.books.size?`книг: ${Q.books.size}`:'';return(PRESETS.find(x=>x[0]===Q.preset)||[])[1]||''}
+  function sumLabel(){let s=SC.find(x=>x[0]===Q.scope)[1];
+    if(wantB())s+=' · '+tids().map(shortName).join(' + ')+(presetLabel()?' · '+presetLabel():'');
+    if(wantL()&&Q.scope==='lib')s+=` · ${Q.works.length} из ${LSearch.WORKS.length}`;return s}
   function search(q){
-    Q.q=q.trim();Q.book=null;Q.toggled=new Set();Q.offS=new Set();Q.limit=60;
+    qinit();Q.q=q.trim();Q.toggled=new Set();Q.offS=new Set();Q.limit=60;Q.lim={};
     if(Q.q){S.qhist=[Q.q,...S.qhist.filter(x=>x!==Q.q)].slice(0,12);save()}
     if(S.sec!=='search')showSec('search');else srch();
   }
+  function filt(){
+    qinit();let h='';
+    if(wantB()){
+      h+=`<div class="fg"><div class="cap">Перевод Библии <span class="soon">можно несколько</span></div>`+`<div class="chips2">`+IDX.translations.map(t=>`<label class="chk ${tids().includes(t.id)?'on':''}" title="${esc(t.name)}"><input type="checkbox" name="ptid" value="${t.id}" ${tids().includes(t.id)?'checked':''}>${esc(shortName(t.id))}</label>`).join('')+`</div></div>`;
+      h+=`<div class="fg"><div class="cap">Где в Библии</div><div class="chips2">`+PRESETS.map(([v,n])=>`<button data-preset="${v}" class="${Q.preset===v?'on':''}">${n}</button>`).join('')+`<button data-preset="pick" class="${Q.preset==='pick'?'on':''}">Выбрать книги…</button></div>`;
+      if(Q.preset==='pick'){
+        h+=`<div class="bkpick">`+GORD2.map(g=>{const bs=BOOKS.map((b,i)=>[b,i]).filter(([b])=>genreOf(b.id)===g);return `<div class="bkg"><i>${esc(GEN[g])}</i><div>`+bs.map(([b,i])=>`<button data-bk="${i}" class="g-${g} ${Q.books&&Q.books.has(i)?'on':''}" title="${esc(b.ru)}">${esc(bookAb(b.id))}</button>`).join('')+`</div></div>`}).join('')+
+          `<div class="bkb"><button class="mini" data-bkall>Очистить выбор</button></div></div>`}
+      h+=`</div>`}
+    if(wantL()){
+      h+=`<div class="fg"><div class="cap">Библиотека</div>`+`<div class="chips2">`+LSearch.WORKS.map(([id,n])=>{const lock=(id==='lxx'||id==='qumran')&&!Lib.hasAcc();return `<label class="chk ${Q.works.includes(id)?'on':''}" ${lock?'title="Откроется после входа"':''}><input type="checkbox" name="pwork" value="${id}" ${Q.works.includes(id)?'checked':''}>${esc(n)}${lock?' 🔒':''}</label>`}).join('')+`</div>`+
+        `<div class="hint sm">Ищем в текстах на том же языке, что и запрос: русское слово — в русских текстах, греческое — в греческих и т. д.</div></div>`}
+    h+=`<div class="fg"><div class="cap">Подсказки</div><div class="tips">«в кавычках» — точная фраза<br>G26, H157 — по номеру Стронга<br>agape, агапе, ἀγάπη — слово оригинала<br>-слово — исключить<br>ин 3 16 — перейти к месту</div></div>`;
+    return h;
+  }
+  const refreshFilt=()=>{const d=$('.sfilt');if(!d)return;const s=d.querySelector('summary');d.innerHTML='';d.appendChild(s);s.textContent='Фильтры · '+sumLabel();d.insertAdjacentHTML('beforeend',filt())};
   function srch(){
-    const tid=tidDef(),modes=[['forms','Слова и формы'],['phrase','Точная фраза'],['orig','По оригиналу']];
-    const others=LIB.flatMap(s=>s.items).filter(i=>!i.ready);
+    qinit();const modes=[['forms','Слова и формы'],['phrase','Точная фраза'],['orig','По оригиналу']];
     P().innerHTML=`<div class="pg search"><div class="sbar"><form class="sinp" id="qForm"><svg aria-hidden="true"><use href="#i-search"/></svg><input id="qInp" value="${esc(Q.q)}" placeholder="Слово, фраза, ссылка, G26, агапе…" aria-label="Что найти" autocomplete="off" enterkeyhint="search">${Q.q?'<button type="button" id="qClr" aria-label="Очистить">✕</button>':''}</form>`+
-      `<div class="seg" role="tablist" aria-label="Режим">`+modes.map(([m,n])=>`<button data-mode="${m}" class="${Q.mode===m?'on':''}">${n}</button>`).join('')+`</div></div>`+
-      `<div class="sgrid"><details class="sfilt" ${isM()?'':'open'}><summary>Фильтры · ${esc(shortName(tid))}${Q.part!=='all'?' · '+(Q.part==='OT'?'ВЗ':'НЗ'):''}</summary>`+
-      `<div class="fg"><div class="cap">Где искать</div><label class="ck"><input type="checkbox" checked disabled>Библия</label><label class="ck"><input type="checkbox" id="fNotes" ${Q.notes?'checked':''}>Мои заметки</label>`+`<label class="ck dim" title="${esc(others.map(i=>i.title).join(', '))}"><input type="checkbox" disabled>Другие книги<span class="soon">в плане</span></label>`+`</div>`+
-      `<div class="fg"><div class="cap">Текст</div>`+IDX.translations.map(t=>`<label class="ck"><input type="radio" name="ftid" value="${t.id}" ${t.id===tid?'checked':''}>${esc(t.name)}</label>`).join('')+`</div>`+
-      `<div class="fg"><div class="cap">Часть</div>`+[['all','Вся Библия'],['OT','Ветхий Завет'],['NT','Новый Завет']].map(([v,n])=>`<label class="ck"><input type="radio" name="fpart" value="${v}" ${Q.part===v?'checked':''}>${n}</label>`).join('')+`</div>`+
-      `<div class="fg"><div class="cap">Подсказки</div><div class="tips">«в кавычках» — точная фраза<br>G26, H157 — по номеру Стронга<br>agape, агапе, ἀγάπη — слово оригинала<br>-слово — исключить<br>ин 3 16 — перейти к месту</div></div></details>`+
+      `<div class="seg" id="modeSeg" role="tablist" aria-label="Режим" ${wantB()?'':'hidden'}>`+modes.map(([m,n])=>`<button data-mode="${m}" class="${Q.mode===m?'on':''}">${n}</button>`).join('')+`</div></div>`+
+      `<div class="scope" role="tablist" aria-label="Где искать">`+SC.map(([v,n])=>`<button data-scope="${v}" class="${Q.scope===v?'on':''}">${n}</button>`).join('')+`</div>`+
+      `<div class="sgrid"><details class="sfilt" ${isM()?'':'open'}><summary>Фильтры · ${esc(sumLabel())}</summary>${filt()}</details>`+
       `<section class="sres" id="sres"></section></div></div>`;
     const f=$('#qForm');f.onsubmit=e=>{e.preventDefault();const v=$('#qInp').value.trim();const r=/\d/.test(v)&&!/^[GHgh]\d/.test(v)&&parseRef(v);if(r){go(r.book,r.ch,r.v);return}search(v)};
     results();
   }
+  const bar=(h,id)=>`<div class="sg" id="${id}">${h}</div>`;
   async function results(){
-    const box=$('#sres');if(!box)return;const my=++Q.run,tid=tidDef();
+    const box=$('#sres');if(!box)return;qinit();const my=++Q.run,alive=()=>my===Q.run&&!!$('#sres');
     if(!Q.q){box.innerHTML=`<div class="sempty">`+(S.qhist.length?`<div class="cap">Недавние поиски</div><div class="qh">`+S.qhist.map(x=>`<button data-q="${esc(x)}">${esc(x)}</button>`).join('')+`</div>`:'')+
       (S.saved.length?`<div class="cap">Подборки</div><div class="qh">`+S.saved.map(x=>`<button data-q="${esc(x.q)}">★ ${esc(x.q)}</button>`).join('')+`</div>`:'')+
-      `<div class="cap">Что умеет поиск</div><ul class="can"><li>Находит слово во всех формах: «любовь» → любви, возлюбил, любить</li><li>Прощает опечатки: «любвоь» → любовь</li><li>Ищет через оригинал: те же места, где слово переведено иначе</li><li>Понимает Стронга, греческие и еврейские слова, транслит</li><li>Ссылки в любом виде: ин3 16, Иоанна 3,16, Jn 3:16</li></ul></div>`;return}
+      `<div class="cap">Что умеет поиск</div><ul class="can"><li><b>Везде</b> — Библия, библиотека, ваши заметки и словарь сразу; результаты по разделам, наверху — сколько где нашлось</li><li>Можно искать только в Библии, в отдельных книгах или группах книг (Закон, Пророки, Послания…), в нескольких переводах сразу</li><li>Слово находится во всех формах: «любовь» → любви, возлюбил, любить; опечатки прощаются</li><li>Через оригинал: те же места, где слово переведено иначе; G26, ἀγάπη, агапе</li><li>Библиотека: Септуагинта, апокрифы, Иосиф Флавий, Филон, Кумран — по их языку</li><li>«Точная фраза» в кавычках, исключение — знак минус: любовь -бог</li></ul></div>`;return}
+    const P0=Search.parseQ(Q.q);
     const ref=parseRef(Q.q,true)||(/\d/.test(Q.q)&&!/^[GHgh]\d/.test(Q.q)&&parseRef(Q.q));
-    box.innerHTML=`<div class="hint">${Search.isReady(tid)?'Ищу…':'Готовлю текст к поиску (один раз)…'}</div>`;
-    let r;try{r=await Search.run(Q.q,{tid,mode:Q.mode,part:Q.part,book:Q.book,toggled:Q.toggled,offS:Q.offS,prog:(a,b)=>{if(my===Q.run&&a%6===0&&$('#sres'))$('#sres').innerHTML=`<div class="hint">Готовлю текст к поиску: ${a} из ${b} книг…</div>`}})}catch(e){console.error(e);box.innerHTML='<div class="hint">Не получилось выполнить поиск.</div>';return}
-    if(my!==Q.run||!$('#sres'))return;
-    const {ix,info,words,list,byBook,hi}=r;Q.last=r;
-    let h='';
-    if(ref)h+=`<button class="gotoref" data-goref="${ref.book}.${ref.ch}.${ref.v}"><span class="ab g-${genreOf(ref.book)}">${esc(bookAb(ref.book))}</span>Перейти: <b>${esc(refLabel(ref))}</b><span class="spacer"></span>↗</button>`;
-    // понял как
-    const chips=[];
-    for(const i of info){
-      if(i.translit){chips.push(`<span class="tg b">«${esc(i.term)}» → ${i.translit.map(k=>`<span class="${k[0]==='H'?'he':'gr'}">${esc(Search.lx(k).lemma)}</span>`).join(', ')}</span>`);continue}
-      if(i.fixed)chips.push(`<span class="tg w">исправил «${esc(i.fixed)}» → «${esc(i.term)}»</span>`);
-      const on=i.forms.filter(f=>f.on).length;chips.push(`<span class="tg b">${esc(i.term)} · ${Q.mode==='orig'&&i.strongs.length?'через оригинал':on+' '+plural(on,'форма','формы','форм')}</span>`);
+    const C={b:null,n:null,d:null,l:{}};Q.R={};
+    box.innerHTML=(ref?`<button class="gotoref" data-goref="${ref.book}.${ref.ch}.${ref.v}"><span class="ab g-${genreOf(ref.book)}">${esc(bookAb(ref.book))}</span>Перейти: <b>${esc(refLabel(ref))}</b><span class="spacer"></span>↗</button>`:'')+
+      `<div class="sum" id="sum"></div><div id="gB"></div><div id="gN"></div><div id="gD"></div><div id="gL"></div><div id="gE"></div>`;
+    const cnt=n=>n>=400?'400+':n;
+    function sum(){
+      const ch=[];
+      if(wantB())ch.push(['gB','Библия',C.b]);
+      if(wantN())ch.push(['gN','Заметки',C.n]);
+      if(wantD())ch.push(['gD','Словарь',C.d]);
+      if(wantL())for(const id of Q.works){const nm=(LSearch.WORKS.find(x=>x[0]===id)||[])[1]||id;ch.push(['gw-'+id,nm,C.l[id]])}
+      const show=ch.filter(([,,n])=>Q.scope!=='all'||n===null||n===undefined||n!==0);
+      const el=$('#sum');if(!el)return;
+      el.innerHTML=`<span class="cap">Нашлось</span>`+show.map(([id,n,v])=>`<button data-jump="${id}" class="${v===0||v<0?'zero':''}" ${v<0?'title="Нужен вход в личный кабинет"':''}>${esc(n)}<b>${v===null||v===undefined?'…':v<0?'🔒':cnt(v)}</b></button>`).join('')+
+        `<span class="spacer"></span><button class="mini" data-save>${S.saved.some(x=>x.q===Q.q)?'★ В подборках':'☆ Сохранить как подборку'}</button>`;
+      const all=[C.b,C.n,C.d,...Object.values(C.l)];
+      const ge=$('#gE');if(ge)ge.innerHTML=(Q.scope==='all'&&all.every(v=>v===0)&&Object.keys(C.l).length===Q.works.length&&C.b===0)?`<div class="sempty"><p>Нигде ничего не нашлось.</p><p class="hint">Попробуйте другое слово, уберите кавычки или минус, или переключите режим на «Слова и формы».</p></div>`:'';
     }
-    if(r.P.phrases.length)chips.push(...r.P.phrases.map(p=>`<span class="tg b">точно: «${esc(p)}»</span>`));
-    if(r.P.neg.length)chips.push(...r.P.neg.map(p=>`<span class="tg">без: ${esc(p)}</span>`));
-    if(r.strongInfo.length)chips.push(...r.strongInfo.map(k=>`<span class="tg b">${esc(k)} · <span class="${k[0]==='H'?'he':'gr'}">${esc((Search.lx(k)||{}).lemma||'')}</span></span>`));
-    if(chips.length)h+=`<div class="understood"><b>Понял как:</b>${chips.join('')}</div>`;
-    // формы
-    for(const i of info){if(!i.forms||i.forms.length<2||(Q.mode==='orig'&&i.strongs.length))continue;
-      h+=`<details class="forms" ${isM()?'':'open'}><summary>Формы «${esc(i.term)}» — нажмите, чтобы включить или выключить</summary><div>`+i.forms.slice(0,40).map(f=>`<button data-form="${esc(f.w)}" class="${f.on?'on':''}" title="${f.n} стих.">${esc(f.w)}<small>${f.n}</small></button>`).join('')+`</div></details>`}
-    if(Q.mode==='orig'){const ss=[...new Set(info.flatMap(i=>i.strongs||[]))];
-      if(ss.length)h+=`<details class="forms" open><summary>Слова оригинала в поиске</summary><div>`+ss.map(k=>`<button data-strong="${k}" class="${Q.offS.has(k)?'':'on'}"><span class="${k[0]==='H'?'he':'gr'}">${esc(Search.lx(k).lemma)}</span><small>${k}</small></button>`).join('')+`</div></details>`;
-      else h+=`<div class="hint">Для этого запроса не нашлось слов оригинала, ищу по тексту перевода.</div>`}
-    // слова оригинала
-    if(words.length){const rev=Search.revOf(ix);
-      h+=`<div class="cap mt">Слова оригинала</div><div class="words">`+words.slice(0,6).map(k=>{const e=Search.lx(k),isH=k[0]==='H',n=((OCC&&OCC[k])||[]).length,tr=(rev.get(k)||[]).slice(0,3).map(x=>x[0]);
-        return `<div class="wcard"><button class="wl ${isH?'he':'gr'}" data-wart="${k}">${esc(e.lemma)}</button><div class="wm"><b>${esc(e.gloss)}</b><small>${esc(e.tr)} · ${k} · ${n} ${plural(n,'место','места','мест')}${tr.length?` · ${esc(shortName(tid))}: ${esc(tr.join(', '))}`:''}</small></div><div class="wb"><button data-wart="${k}">Статья</button><button data-q="${k}">Все места</button></div></div>`}).join('')+`</div>`}
-    // заметки
-    if(Q.notes){const terms=[...hi].filter(x=>x.length>2);const ns=Object.entries(S.notes).filter(([,t])=>{const f=Search.flat(t);return terms.some(w=>f.includes(w))||f.includes(Search.flat(Q.q))}).slice(0,8);
-      if(ns.length)h+=`<div class="cap mt">В моих заметках · ${ns.length}</div><div class="rlist">`+ns.map(([rf,t])=>{const[b,c,v]=rf.split('.');return `<button class="res" data-goref="${rf}"><span class="ref">${gdot(b)}${esc(bookAb(b))} ${c}:${v}</span><span class="txt note">${esc(t)}</span></button>`}).join('')+`</div>`}
-    // итог
-    h+=`<div class="rhead"><h2>${list.length} ${plural(list.length,'стих','стиха','стихов')}</h2><span class="hint">${esc(TRS[tid].name)}${Q.book!=null?' · '+esc(BOOKS[Q.book].ru):''}</span><span class="spacer"></span>`+
-      (Q.book!=null?`<button class="mini" data-hb="${Q.book}">Все книги ✕</button>`:'')+`<button class="mini" data-save>${S.saved.some(x=>x.q===Q.q)?'★ В подборках':'☆ Сохранить как подборку'}</button></div>`;
-    if(byBook.size>1){const rows=[...byBook.entries()].sort((a,b)=>b[1]-a[1]);const top=rows.slice(0,isM()?8:14),mx=top[0][1],rest=rows.slice(top.length).reduce((s,x)=>s+x[1],0);
-      h+=`<div class="hist" aria-label="Где чаще"><div class="cap">Где чаще всего · нажмите на книгу, чтобы оставить только её</div><div class="bars2">`+top.map(([b,n])=>`<button data-hb="${b}" class="${Q.book===b?'on':''}" title="${esc(BOOKS[b].ru)}: ${n}"><span style="height:${Math.max(6,n/mx*90)}px;background:${GC[genreOf(BOOKS[b].id)]}"></span><b>${n}</b><i>${esc(BOOKS[b].ab)}</i></button>`).join('')+(rest?`<div class="restb"><span style="height:${Math.max(6,Math.min(90,rest/mx*90))}px"></span><b>${rest}</b><i>ещё</i></div>`:'')+`</div></div>`}
-    if(!list.length)h+=`<div class="sempty"><p>Ничего не нашлось.</p><p class="hint">Попробуйте режим «Слова и формы», другой перевод или уберите кавычки.</p></div>`;
-    h+=`<div class="rlist">`+list.slice(0,Q.limit).map(k=>{const n=ix.ids[k],rr=Search.ref(n);return `<button class="res" data-goref="${rr.book}.${rr.ch}.${rr.v}"><span class="ref">${gdot(rr.book)}${esc(bookAb(rr.book))} ${rr.ch}:${rr.v}</span><span class="txt">${Search.hl(ix.txt[k],hi)}</span></button>`}).join('')+`</div>`;
-    if(list.length>Q.limit)h+=`<button class="more wide" data-more>Показать ещё (${list.length-Q.limit})</button>`;
-    box.innerHTML=h;
+    sum();
+    let bible=null; // единый запуск поиска по Библии: нужен и для словаря
+    const runBible=async(render)=>{
+      const T=wantB()?tids():[tids()[0]],my2=++Q.tb,alive2=()=>my2===Q.tb&&alive(),runs=[];
+      const gb=$('#gB');
+      for(const tid of T){
+        if(render&&gb)gb.innerHTML=`<div class="hint">${Search.isReady(tid)?'Ищу в Библии…':'Готовлю текст к поиску (один раз)…'}</div>`;
+        try{runs.push(await Search.run(Q.q,{tid,mode:Q.mode,books:wantB()?Q.books:null,toggled:Q.toggled,offS:Q.offS,prog:(a,b)=>{if(alive2()&&render&&a%6===0&&$('#gB'))$('#gB').innerHTML=`<div class="hint">Готовлю текст «${esc(shortName(tid))}» к поиску: ${a} из ${b} книг…</div>`}}))}
+        catch(e){console.error(e);if(render&&gb)gb.innerHTML='<div class="hint">Не получилось выполнить поиск по Библии.</div>';return null}
+        if(!alive2())return null}
+      return runs;
+    };
+    let bibleProm=null;const getBible=()=>bibleProm||(bibleProm=runBible(wantB()));
+    const bibleGroup=async()=>{
+      const runs=await getBible();if(!runs||!alive())return;bible=runs;const gb=$('#gB');if(!gb)return;
+      const r0=runs[0],{ix,info}=r0;
+      const merged=new Map();
+      for(const r of runs)for(const k of r.list){const n=r.ix.ids[k];let a=merged.get(n);if(!a)merged.set(n,a=[]);a.push({tid:r.ix.tid,r,k})}
+      const order=[...merged.keys()].sort((a,b)=>a-b);C.b=order.length;sum();
+      const draw=()=>{
+        let h='';
+        const chips=[];
+        for(const i of info){
+          if(i.translit){chips.push(`<span class="tg b">«${esc(i.term)}» → ${i.translit.map(k=>`<span class="${k[0]==='H'?'he':'gr'}">${esc(Search.lx(k).lemma)}</span>`).join(', ')}</span>`);continue}
+          if(i.fixed)chips.push(`<span class="tg w">исправил «${esc(i.fixed)}» → «${esc(i.term)}»</span>`);
+          const on=i.forms.filter(f=>f.on).length;chips.push(`<span class="tg b">${esc(i.term)} · ${Q.mode==='orig'&&i.strongs.length?'через оригинал':on+' '+plural(on,'форма','формы','форм')}</span>`)}
+        if(r0.P.phrases.length)chips.push(...r0.P.phrases.map(p=>`<span class="tg b">точно: «${esc(p)}»</span>`));
+        if(r0.P.neg.length)chips.push(...r0.P.neg.map(p=>`<span class="tg">без: ${esc(p)}</span>`));
+        if(r0.strongInfo.length)chips.push(...r0.strongInfo.map(k=>`<span class="tg b">${esc(k)} · <span class="${k[0]==='H'?'he':'gr'}">${esc((Search.lx(k)||{}).lemma||'')}</span></span>`));
+        if(chips.length)h+=`<div class="understood"><b>Понял как:</b>${chips.join('')}</div>`;
+        for(const i of info){if(!i.forms||i.forms.length<2||(Q.mode==='orig'&&i.strongs.length))continue;
+          h+=`<details class="forms" ${isM()?'':'open'}><summary>Формы «${esc(i.term)}» — нажмите, чтобы включить или выключить</summary><div>`+i.forms.slice(0,40).map(f=>`<button data-form="${esc(f.w)}" class="${f.on?'on':''}" title="${f.n} стих.">${esc(f.w)}<small>${f.n}</small></button>`).join('')+`</div></details>`}
+        if(Q.mode==='orig'){const ss=[...new Set(info.flatMap(i=>i.strongs||[]))];
+          if(ss.length)h+=`<details class="forms" open><summary>Слова оригинала в поиске</summary><div>`+ss.map(k=>`<button data-strong="${k}" class="${Q.offS.has(k)?'':'on'}"><span class="${k[0]==='H'?'he':'gr'}">${esc(Search.lx(k).lemma)}</span><small>${k}</small></button>`).join('')+`</div></details>`;
+          else h+=`<div class="hint">Для этого запроса не нашлось слов оригинала, ищу по тексту перевода.</div>`}
+        h+=`<div class="rhead"><h2>Библия · ${order.length} ${plural(order.length,'стих','стиха','стихов')}</h2><span class="hint">${esc(runs.map(r=>TRS[r.ix.tid].name).join(' · '))}${Q.books&&Q.books.size?' · '+esc(presetLabel()):''}</span><span class="spacer"></span>`+
+          (Q.books&&Q.books.size?`<button class="mini" data-hb="all">Все книги ✕</button>`:'')+`</div>`;
+        const byBook=r0.byBook;
+        if(byBook.size>1){const rows=[...byBook.entries()].sort((a,b)=>b[1]-a[1]);const top=rows.slice(0,isM()?8:14),mx=top[0][1];
+          h+=`<div class="hist" aria-label="Где чаще"><div class="cap">Где чаще всего · нажмите на книгу, чтобы оставить только её</div><div class="bars2">`+top.map(([b,n])=>`<button data-hb="${b}" class="${Q.books&&Q.books.size===1&&Q.books.has(b)?'on':''}" title="${esc(BOOKS[b].ru)}: ${n}"><span style="height:${Math.max(6,n/mx*90)}px;background:${GC[genreOf(BOOKS[b].id)]}"></span><b>${n}</b><i>${esc(bookAb(BOOKS[b].id))}</i></button>`).join('')+`</div></div>`}
+        if(Q.scope==='all'&&!order.length&&runs.length){const nd=({en:'en',ru:'ru'})[LSearch.scriptOf(Q.q)],al=nd&&!runs.some(r=>TRS[r.ix.tid].lang===nd)&&IDX.translations.find(t=>t.lang===nd);
+          gb.innerHTML=`<div class="hint nb">В Библии (${esc(runs.map(r=>shortName(r.ix.tid)).join(' + '))}${Q.books&&Q.books.size?', '+esc(presetLabel()):''}) ничего не нашлось.${al?` <button class="mini" data-addtid="${al.id}">Искать ещё и в «${esc(al.name)}»</button>`:''}</div>`;return}
+        const need=({en:'en',ru:'ru'})[LSearch.scriptOf(Q.q)],hasL=need&&runs.some(r=>TRS[r.ix.tid].lang===need),alt=need&&!hasL&&IDX.translations.find(t=>t.lang===need);
+        if(!order.length&&alt)h+=`<div class="sempty"><p>Выбран перевод на другом языке, чем запрос.</p><button class="mini" data-addtid="${alt.id}">Искать ещё и в «${esc(alt.name)}»</button></div>`;
+        else if(!order.length)h+=`<div class="sempty"><p>В Библии ничего не нашлось.</p><p class="hint">Попробуйте режим «Слова и формы», другой перевод или уберите кавычки${Q.books&&Q.books.size?', или снимите ограничение по книгам':''}.</p></div>`;
+        const multi=runs.length>1;
+        h+=`<div class="rlist">`+order.slice(0,Q.limit).map(n=>{const rr=Search.ref(n);
+          return `<button class="res" data-goref="${rr.book}.${rr.ch}.${rr.v}"><span class="ref">${gdot(rr.book)}${esc(bookAb(rr.book))} ${rr.ch}:${rr.v}</span><span class="txt">`+
+            merged.get(n).map(x=>`<span class="rl">${multi?`<b class="tl">${esc(shortName(x.tid))}</b>`:''}${Search.hl(x.r.ix.txt[x.k],x.r.hi)}</span>`).join('')+`</span></button>`}).join('')+`</div>`;
+        if(order.length>Q.limit)h+=`<button class="more wide" data-more>Показать ещё (${order.length-Q.limit})</button>`;
+        gb.innerHTML=bar(h,'gw-B');
+      };
+      draw();Q.R.B=draw;
+    };
+    const notesGroup=()=>{
+      const r=LSearch.searchNotes(Q.q,P0),n=r.verse.length+r.word.length;C.n=n;sum();const g=$('#gN');if(!g)return;
+      if(!n){g.innerHTML=Q.scope==='notes'?`<div class="sempty"><p>В ваших заметках ничего не нашлось.</p></div>`:'';return}
+      g.innerHTML=`<div class="rhead"><h2>Заметки · ${n}</h2></div><div class="rlist">`+
+        r.verse.map(({ref:rf,t,m})=>{const[b,c,v]=rf.split('.');return `<button class="res" data-goref="${rf}"><span class="ref">${gdot(b)}${esc(bookAb(b))} ${c}:${v}</span><span class="txt note">${LSearch.hl(t,m,esc)}</span></button>`}).join('')+
+        r.word.map(({k,t,m})=>`<button class="res" data-wart="${k}"><span class="ref">${esc(k)}</span><span class="txt"><span class="${k[0]==='H'?'he':'gr'} wlem" data-lem="${k}">${esc(k)}</span><span class="note">${LSearch.hl(t,m,esc)}</span></span></button>`).join('')+`</div>`;
+      $$('[data-lem]',g).forEach(async el=>{const e=await lexOf(el.dataset.lem);if(e)el.textContent=e.lemma+' — '+e.gloss});
+    };
+    const dictGroup=async()=>{
+      const g=$('#gD');if(g)g.innerHTML=`<div class="hint">Ищу в словаре…</div>`;
+      let via=[];
+      if(!bible&&/[а-яё]/i.test(Q.q)){const rs=await getBible();if(!alive())return;bible=rs}
+      if(bible)via=bible[0].words||[];
+      let items;try{items=await LSearch.searchDict(Q.q,P0,via)}catch(e){console.error(e);items=[]}
+      if(!alive())return;const g2=$('#gD');if(!g2)return;
+      C.d=items.length;sum();
+      if(!items.length){g2.innerHTML=Q.scope==='dict'?`<div class="sempty"><p>В словаре ничего не нашлось.</p><p class="hint">Словарь Стронга англоязычный: русское слово ищется через переводы Библии, а английское, греческое, еврейское или номер (G26) — прямо по статьям.</p></div>`:'';return}
+      const ix=bible&&bible[0].ix,rev=ix?Search.revOf(ix):null,tid=ix&&ix.tid;
+      const draw=()=>{const lim=Q.lim.D||12;
+        g2.innerHTML=bar(`<div class="rhead"><h2>Словарь · ${items.length}</h2><span class="hint">слова оригинала и статьи</span></div><div class="words">`+items.slice(0,lim).map(({k})=>{
+          const e=Search.lx(k),isH=k[0]==='H',n=((OCC&&OCC[k])||[]).length,tr=rev?(rev.get(k)||[]).slice(0,3).map(x=>x[0]):[];
+          return `<div class="wcard"><button class="wl ${isH?'he':'gr'}" data-wart="${k}">${esc(e.lemma)}</button><div class="wm"><b>${esc(e.gloss)}</b><small>${esc(e.tr)} · ${k}${n?` · ${n} ${plural(n,'место','места','мест')}`:''}${tr.length?` · ${esc(shortName(tid))}: ${esc(tr.join(', '))}`:''}</small></div><div class="wb"><button data-wart="${k}">Статья</button><button data-q="${k}">Все места</button></div></div>`}).join('')+`</div>`+
+          (items.length>lim?`<button class="more wide" data-dmore>Показать ещё (${items.length-lim})</button>`:''),'gw-D')};
+      draw();Q.R.D=draw;
+    };
+    const libGroup=async()=>{
+      const g=$('#gL');if(!g)return;
+      g.innerHTML=Q.works.map(id=>`<div id="gw-${id}"></div>`).join('');
+      const prog={};
+      const one=async id=>{
+        const nm=(LSearch.WORKS.find(x=>x[0]===id)||[])[1]||id,box=()=>$('#gw-'+id);
+        if(box())box().innerHTML=`<div class="hint">Библиотека · ${esc(nm)}: ищу…</div>`;
+        let res;try{res=await LSearch.searchWork(id,Q.q,P0,{alive,prog:(w,a,b)=>{if(alive()&&box()&&a%3===0)box().innerHTML=`<div class="hint">Библиотека · ${esc(nm)}: загружаю и ищу, ${a} из ${b}…</div>`}})}catch(e){console.error(e);res={id,items:[],total:0,err:true,title:nm}}
+        if(!res||!alive()||!box())return;
+        C.l[id]=res.locked&&!res.total?-1:res.total;sum();
+        const draw=()=>{
+          if(res.locked&&!res.items.length){box().innerHTML=Q.scope==='lib'||Q.works.length<3?`<div class="rhead"><h2>${esc(nm)}</h2></div><div class="lnote warm">Этот текст открывается после входа в личный кабинет с доступом. <button class="mini" data-lacct2>Войти</button></div>`:'';return}
+          if(res.noLang){box().innerHTML=Q.scope==='lib'?`<div class="rhead"><h2>${esc(nm)}</h2></div><div class="hint">Нет текста на языке запроса. Здесь ищите по-${esc(res.langs)}.</div>`:'';return}
+          if(!res.total){box().innerHTML=Q.scope==='lib'?`<div class="rhead"><h2>${esc(nm)} · 0</h2></div><div class="hint">Ничего не нашлось${res.locked?' (часть текстов закрыта: нужен вход)':''}.</div>`:'';return}
+          const lim=Q.lim[id]||30,pt=res.pt||{};
+          box().innerHTML=bar(`<div class="rhead"><h2>${esc(nm)} · ${cnt(res.total)}</h2><span class="hint">${esc(res.texts.join(', '))}</span></div><div class="rlist">`+res.items.slice(0,lim).map(it=>{
+            const lg=it.lang==='grc'?' lang="grc"':it.lang==='heb'?' lang="he" dir="rtl"':'';
+            return `<button class="res lib" data-lopen="${esc(id)}|${esc(it.pid)}|${esc(it.c)}|${esc(it.k)}"><span class="ref">${esc(pt[it.pid]||it.pid)} ${esc(Lib.disp({id},it.c,it.k))}<small>${LN[it.lang]||''}</small></span><span class="txt ${it.lang}"${lg}>${LSearch.hl(it.v,it.m,esc)}</span></button>`}).join('')+`</div>`+
+            (res.items.length>lim?`<button class="more wide" data-lm="${esc(id)}">Показать ещё (${res.items.length-lim})</button>`:'')+(res.total>res.items.length?`<div class="hint">Показаны первые ${res.items.length}. Уточните запрос, чтобы сузить результаты.</div>`:''),'gw-'+id)};
+        draw();Q.R['L'+id]=draw;
+      };
+      for(const id of Q.works)one(id);
+    };
+    const jobs=[];
+    if(wantB())jobs.push(bibleGroup());
+    if(wantN())notesGroup();
+    if(wantD())jobs.push(dictGroup());
+    if(wantL())jobs.push(libGroup());
+    Q.rerunB=()=>{if(!wantB())return;bibleProm=null;return bibleGroup()};
+    await Promise.all(jobs);
   }
   const plural=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:(m>=2&&m<=4&&(h<12||h>14)?b:c)};
 
@@ -141,22 +260,33 @@ const Pages=(()=>{
     const op=t.closest('[data-open]');if(op){if(op.dataset.open==='bible')showSec('read');else Lib.open(op.dataset.open);return}
     const q=t.closest('[data-q]');if(q){Q.mode='forms';search(q.dataset.q);return}
     const us=t.closest('[data-unsave]');if(us){S.saved.splice(+us.dataset.unsave,1);save();lib();return}
-    const m=t.closest('[data-mode]');if(m){Q.mode=m.dataset.mode;Q.limit=60;$$('[data-mode]').forEach(b=>b.classList.toggle('on',b===m));results();return}
+    const m=t.closest('[data-mode]');if(m){Q.mode=m.dataset.mode;Q.limit=60;$$('[data-mode]').forEach(b=>b.classList.toggle('on',b===m));Q.rerunB&&Q.rerunB();return}
     if(t.id==='qClr'){Q.q='';srch();$('#qInp').focus();return}
-    const fm=t.closest('[data-form]');if(fm){const w=fm.dataset.form;Q.toggled.has(w)?Q.toggled.delete(w):Q.toggled.add(w);results();return}
-    const sg=t.closest('[data-strong]');if(sg){const k=sg.dataset.strong;Q.offS.has(k)?Q.offS.delete(k):Q.offS.add(k);results();return}
-    const hb=t.closest('[data-hb]');if(hb){const b=+hb.dataset.hb;Q.book=Q.book===b?null:b;Q.limit=60;results();return}
-    if(t.closest('[data-more]')){Q.limit+=100;results();return}
-    if(t.closest('[data-save]')){const i=S.saved.findIndex(x=>x.q===Q.q);if(i>=0)S.saved.splice(i,1);else S.saved.unshift({q:Q.q,ts:Date.now()});save();results();return}
+    const sc=t.closest('[data-scope]');if(sc){Q.scope=sc.dataset.scope;persist();srch();return}
+    const pr=t.closest('[data-preset]');if(pr){const v=pr.dataset.preset;Q.preset=v;Q.books=v==='pick'?(Q.books&&Q.preset==='pick'?Q.books:new Set()):presetSet(v);if(v==='pick'&&!Q.books)Q.books=new Set();Q.limit=60;persist();refreshFilt();results();return}
+    const bk=t.closest('[data-bk]');if(bk){const i=+bk.dataset.bk;Q.books=Q.books||new Set();Q.books.has(i)?Q.books.delete(i):Q.books.add(i);Q.preset='pick';Q.limit=60;persist();bk.classList.toggle('on');const s=$('.sfilt summary');if(s)s.textContent='Фильтры · '+sumLabel();clearTimeout(Q.bt);Q.bt=setTimeout(()=>Q.rerunB&&Q.rerunB(),350);return}
+    if(t.closest('[data-bkall]')){Q.books=new Set();persist();refreshFilt();Q.rerunB&&Q.rerunB();return}
+    const fm=t.closest('[data-form]');if(fm){const w=fm.dataset.form;Q.toggled.has(w)?Q.toggled.delete(w):Q.toggled.add(w);Q.rerunB&&Q.rerunB();return}
+    const sg=t.closest('[data-strong]');if(sg){const k=sg.dataset.strong;Q.offS.has(k)?Q.offS.delete(k):Q.offS.add(k);Q.rerunB&&Q.rerunB();return}
+    const hb=t.closest('[data-hb]');if(hb){const v=hb.dataset.hb;if(v==='all'){Q.preset='all';Q.books=null}else{const b=+v;if(Q.books&&Q.books.size===1&&Q.books.has(b)){Q.preset='all';Q.books=null}else{Q.preset='pick';Q.books=new Set([b])}}Q.limit=60;persist();refreshFilt();Q.rerunB&&Q.rerunB();return}
+    if(t.closest('[data-more]')){Q.limit+=100;Q.R.B&&Q.R.B();return}
+    if(t.closest('[data-dmore]')){Q.lim.D=(Q.lim.D||12)+24;Q.R.D&&Q.R.D();return}
+    const lm=t.closest('[data-lm]');if(lm){const id=lm.dataset.lm;Q.lim[id]=(Q.lim[id]||30)+60;Q.R['L'+id]&&Q.R['L'+id]();return}
+    const lo=t.closest('[data-lopen]');if(lo){const[w,pid,c,k]=lo.dataset.lopen.split('|');Lib.open(w,pid,c,{k,c});return}
+    if(t.closest('[data-lacct2]')){moreSheet();return}
+    const at=t.closest('[data-addtid]');if(at){Q.tids=[...new Set([...tids(),at.dataset.addtid])];persist();refreshFilt();Q.rerunB&&Q.rerunB();return}
+    const jp=t.closest('[data-jump]');if(jp){const el=document.getElementById(jp.dataset.jump)||document.getElementById('gw-'+jp.dataset.jump);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});return}
+    const sv=t.closest('[data-save]');if(sv){const i=S.saved.findIndex(x=>x.q===Q.q);if(i>=0)S.saved.splice(i,1);else S.saved.unshift({q:Q.q,ts:Date.now()});save();sv.textContent=S.saved.some(x=>x.q===Q.q)?'★ В подборках':'☆ Сохранить как подборку';return}
     const wa=t.closest('[data-wart]');if(wa){const k=wa.dataset.wart;lexOf(k).then(e=>inspect([e?e.lemma:k,k,''],k[0]==='H',null,null));return}
     const nf=t.closest('[data-nf]');if(nf){NF.f=nf.dataset.nf;notes();return}
     const cl=t.closest('[data-clr]');if(cl){if(cl.dataset.clr==='r')S.recent=[];else S.qhist=[];save();hist();return}
     if(t.closest('[data-m2]')){dataSheet();return}
   });
   page.addEventListener('change',e=>{
-    if(e.target.name==='ftid'){Q.tid=e.target.value;Q.toggled=new Set();results();const s=$('.sfilt summary');if(s)s.textContent='Фильтры · '+shortName(Q.tid)}
-    if(e.target.name==='fpart'){Q.part=e.target.value;Q.book=null;results()}
-    if(e.target.id==='fNotes'){Q.notes=e.target.checked;results()}
+    const n=e.target.name;
+    if(n==='ptid'||n==='pwork')e.target.closest('label').classList.toggle('on',e.target.checked);
+    if(n==='ptid'){const v=[...$$('[name=ptid]:checked')].map(x=>x.value);if(!v.length){e.target.checked=true;return}Q.tids=v;Q.toggled=new Set();persist();const s=$('.sfilt summary');if(s)s.textContent='Фильтры · '+sumLabel();Q.rerunB&&Q.rerunB()}
+    if(n==='pwork'){Q.works=[...$$('[name=pwork]:checked')].map(x=>x.value);if(!Q.works.length){Q.works=[e.target.value];e.target.checked=true}persist();const s=$('.sfilt summary');if(s)s.textContent='Фильтры · '+sumLabel();results()}
   });
   return{render,search};
 })();

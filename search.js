@@ -167,13 +167,12 @@ const Search=(()=>{
       for(const ph of P.phrases){const f=flat(ph);if(!f)continue;f.split(' ').forEach(w=>hi.add(w));const s=new Set();ix.flat.forEach((t,k)=>{if((' '+t+' ').includes(' '+f+' ')||t.includes(f))s.add(k)});sets.push(s)}}
     let res=null;for(const s of sets)res=res?inter(res,s):s;res=res||new Set();
     for(const n of P.neg){const f=formsOf(ix,n);for(const w of f.t1)for(const p of ix.tok.get(w)||[])res.delete(p)}
-    const tst=o.part;let list=[...res].sort((a,b)=>a-b);
-    if(tst==='OT'||tst==='NT')list=list.filter(k=>BOOKS[Math.floor(ix.ids[k]/1e6)].testament===tst);
+    let list=[...res].sort((a,b)=>a-b);
     const byBook=new Map();for(const k of list){const b=Math.floor(ix.ids[k]/1e6);byBook.set(b,(byBook.get(b)||0)+1)}
-    if(o.book!=null)list=list.filter(k=>Math.floor(ix.ids[k]/1e6)===o.book);
+    if(o.books&&o.books.size)list=list.filter(k=>o.books.has(Math.floor(ix.ids[k]/1e6)));
     return{ix,P,info,words,strongInfo,list,byBook,hi,empty:!sets.length};
   }
   function hl(text,hi){return text.split(/(\s+)/).map(c=>/^\s+$/.test(c)?c:(hi.has(nrm(c))?`<mark>${esc(c)}</mark>`:esc(c))).join('')}
   const ref=n=>({book:BOOKS[Math.floor(n/1e6)].id,ch:Math.floor(n/1000)%1000,v:n%1000});
-  return{run,index,hl,ref,revOf,lx,nrm,flat,stemRu,isReady:tid=>!!IX[tid]};
+  return{run,index,hl,ref,revOf,lx,nrm,flat,stemRu,stemEn,parseQ,wordsFor,strip,isReady:tid=>!!IX[tid]};
 })();
