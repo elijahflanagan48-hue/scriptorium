@@ -22,7 +22,7 @@ const Sync=(()=>{
     for(const [t,store] of [['h','hl'],['n','notes'],['w','wnotes']])for(const k in S[store]||{}){const key=t+':'+k;if(!S.ts[key])S.ts[key]=1}
   };
   const payload=()=>({v:1,hl:S.hl,notes:S.notes,wnotes:S.wnotes||{},ts:S.ts,sts:S.sts||0,
-    settings:{layout:S.layout,theme:S.theme,tAuto:S.tAuto||'',tDay:S.tDay,tNight:S.tNight,sel:S.sel,last:S.last,recent:S.recent}});
+    settings:{layout:S.layout,theme:S.theme,tAuto:S.tAuto||'',tDay:S.tDay,tNight:S.tNight,sel:S.sel,last:S.last,recent:S.recent,goal:S.goal,anim:S.anim,best:S.bestStreak||0,celebrated:S.celebrated||''},days:S.days||{}});
   function merge(R){
     let changed=false;const map={h:'hl',n:'notes',w:'wnotes'};
     if(!S.wnotes)S.wnotes={};
@@ -32,8 +32,12 @@ const Sync=(()=>{
       const store=map[k[0]],key=k.slice(2),rv=R[store]&&R[store][key];
       if(rv==null)delete S[store][key];else S[store][key]=rv;S.ts[k]=b;changed=true;
     }
+    if(R.days){S.days=S.days||{};for(const [k,v] of Object.entries(R.days)){const l=S.days[k]||(S.days[k]={s:0,r:[]});
+      if((v.s||0)>(l.s||0)){l.s=v.s;changed=true}for(const c of v.r||[])if(!l.r.includes(c)){l.r.push(c);changed=true}}}
+    if(R.settings&&(R.settings.best||0)>(S.bestStreak||0)){S.bestStreak=R.settings.best;changed=true}
+    if(R.settings&&R.settings.celebrated&&R.settings.celebrated>(S.celebrated||'')){S.celebrated=R.settings.celebrated}
     if((R.sts||0)>(S.sts||0)&&R.settings){const r=R.settings;
-      if(r.layout)S.layout=r.layout;if(r.theme)S.theme=r.theme;if(r.tAuto!==undefined)S.tAuto=r.tAuto;if(r.tDay)S.tDay=r.tDay;if(r.tNight)S.tNight=r.tNight;if(Array.isArray(r.sel))S.sel=r.sel;if(r.last)S.last=r.last;if(Array.isArray(r.recent))S.recent=r.recent;
+      if(r.layout)S.layout=r.layout;if(r.theme)S.theme=r.theme;if(r.tAuto!==undefined)S.tAuto=r.tAuto;if(r.tDay)S.tDay=r.tDay;if(r.tNight)S.tNight=r.tNight;if(Array.isArray(r.sel))S.sel=r.sel;if(r.last)S.last=r.last;if(Array.isArray(r.recent))S.recent=r.recent;if(r.goal)S.goal=r.goal;if(r.anim)S.anim=r.anim;
       S.sts=R.sts;changed=true}
     return changed;
   }
