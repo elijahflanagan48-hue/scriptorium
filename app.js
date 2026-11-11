@@ -8,8 +8,9 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(typ
 const stamp=k=>{S.ts[k]=Date.now();save()};
 const touchSettings=()=>{S.sts=Date.now();save()};
 const cache=new Map();
-const PRIV=/^data\/(tr|align|nt)\/BTI\/([^/]+)\.json$/;const FNS={};
-const J=p=>{const pm=PRIV.exec(p);if(pm){if(!cache.has(p))cache.set(p,(Sync.user&&Sync.user.access?Sync.pget(pm[1]+'/BTI/'+pm[2]):Promise.resolve(null)).catch(()=>{cache.delete(p);return null}));return cache.get(p)}
+const PRIV=/^data\/(tr|align|nt)\/(BTI|NRT|RSP|KASS)\/([^/]+)\.json$/;const FNS={};
+const PRIVT=[['BTI','Современный перевод (Кулаков, BTI)'],['NRT','Новый русский перевод (НРП, Biblica)'],['RSP','Современный перевод (РБО)'],['KASS','Новый Завет, еп. Кассиан (1970)']];
+const J=p=>{const pm=PRIV.exec(p);if(pm){if(!cache.has(p))cache.set(p,(Sync.user&&Sync.user.access?Sync.pget(pm[1]+'/'+pm[2]+'/'+pm[3]):Promise.resolve(null)).catch(()=>{cache.delete(p);return null}));return cache.get(p)}
   if(!cache.has(p)){const pr=window.__pre&&window.__pre[p];if(pr){delete window.__pre[p];cache.set(p,pr.then(x=>{if(x==null)throw 0;return x}).catch(()=>{cache.delete(p);return null}))}}
   if(!cache.has(p))cache.set(p,fetch(p).then(r=>{if(!r.ok)throw 0;return r.json()}).catch(()=>{cache.delete(p);return null}));return cache.get(p)};
 let PEND=false,CUR=null,IDX,BOOKS,BI={},TRS={},OCC=null,LEX={},cur=S.last,token=0,sideT=null,INSP=null;
@@ -19,7 +20,7 @@ const MQ=window.matchMedia('(max-width:820px)'),isM=()=>MQ.matches;
 const GEN={law:'Закон',hist:'История',poe:'Поэзия',pro:'Пророки',gos:'Евангелия и Деяния',epi:'Послания',rev:'Откровение'};
 const GORD=['law','hist','poe','pro','gos','epi','rev'];
 function genreOf(id){const i=BI[id];if(i<5)return'law';if(i<17)return'hist';if(i<22)return'poe';if(i<39)return'pro';if(i<44)return'gos';if(i<65)return'epi';return'rev'}
-const SHORT={RST:'Синод.',BTI:'Кулаков'};
+const SHORT={RST:'Синод.',BTI:'Кулаков',NRT:'НРП',RSP:'РБО',KASS:'Кассиан'};
 const shortName=id=>SHORT[id]||id;
 
 /* ---------- init ---------- */
@@ -82,7 +83,7 @@ const refLabel=r=>`${bookRu(r.book)} ${r.ch}${r.v?':'+r.v:''}`;
 
 /* ---------- data ---------- */
 /* все части главы запрашиваются сразу и параллельно; текст показывается по мере готовности */
-const isPriv=id=>PRIV.test(`data/tr/${id}/x.json`);
+const isPriv=id=>id==='BTI';
 function chapterParts(book,ch){
   const ids=S.sel.filter(x=>x!=='ORIG'&&TRS[x]&&TRS[x].books.includes(book));
   return{book,ids,o:J(`data/origc/${book}/${ch}.json`),t:ids.map(id=>J(`data/tr/${id}/${book}.json`)),a:ids.map(id=>isPriv(id)?Promise.all([J(`data/align/${id}/${book}.json`),J(`data/nt/${id}/${book}.json`).then(x=>{FNS[id+'|'+book]=x||{}})]).then(r=>r[0]):J(`data/align/${id}/${book}.json`))};
@@ -435,10 +436,13 @@ function moreSheet(){
   openModal(`<h3>Настройки</h3><h5>Раскладка текста</h5><div class="mlist">`+Object.entries(LAYN).map(([l,n])=>`<button data-lay="${l}" class="${S.layout===l?'on':''}">${n}${l==='B'&&isM()?' · сравнение':''}</button>`).join('')+`</div><h5>Ещё</h5><div class="mlist"><button data-m="texts">Тексты и переводы</button><button data-m="view">Вид текста: шрифт, размер, тема</button><button data-m="theme">Оформление: ${S.tAuto?themeById(S.tDay||'light').name+' / '+themeById(S.tNight||'dark').name:themeById(S.theme).name}<small>дневные и ночные темы</small></button><button data-m="hist">История</button><button data-m="data">Заметки: сохранить в файл и загрузить</button><button data-m="acc">Личный кабинет${Sync.user?' · '+esc(Sync.user.email):''}</button></div>`);
 }
 function syncPrivate(){
-  if(!IDX)return;const ok=!!(Sync.user&&Sync.user.access);
-  if(ok&&!TRS.BTI){const t={id:'BTI',name:'Современный перевод (Кулаков, BTI)',lang:'ru',license:'скрытый доступ',books:BOOKS.map(b=>b.id)};TRS.BTI=t;IDX.translations.push(t);
-    if(!S.btiShown||PEND){S.btiShown=1;PEND=false;if(!S.sel.includes('BTI'))S.sel.push('BTI');save()}render()}
-  if(!ok&&TRS.BTI){delete TRS.BTI;IDX.translations=IDX.translations.filter(t=>t.id!=='BTI');S.sel=S.sel.filter(x=>x!=='BTI');if(!S.sel.length)S.sel=['ORIG','RST'];for(const k of [...cache.keys()])if(PRIV.test(k))cache.delete(k);render()}
+  if(!IDX)return;const ok=!!(Sync.user&&Sync.user.access);let ch=false;
+  for(const[id,name]of PRIVT){
+    if(ok&&!TRS[id]){const t={id,name,lang:'ru',license:'скрытый доступ',books:id==='KASS'?BOOKS.filter(b=>b.testament==='NT').map(b=>b.id):BOOKS.map(b=>b.id)};TRS[id]=t;IDX.translations.push(t);ch=true;
+      if(id==='BTI'&&(!S.btiShown||PEND)){S.btiShown=1;PEND=false;if(!S.sel.includes('BTI'))S.sel.push('BTI');save()}}
+    if(!ok&&TRS[id]){delete TRS[id];IDX.translations=IDX.translations.filter(t=>t.id!==id);S.sel=S.sel.filter(x=>x!==id);if(!S.sel.length)S.sel=['ORIG','RST'];ch=true}}
+  if(!ok)for(const k of [...cache.keys()])if(PRIV.test(k))cache.delete(k);
+  if(ch)render();
 }
 function accStatus(){
   syncPrivate();
