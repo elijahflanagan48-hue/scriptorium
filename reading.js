@@ -51,7 +51,7 @@ function readSheet(keep){
     `<div class="rseg" style="margin-top:8px"><button data-rk="vn" data-rv="${r.vn?0:1}" class="${r.vn?'on':''}">Номера стихов: ${r.vn?'показаны':'скрыты'}</button></div>`+
     `<p class="hint">«Авто»: псалмы и поэзия по стихам, остальное сплошным текстом.</p>`+
     `<h5>Раскладка</h5><div class="mlist">`+Object.entries(LAYN).map(([l,n])=>`<button data-lay="${l}" class="${S.layout===l?'on':''}">${n}<small>${LAYD[l]}</small></button>`).join('')+`</div>`+
-    `<div class="mlist" style="margin-top:14px"><button data-m="more">Другие настройки</button></div>`;
+    `<div class="mlist" style="margin-top:14px"><button data-m="settings">Все настройки</button></div>`;
   if(keep&&!$('#modal').hidden&&$('#sheet .rprev')){const sc=$('#sheet').scrollTop;$('#sheet').innerHTML=html;$('#sheet').scrollTop=sc}else openModal(html);
 }
 const LAYD={R:'один перевод, спокойное чтение',A:'перевод и оригинал рядом',B:'колонки для сравнения',D:'текст с полями для заметок'};
@@ -76,7 +76,7 @@ const Listen=(()=>{
       if(!nb){stop();return}
       go(nb[0],nb[1]);scrollTo(0,0);waitChapter().then(()=>{load();speak()});return}
     mark();ui();
-    const u=new SpeechSynthesisUtterance(cv.t);const p=primary();u.lang=TRS[p]&&TRS[p].lang==='en'?'en-US':'ru-RU';const vo=voiceFor(TRS[p]&&TRS[p].lang);if(vo)u.voice=vo;u.rate=rate;
+    const u=new SpeechSynthesisUtterance(cv.t);const p=primary();u.lang=TRS[p]&&TRS[p].lang==='en'?'en-US':'ru-RU';const vo=voiceFor(TRS[p]&&TRS[p].lang);if(vo)u.voice=vo;u.rate=rate=S.lrate||rate;
     u.onend=()=>{if(on&&!paused&&u._me===list[idx]){idx++;speak()}};u._me=cv;u.onerror=e=>{if(e.error!=='interrupted'&&e.error!=='canceled'&&on){idx++;speak()}};
     speechSynthesis.speak(u);
   }
@@ -88,7 +88,7 @@ const Listen=(()=>{
     clearInterval(keepAlive);keepAlive=setInterval(()=>{if(on&&!paused&&speechSynthesis.speaking){speechSynthesis.pause();speechSynthesis.resume()}},12000)}
   function stop(){on=false;paused=false;speechSynthesis.cancel();clearInterval(keepAlive);$$('.playing').forEach(x=>x.classList.remove('playing'));ui()}
   function toggle(){if(!on)return start();if(paused){paused=false;speechSynthesis.cancel();speak()}else{paused=true;speechSynthesis.cancel()}ui()}
-  function cycleRate(){rate=rate===1?1.25:rate===1.25?1.5:rate===1.5?0.85:1;if(on&&!paused){speechSynthesis.cancel();speak()}ui()}
+  function cycleRate(){rate=rate===1?1.25:rate===1.25?1.5:rate===1.5?0.85:1;S.lrate=rate;touchSettings();if(on&&!paused){speechSynthesis.cancel();speak()}ui()}
   return{start,stop,toggle,cycleRate,get on(){return on}};
 })();
 
@@ -125,7 +125,7 @@ $('#modal').addEventListener('click',e=>{
 (()=>{let last=scrollY,acc=0;
   addEventListener('scroll',()=>{
     const y=scrollY,dy=y-last;last=y;
-    if(!isM()||S.sec!=='read'||S.layout!=='R'||document.documentElement.classList.contains('locked')){document.body.classList.remove('immersive');return}
+    if(!isM()||S.noImm||S.sec!=='read'||S.layout!=='R'||document.documentElement.classList.contains('locked')){document.body.classList.remove('immersive');return}
     acc=(dy>0)===(acc>0)?acc+dy:dy;
     if(y<80||acc<-24)document.body.classList.remove('immersive');else if(acc>40)document.body.classList.add('immersive');
   },{passive:true});

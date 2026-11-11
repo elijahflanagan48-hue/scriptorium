@@ -51,6 +51,7 @@ const Streak=(()=>{
   }
   function check(){
     const t=today(),c=calc();
+    if(S.lampOff)return;
     if(c.today&&S.celebrated!==t){S.celebrated=t;best();save();touch();
       const ms=[7,30,100,365,1000].includes(c.n)?{7:'Неделя чтения',30:'Месяц чтения',100:'Сто дней',365:'Целый год',1000:'Тысяча дней'}[c.n]:'';
       setTimeout(()=>celebrate(S.anim||'lamp',c.n,ms),350)}
