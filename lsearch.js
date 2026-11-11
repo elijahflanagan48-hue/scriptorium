@@ -3,7 +3,7 @@
    Запрос разбирается так же, как в Search.parseQ: слова, «фразы», -исключения, G26/H157, слова на греческом и иврите.
    Тексты загружаются по частям один раз и остаются в памяти; ищем только в текстах того же письма, что и запрос. */
 const LSearch=(()=>{
-  const WORKS=[['lxx','Септуагинта'],['apocrypha','Апокрифы'],['josephus','Иосиф Флавий'],['philo','Филон'],['qumran','Кумран']];
+  const WORKS=[['lxx','Септуагинта'],['apocrypha','Апокрифы'],['josephus','Иосиф Флавий'],['philo','Филон'],['qumran','Кумран'],['eusebius','Евсевий'],['apfathers','Апостольские мужи']];
   const MAX=400,DOCS=new Map();
   const strip=s=>String(s==null?'':s).normalize('NFD').replace(/\p{M}/gu,'').toLowerCase().replace(/ς/g,'σ').replace(/ё/g,'е');
   const norm=s=>' '+strip(s).replace(/[^\p{L}\p{N}]+/gu,' ').trim()+' ';
