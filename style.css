@@ -446,3 +446,4 @@ html,body,button,a,[role="button"]{-webkit-tap-highlight-color:transparent}
 .lsel{display:flex;flex-direction:column;gap:2px;min-width:0}.lsel span{font:600 11px var(--ui);color:var(--mute);letter-spacing:.03em;text-transform:uppercase}
 .lbar{align-items:flex-end}.lpos{font:600 13px var(--ui);color:var(--mute);margin:4px 0 8px}
 .lsel select{max-width:min(100%,520px)}
+.lt.heb{font-family:var(--heb);font-size:1.12em;text-align:right}.lt.heb .tl{margin-left:8px;margin-right:0}

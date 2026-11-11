@@ -10,9 +10,9 @@ const Lib=(()=>{
   const hasAcc=()=>!!(Sync.user&&Sync.user.access);
   const num=k=>{const m=/^\d+/.exec(k);return m?+m[0]:0};
   const cmp=(a,b)=>num(a)-num(b)||(a<b?-1:a>b?1:0);
-  const LBL={NIESE:'Греч. · Нисе',WHISTON:'Англ. · Уистон',CW:'Греч. · Кон–Вендланд',YONGE:'Англ. · Йонг',RST:'Синод.',KJVA:'KJV',RAHLFS:'LXX · Ральфс'};
+  const LBL={NIESE:'Греч. · Нисе',WHISTON:'Англ. · Уистон',CW:'Греч. · Кон–Вендланд',YONGE:'Англ. · Йонг',RST:'Синод.',KJVA:'KJV',RAHLFS:'LXX · Ральфс',KAHANA:'Евр. · Кахана',DSS:'Иврит · рукопись'};
   const lbl=t=>LBL[t.tid]||t.tid;
-  const plain=t=>t.lang==='grc'?'grc':t.lang==='en'?'en':'ru';
+  const plain=t=>t.lang==='grc'?'grc':t.lang==='heb'?'heb':t.lang==='en'?'en':'ru';
 
   /* ---------- данные ---------- */
   function textOf(w,t,pid){
@@ -115,7 +115,7 @@ const Lib=(()=>{
       const hb=w.id==='lxx'?heb(s.p,c,r.k):null;
       const lines=ts.map((t,i)=>{const ks=r.m[i];if(!ks)return'';const d=cd[i];
         const txt=ks.map(k=>(ks.length>1?`<sup>${esc(k)}</sup> `:'')+body(d[k],t)).join(' ');
-        return `<div class="lt ${plain(t)}" ${t.lang==='grc'?'lang="grc"':''}>${ts.length>1?`<span class="tl">${esc(lbl(t))}</span>`:''}${txt}</div>`}).join('');
+        return `<div class="lt ${plain(t)}" ${t.lang==='grc'?'lang="grc"':t.lang==='heb'?'lang="he" dir="rtl"':''}>${ts.length>1?`<span class="tl">${esc(lbl(t))}</span>`:''}${txt}</div>`}).join('');
       const x=hb==='-'?`<span class="bx no">нет в еврейском тексте</span>`:hb?`<button class="bx" data-bible="${hb.b}.${hb.c}.${hb.v}">≈ ${esc(bookAb(hb.b))} ${hb.c}:${hb.v}</button>`:'';
       return `<div class="lv${r.ap?' ap':''}${HIT&&HIT.k===r.k&&HIT.c===c?' hit':''}" id="lv-${esc(r.k)}"><span class="ln">${r.ap?'≈':''}${esc(disp(w,c,r.k))}</span><div class="ll">${lines}${x}</div></div>`}).join('')+`</article>`;
     if(rows.length>LIM)h+=`<button class="more wide" data-lmore>Показать ещё (${rows.length-LIM})</button>`;
@@ -177,7 +177,7 @@ const Lib=(()=>{
     const lg=t.closest('[data-lgo]');if(lg){const[pid,c,k]=lg.dataset.lgo.split('|');HIT={k,c};ST().p=pid;ST().c=c;save();LIM=Math.max(LIM,400);view();return}
     if(t.closest('[data-lmore]')){LIM+=150;view();return}
     if(t.closest('[data-lacct]')){moreSheet();return}
-    const w=t.closest('.lrd .w[data-s]');if(w){inspect([w.dataset.f,w.dataset.s,''],false,null,null)}
+    const w=t.closest('.lrd .w[data-s]');if(w){inspect([w.dataset.f,w.dataset.s,''],w.dataset.s[0]==='H',null,null)}
   });
   document.addEventListener('submit',e=>{if(e.target.id==='lsf'){e.preventDefault();searchWork($('#lq').value)}});
   document.addEventListener('change',e=>{
