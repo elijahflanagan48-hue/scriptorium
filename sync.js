@@ -22,7 +22,7 @@ const Sync=(()=>{
     for(const [t,store] of [['h','hl'],['n','notes'],['w','wnotes']])for(const k in S[store]||{}){const key=t+':'+k;if(!S.ts[key])S.ts[key]=1}
   };
   const payload=()=>({v:1,hl:S.hl,notes:S.notes,wnotes:S.wnotes||{},ts:S.ts,sts:S.sts||0,
-    settings:{layout:S.layout,theme:S.theme,tAuto:S.tAuto||'',tDay:S.tDay,tNight:S.tNight,sel:S.sel,last:S.last,recent:S.recent,goal:S.goal,anim:S.anim,rd:S.rd||{},lrate:S.lrate||1,side:S.side!==false,noImm:!!S.noImm,calm:!!S.calm,lampOff:!!S.lampOff,best:S.bestStreak||0,celebrated:S.celebrated||''},days:S.days||{}});
+    settings:{layout:S.layout,theme:S.theme,tAuto:S.tAuto||'',tDay:S.tDay,tNight:S.tNight,sel:S.sel,last:S.last,recent:S.recent,goal:S.goal,anim:S.anim,rd:S.rd||{},lrate:S.lrate||1,side:S.side!==false,noImm:!!S.noImm,calm:!!S.calm,lampOff:!!S.lampOff,rpos:S.rpos||{},rtxt:S.rtxt||{},rjust:S.rjust!==false,rnum:S.rnum!==false,best:S.bestStreak||0,celebrated:S.celebrated||''},days:S.days||{}});
   function merge(R){
     let changed=false;const map={h:'hl',n:'notes',w:'wnotes'};
     if(!S.wnotes)S.wnotes={};
@@ -37,7 +37,7 @@ const Sync=(()=>{
     if(R.settings&&(R.settings.best||0)>(S.bestStreak||0)){S.bestStreak=R.settings.best;changed=true}
     if(R.settings&&R.settings.celebrated&&R.settings.celebrated>(S.celebrated||'')){S.celebrated=R.settings.celebrated}
     if((R.sts||0)>(S.sts||0)&&R.settings){const r=R.settings;
-      if(r.layout)S.layout=r.layout;if(r.theme)S.theme=r.theme;if(r.tAuto!==undefined)S.tAuto=r.tAuto;if(r.tDay)S.tDay=r.tDay;if(r.tNight)S.tNight=r.tNight;if(Array.isArray(r.sel))S.sel=r.sel;if(r.last)S.last=r.last;if(Array.isArray(r.recent))S.recent=r.recent;if(r.goal)S.goal=r.goal;if(r.anim)S.anim=r.anim;if(r.rd)S.rd=r.rd;if(r.lrate)S.lrate=r.lrate;for(const k of ['side','noImm','calm','lampOff'])if(r[k]!==undefined)S[k]=r[k];
+      if(r.layout)S.layout=r.layout;if(r.theme)S.theme=r.theme;if(r.tAuto!==undefined)S.tAuto=r.tAuto;if(r.tDay)S.tDay=r.tDay;if(r.tNight)S.tNight=r.tNight;if(Array.isArray(r.sel))S.sel=r.sel;if(r.last)S.last=r.last;if(Array.isArray(r.recent))S.recent=r.recent;if(r.goal)S.goal=r.goal;if(r.anim)S.anim=r.anim;if(r.rd)S.rd=r.rd;if(r.lrate)S.lrate=r.lrate;for(const k of ['side','noImm','calm','lampOff','rjust','rnum'])if(r[k]!==undefined)S[k]=r[k];if(r.rtxt)S.rtxt=r.rtxt;if(r.rpos){S.rpos=S.rpos||{};for(const[k,v]of Object.entries(r.rpos))if(!S.rpos[k]||(v.t||0)>(S.rpos[k].t||0))S.rpos[k]=v}
       S.sts=R.sts;changed=true}
     return changed;
   }

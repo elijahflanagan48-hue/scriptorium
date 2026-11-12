@@ -43,8 +43,8 @@ const Streak=(()=>{
   ['scroll','touchstart','keydown','pointerdown','wheel'].forEach(e=>addEventListener(e,()=>{lastAct=Date.now()},{passive:true}));
   function tick(){
     if(typeof cur==='undefined'||!S)return;
-    const t=today(),d=day(t),k=cur.book+'.'+cur.ch;
-    const reading=document.visibilityState==='visible'&&S.sec==='read'&&$('#modal').hidden;
+    const t=today(),d=day(t),k=document.body.classList.contains('bkmode')?'bk:'+(S.rlast||''):cur.book+'.'+cur.ch;
+    const bk=document.body.classList.contains('bkmode'),reading=document.visibilityState==='visible'&&(S.sec==='read'||bk)&&$('#modal').hidden;
     const listening=!!document.querySelector('.rv.playing,[data-v].playing');
     if(reading&&(Date.now()-lastAct<120000||listening)){d.s=(d.s||0)+5;d.c[k]=(d.c[k]||0)+5;check();if(d.s%60===0)save()}
     ui();

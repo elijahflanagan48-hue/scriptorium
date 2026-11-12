@@ -125,8 +125,9 @@ $('#modal').addEventListener('click',e=>{
 (()=>{let last=scrollY,acc=0;
   addEventListener('scroll',()=>{
     const y=scrollY,dy=y-last;last=y;
-    if(S.sec==='read'){const H=document.documentElement.scrollHeight-innerHeight;document.body.style.setProperty('--rp',H>0?Math.min(1,y/H).toFixed(3):0)}
-    if(!isM()||S.noImm||S.sec!=='read'||S.layout!=='R'||document.documentElement.classList.contains('locked')){document.body.classList.remove('immersive');return}
+    if(S.sec==='read'||document.body.classList.contains('bkmode')){const H=document.documentElement.scrollHeight-innerHeight;document.body.style.setProperty('--rp',H>0?Math.min(1,y/H).toFixed(3):0)}
+    const bk=document.body.classList.contains('bkmode');
+    if(!isM()||S.noImm||!(bk||S.sec==='read'&&S.layout==='R')||document.documentElement.classList.contains('locked')){document.body.classList.remove('immersive');return}
     acc=(dy>0)===(acc>0)?acc+dy:dy;
     if(y<80||acc<-24)document.body.classList.remove('immersive');else if(acc>40)document.body.classList.add('immersive');
   },{passive:true});

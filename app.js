@@ -493,12 +493,13 @@ async function accAct(id){
 function toggleTheme(){S.theme=S.theme==='light'?'sepia':S.theme==='sepia'?'dark':'light';touchSettings();applyBody()}
 /* ---------- sections, tabs, omnibox ---------- */
 function applyBody(){
-  const keep=['drawer','insp-open','icol','rd-novn','listening','immersive'].filter(c=>document.body.classList.contains(c));
+  const keep=['drawer','insp-open','icol','rd-novn','listening','immersive','bkmode'].filter(c=>document.body.classList.contains(c));
   document.body.className=[`theme-${effTheme()}`,`layout-${S.layout}`,`sec-${S.sec||'read'}`,S.side===false?'side-off':'',S.calm?'calm':'',S.lampOff?'lamp-off':'',...keep].filter(Boolean).join(' ');
   syncThemeColor();
 }
 function showSec(s,fromNav){
   if(s==='read'&&S.sec==='read'&&fromNav&&!isM()){S.side=!S.side;touchSettings();applyBody();return}
+  document.body.classList.remove('bkmode');if($('#miniT')&&typeof cur!=='undefined')$('#miniT').textContent=`${bookRu(cur.book)} ${cur.ch}`;
   const was=S.sec;S.sec=s;applyBody();$('#menu').hidden=true;if(s==='search')warmSearch();
   if(s==='read'){$('#page').hidden=true;$('#reader').hidden=false;if(was!=='read')scrollTo(0,0)}
   else{$('#reader').hidden=true;$('#page').hidden=false;if(was==='read'||isM())closeInsp();if(s==='set')Settings.render();else Pages.render(s);scrollTo(0,0)}
@@ -529,7 +530,7 @@ function omniRun(x){
   else Pages.search(x.q);
 }
 function bind(){
-  $('#bookBtn').onclick=()=>bookSheet();$('#mini').onclick=()=>bookSheet();$('#setBtn').onclick=()=>showSec('set');$('#aaBtn').onclick=()=>readSheet();$('#mMore').onclick=moreSheet;$('#accBtn').onclick=accSheet;
+  $('#bookBtn').onclick=()=>bookSheet();$('#mini').onclick=()=>document.body.classList.contains('bkmode')?Rdr.toc():bookSheet();$('#setBtn').onclick=()=>showSec('set');$('#aaBtn').onclick=()=>readSheet();$('#mMore').onclick=moreSheet;$('#accBtn').onclick=accSheet;
   $('#mSearch').onclick=()=>{showSec('search');setTimeout(()=>{const i=$('#qInp');if(i)i.focus()},50)};
   $('#inspClose').onclick=closeInsp;placeholder();
   const ji=$('#jumpInp');

@@ -27,10 +27,11 @@ const Pages=(()=>{
     P().innerHTML=`<div class="pg"><div class="pghead"><h1>Библиотека</h1></div>`+
       (cont.length?`<section><div class="shelf"><h2>Продолжить</h2></div><div class="cont">`+cont.map(r=>{const[b,c]=r.split('.');return `<button class="go g-${genreOf(b)}" data-go="${r}"><span class="ab">${esc(bookAb(b))}</span><span><b>${esc(bookRu(b))} ${c}</b><small>${esc(S.sel.map(x=>x==='ORIG'?'оригинал':shortName(x)).join(' + '))}</small></span></button>`}).join('')+`</div></section>`:'')+
       LIB.map(s=>`<section><div class="shelf"><h2>${esc(s.shelf)}</h2><span>${esc(s.refs)}</span></div><div class="lrow">${s.items.map(card).join('')}</div></section>`).join('')+
-      `<section><div class="shelf"><h2>Моё</h2></div><div class="lrow">`+
+      `<section id="mybooks"></section>`+`<section><div class="shelf"><h2>Моё</h2></div><div class="lrow">`+
       `<button class="lcard" data-gosec="notes"><div class="cv" style="background:#FFB020"><b>Заметки</b></div><div class="bd"><span class="t">Заметки и выделения</span><span class="s">Заметок: ${nN} · выделено стихов: ${nH}</span></div></button>`+
       `<button class="lcard" data-gosec="search"><div class="cv" style="background:#2BB673"><b>Подборки</b></div><div class="bd"><span class="t">Подборки</span><span class="s">${S.saved.length?'Сохранённые поиски: '+S.saved.length:'Сохраняйте поиски, например для урока'}</span></div></button></div>`+
       (S.saved.length?`<div class="saved">`+S.saved.map((x,i)=>`<span class="sv"><button data-q="${esc(x.q)}">${esc(x.q)}</button><button class="x" data-unsave="${i}" aria-label="Удалить подборку">✕</button></span>`).join('')+`</div>`:'')+`</section></div>`;
+    if(typeof Rdr!=='undefined')Rdr.shelf();
   }
 
   /* ---------- поиск: единый, по всем материалам ---------- */
