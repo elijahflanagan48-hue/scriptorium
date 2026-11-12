@@ -1,6 +1,7 @@
 'use strict';
 /* Ad fontes: раздел «Настройки» — все параметры приложения на одной странице. */
 const Settings=(()=>{
+  let updMsg='';
   const I={
     text:'<path d="M5 6.5V5h14v1.5M12 5v14M9 19h6"/>',
     layout:'<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M12 4.5v15M6.5 9h3M6.5 12h3M14.5 9h3M14.5 12h3"/>',
@@ -67,7 +68,8 @@ const Settings=(()=>{
     h+=group('acc','Аккаунт','',
       card(row(user?esc(user.email):'Вы не вошли',user?'заметки, выделения, серия и настройки синхронизируются между устройствами':'войдите, чтобы всё было на всех ваших устройствах',`<button class="sbtn pri" data-sact="acc">${user?'Личный кабинет':'Войти'}</button>`)));
     h+=group('about','О приложении','',
-      `<div class="sabout"><img src="icon.svg" alt="" width="64" height="64"><div><b>Ad fontes</b><small>«К истокам». Библия с оригиналами на еврейском и греческом, переводами и умным поиском.</small><small>Переводов: ${trs.length} · книг: ${BOOKS.length}</small></div></div>`);
+      `<div class="sabout"><img src="icon.svg" alt="" width="64" height="64"><div><b>Ad fontes</b><small>«К истокам». Библия с оригиналами на еврейском и греческом, переводами и умным поиском.</small><small>Переводов: ${trs.length} · книг: ${BOOKS.length} · версия ${typeof Update!=='undefined'?Update.version:''}</small></div></div>`+
+      card(row('Обновления','приложение обновляется само: при возвращении после перерыва или по кнопке во всплывающей плашке',`<button class="sbtn" data-sact="upd">${updMsg||'Проверить'}</button>`)));
     return h+'</div></div></div>';
   }
   function render(){const y=scrollY;$('#page').innerHTML=html();if(S.sec==='set')scrollTo(0,y);spy()}
@@ -98,6 +100,7 @@ const Settings=(()=>{
     const a=e.target.closest('[data-sact]');
     if(a){const k=a.dataset.sact;
       if(k.startsWith('prev:')){Streak.celebrate(k.slice(5),Math.max(Streak.calc().n,1),'');return}
+      if(k==='upd'){updMsg='Проверяю…';render();Update.check(true).then(v=>{if(v)Update.apply();else{updMsg='✓ Последняя версия';render();setTimeout(()=>{updMsg='';if(S.sec==='set')render()},4000)}});return}
       if(k==='streak')Streak.sheet();
       if(k==='acc')accSheet();
       if(k==='voice'){try{speechSynthesis.cancel();const p=primary(),en=TRS[p]&&TRS[p].lang==='en';const u=new SpeechSynthesisUtterance(en?'In the beginning God created the heaven and the earth.':'В начале сотворил Бог небо и землю.');u.lang=en?'en-US':'ru-RU';u.rate=S.lrate||1;speechSynthesis.speak(u)}catch(err){}}
