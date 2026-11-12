@@ -112,7 +112,7 @@ const hlc=ref=>S.hl[ref]?' hl'+S.hl[ref]:'';
 /* ---------- render ---------- */
 async function render(scrollV){
   const t=++token;applyBody();
-  $('#bookLabel').textContent=`${bookRu(cur.book)} ${cur.ch}`;$('#bookBtn').className='pill only-m '+gcls();
+  $('#bookLabel').textContent=`${bookRu(cur.book)} ${cur.ch}`;if($('#miniT'))$('#miniT').textContent=`${bookRu(cur.book)} ${cur.ch}`;$('#bookBtn').className='pill only-m '+gcls();
   renderTabs();buildSide();
   const R=$('#reader'),ck=cur.book+cur.ch+S.layout,book=cur.book,ch=cur.ch,P=chapterParts(book,ch);
   let stage=0;
@@ -529,7 +529,7 @@ function omniRun(x){
   else Pages.search(x.q);
 }
 function bind(){
-  $('#bookBtn').onclick=()=>bookSheet();$('#setBtn').onclick=()=>showSec('set');$('#aaBtn').onclick=()=>readSheet();$('#mMore').onclick=moreSheet;$('#accBtn').onclick=accSheet;
+  $('#bookBtn').onclick=()=>bookSheet();$('#mini').onclick=()=>bookSheet();$('#setBtn').onclick=()=>showSec('set');$('#aaBtn').onclick=()=>readSheet();$('#mMore').onclick=moreSheet;$('#accBtn').onclick=accSheet;
   $('#mSearch').onclick=()=>{showSec('search');setTimeout(()=>{const i=$('#qInp');if(i)i.focus()},50)};
   $('#inspClose').onclick=closeInsp;placeholder();
   const ji=$('#jumpInp');
