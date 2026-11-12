@@ -36,8 +36,8 @@ const svgI=n=>n==='play'?'<svg viewBox="0 0 24 24" width="16" height="16" aria-h
 /* ---------- листы: перевод и вид ---------- */
 function readTrSheet(){
   const p=primary();
-  openModal(`<h3>Перевод для чтения</h3><div class="mlist">`+IDX.translations.map(t=>`<button data-rpick="${t.id}" class="${t.id===p?'on':''}">${esc(t.name)}<small>${t.lang==='ru'?'русский':'английский'}</small></button>`).join('')+
-    `</div><p class="hint">Нажмите на любое слово в тексте, чтобы увидеть слово оригинала, его значение и где ещё оно встречается.</p>`);
+  openModal(`<h3>Перевод для чтения</h3>`+trGroups().map(([n,l])=>`<h5 class="tgh">${n}</h5><div class="mlist">`+l.map(t=>`<button data-rpick="${t.id}" class="${t.id===p?'on':''}">${esc(t.name)}</button>`).join('')+`</div>`).join('')+
+    `<p class="hint">Нажмите на любое слово в тексте, чтобы увидеть слово оригинала, его значение и где ещё оно встречается.</p>`);
 }
 function readSheet(keep){
   const r=rd(),fsz=[16,18,20,22,25,28],lhs=[[1.5,'Плотно'],[1.75,'Обычно'],[2,'Свободно']];

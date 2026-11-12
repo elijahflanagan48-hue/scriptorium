@@ -63,7 +63,7 @@ const Pages=(()=>{
   function filt(){
     qinit();let h='';
     if(wantB()){
-      h+=`<div class="fg"><div class="cap">Перевод Библии <span class="soon">можно несколько</span></div>`+`<div class="chips2">`+IDX.translations.map(t=>`<label class="chk ${tids().includes(t.id)?'on':''}" title="${esc(t.name)}"><input type="checkbox" name="ptid" value="${t.id}" ${tids().includes(t.id)?'checked':''}>${esc(shortName(t.id))}</label>`).join('')+`</div></div>`;
+      h+=`<div class="fg"><div class="cap">Перевод Библии <span class="soon">можно несколько</span></div>`+trGroups().map(([n,l])=>`<div class="tgl">${n}</div><div class="chips2">`+l.map(t=>`<label class="chk ${tids().includes(t.id)?'on':''}" title="${esc(t.name)}"><input type="checkbox" name="ptid" value="${t.id}" ${tids().includes(t.id)?'checked':''}>${esc(shortName(t.id))}</label>`).join('')+`</div>`).join('')+`</div>`;
       h+=`<div class="fg"><div class="cap">Где в Библии</div><div class="chips2">`+PRESETS.map(([v,n])=>`<button data-preset="${v}" class="${Q.preset===v?'on':''}">${n}</button>`).join('')+`<button data-preset="pick" class="${Q.preset==='pick'?'on':''}">Выбрать книги…</button></div>`;
       if(Q.preset==='pick'){
         h+=`<div class="bkpick">`+GORD2.map(g=>{const bs=BOOKS.map((b,i)=>[b,i]).filter(([b])=>genreOf(b.id)===g);return `<div class="bkg"><i>${esc(GEN[g])}</i><div>`+bs.map(([b,i])=>`<button data-bk="${i}" class="g-${g} ${Q.books&&Q.books.has(i)?'on':''}" title="${esc(b.ru)}">${esc(bookAb(b.id))}</button>`).join('')+`</div></div>`}).join('')+

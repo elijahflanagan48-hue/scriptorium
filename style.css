@@ -831,3 +831,5 @@ body{text-rendering:optimizeLegibility;font-kerning:normal;font-optical-sizing:a
 
 .w.tap,.tw.tap,.tw0.tap{background:color-mix(in srgb,var(--accent) 26%,transparent)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 26%,transparent);border-radius:5px;animation:tapIn .22s var(--ease)}
 @keyframes tapIn{from{background:color-mix(in srgb,var(--accent) 50%,transparent)}}
+
+.tgh{margin:14px 4px 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);font-weight:800}.tgh:first-of-type{margin-top:4px}.tgl{margin:12px 0 6px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);font-weight:800}

@@ -22,6 +22,9 @@ const GORD=['law','hist','poe','pro','gos','epi','rev'];
 function genreOf(id){const i=BI[id];if(i<5)return'law';if(i<17)return'hist';if(i<22)return'poe';if(i<39)return'pro';if(i<44)return'gos';if(i<65)return'epi';return'rev'}
 const SHORT={RST:'Синод.',BTI:'Кулаков',NRT:'НРП',RSP:'РБО',KASS:'Кассиан'};
 const shortName=id=>SHORT[id]||id;
+/* переводы Библии: сначала русские, потом английские */
+const trSort=()=>{if(IDX)IDX.translations=[...IDX.translations.filter(t=>t.lang==='ru'),...IDX.translations.filter(t=>t.lang!=='ru')]};
+const trGroups=()=>[['Русские переводы',IDX.translations.filter(t=>t.lang==='ru')],['Английские переводы',IDX.translations.filter(t=>t.lang!=='ru')]].filter(g=>g[1].length);
 
 /* ---------- init ---------- */
 (async function init(){
@@ -29,7 +32,7 @@ const shortName=id=>SHORT[id]||id;
   if(document.readyState!=='complete')await new Promise(r=>document.addEventListener('DOMContentLoaded',()=>r(),{once:true}));
   IDX=await J('data/index.json');
   if(!IDX){document.body.innerHTML='<p style="padding:40px;font-family:sans-serif">Не найдены файлы данных. Запустите приложение через сервер: в папке приложения выполните <code>python3 -m http.server 8000</code> и откройте <code>http://localhost:8000</code>.</p>';return}
-  BOOKS=IDX.books;BOOKS.forEach((b,i)=>BI[b.id]=i);IDX.translations.forEach(t=>TRS[t.id]=t);
+  BOOKS=IDX.books;BOOKS.forEach((b,i)=>BI[b.id]=i);IDX.translations.forEach(t=>TRS[t.id]=t);trSort();
   PEND=S.sel.includes('BTI');S.sel=S.sel.filter(x=>x==='ORIG'||TRS[x]);if(!S.sel.length)S.sel=['ORIG','RST'];
   if(!S.recent)S.recent=[];if(!S.wnotes)S.wnotes={};if(!S.ts)S.ts={};if(!S.qhist)S.qhist=[];if(!S.saved)S.saved=[];if(S.side===undefined)S.side=true;
   if(!S.rmode){S.rmode=1;S.layout='R'}if(!S.done)S.done={};
@@ -426,7 +429,7 @@ function bookSheet(sel){
 function textsSheet(){
   const row=(id,name,sub)=>`<label><input type="checkbox" data-t="${id}" ${S.sel.includes(id)?'checked':''}><span><b>${esc(name)}</b><small>${esc(sub)}</small></span></label>`;
   openModal(`<h3>Тексты</h3><div class="tlist">${row('ORIG','Оригинал','Иврит (WLC/OSHB) и греческий (SBLGNT/MorphGNT) с морфологией и словарём')}`+
-    IDX.translations.map(t=>row(t.id,t.name,(t.lang==='ru'?'русский':'английский')+' · '+t.license)).join('')+`</div><div class="hint">Главный перевод — первый из включённых переводов (его можно выбрать в строке над текстом или внизу экрана).</div>`);
+    trGroups().map(([n,l])=>`<h5 class="tgh">${n}</h5>`+l.map(t=>row(t.id,t.name,t.license)).join('')).join('')+`</div><div class="hint">Главный перевод — первый из включённых переводов (его можно выбрать в строке над текстом или внизу экрана).</div>`);
 }
 function dataSheet(){
   const n=Object.keys(S.notes).length,h=Object.keys(S.hl).length,w=Object.keys(S.wnotes||{}).length;
@@ -439,7 +442,7 @@ function moreSheet(){
 function syncPrivate(){
   if(!IDX)return;const ok=!!(Sync.user&&Sync.user.access);let ch=false;
   for(const[id,name]of PRIVT){
-    if(ok&&!TRS[id]){const t={id,name,lang:'ru',license:'скрытый доступ',books:id==='KASS'?BOOKS.filter(b=>b.testament==='NT').map(b=>b.id):BOOKS.map(b=>b.id)};TRS[id]=t;IDX.translations.push(t);ch=true;
+    if(ok&&!TRS[id]){const t={id,name,lang:'ru',license:'скрытый доступ',books:id==='KASS'?BOOKS.filter(b=>b.testament==='NT').map(b=>b.id):BOOKS.map(b=>b.id)};TRS[id]=t;IDX.translations.push(t);trSort();ch=true;
       if(id==='BTI'&&(!S.btiShown||PEND)){S.btiShown=1;PEND=false;if(!S.sel.includes('BTI'))S.sel.push('BTI');save()}}
     if(!ok&&TRS[id]){delete TRS[id];IDX.translations=IDX.translations.filter(t=>t.id!==id);S.sel=S.sel.filter(x=>x!==id);if(!S.sel.length)S.sel=['ORIG','RST'];ch=true}}
   if(!ok)for(const k of [...cache.keys()])if(PRIV.test(k))cache.delete(k);

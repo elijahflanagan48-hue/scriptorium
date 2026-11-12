@@ -46,7 +46,7 @@ const Settings=(()=>{
     h+=group('tr','Переводы','Какие тексты показывать и какой перевод главный',
       card(row('Главный перевод','в режиме «Чтение» и для чтения вслух',`<select class="ssel" data-prim>${trs.filter(t=>S.sel.includes(t.id)).map(t=>`<option value="${t.id}"${t.id===prim?' selected':''}>${esc(t.name)}</option>`).join('')}</select>`)+
         row('Оригинал','иврит и греческий с морфологией',tog('tr.ORIG',S.sel.includes('ORIG'),'Оригинал'))+
-        trs.map(t=>row(esc(t.name),(t.lang==='ru'?'русский':'английский')+(t.license?' · '+esc(t.license):''),tog('tr.'+t.id,S.sel.includes(t.id),t.name))).join('')));
+        trGroups().map(([n,l])=>`<div class="tgl">${n}</div>`+l.map(t=>row(esc(t.name),t.license?esc(t.license):'',tog('tr.'+t.id,S.sel.includes(t.id),t.name))).join('')).join('')));
     h+=group('listen','Чтение вслух','Голос берётся из системы телефона или компьютера',
       card(row('Скорость','',seg('lrate',S.lrate||1,[[0.85,'0,85×'],[1,'1×'],[1.25,'1,25×'],[1.5,'1,5×']]))+
         row('Проверить голос','прочитать короткую фразу',`<button class="sbtn" data-sact="voice">▶ Послушать</button>`)));
