@@ -307,7 +307,7 @@ const inspOverlay=()=>isM()||innerWidth<1100||S.sec!=='read';
 /* карточка слова без затемнения: закрывается нажатием мимо неё */
 document.addEventListener('click',e=>{const el=$('#inspector');if(!el.classList.contains('open')||!inspOverlay())return;
   if(e.target.closest('#inspector,.w,.tw,.tw0,.vn,#menu,#modal,#pop,#lbar,#sugg,[data-wart],.fn'))return;closeInsp()},true);
-function closeInsp(){const el=$('#inspector');document.body.classList.remove('icol');el.classList.remove('open','full');el.style.transform='';el.style.transition='';document.body.classList.remove('insp-open');unlockScroll('insp');$$('.w.pin').forEach(x=>x.classList.remove('pin'))}
+function closeInsp(){$$('.tap').forEach(x=>x.classList.remove('tap'));const el=$('#inspector');document.body.classList.remove('icol');el.classList.remove('open','full');el.style.transform='';el.style.transition='';document.body.classList.remove('insp-open');unlockScroll('insp');$$('.w.pin').forEach(x=>x.classList.remove('pin'))}
 async function inspect(wd,isH,pinSel,ctx){
   $$('.w.pin').forEach(x=>x.classList.remove('pin'));if(pinSel)$$(pinSel).forEach(x=>x.classList.add('pin'));
   const k=wd[1],dm=decode(isH?'H':'G',wd[2]);const same=INSP&&INSP.k===k;
@@ -630,3 +630,7 @@ document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest
 /* верхняя кнопка книги: в библиотеке и читалке показывает читаемое сочинение */
 function topLib(label){const b=$('#bookBtn'),l=$('#bookLabel');if(!b||!l)return;
   if(label){l.textContent=label;b.className='pill only-m lib'}else{l.textContent=`${bookRu(cur.book)} ${cur.ch}`;b.className='pill only-m '+gcls()}}
+
+/* нажатое слово подсвечивается, пока открыта его карточка */
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('.w,.tw,.tw0');if(!t||t.closest('#inspector,#sheet,#pop'))return;
+  $$('.tap').forEach(x=>x.classList.remove('tap'));t.classList.add('tap')},true);
