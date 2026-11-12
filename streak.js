@@ -4,7 +4,7 @@
    Один пропущенный день в неделю прощается («фитиль ещё тлеет»), два подряд гасят серию.
    S.days = {'2026-11-11': {s: секунды чтения, c: {'John.3': секунды на главе}}} */
 const Streak=(()=>{
-  const GOALS=[['m3','3 минуты'],['m5','5 минут'],['m10','10 минут'],['m15','15 минут'],['m30','30 минут']];
+  const GOALS=[['m3','3 мин'],['m5','5 мин'],['m10','10 мин'],['m15','15 мин'],['m30','30 мин']];
   const ANIMS=[['lamp','Лампа разгорается','пламя вспыхивает и согревает экран'],['water','Круги на воде','капля падает в источник'],['embers','Золотые искры','искры поднимаются вверх'],['light','Луч света','свет сходит сверху'],['seal','Печать','сургучная печать с числом дней'],['ink','Чернила','число пишется пером'],['quiet','Тихо','короткая подсказка внизу']];
   const pad=n=>String(n).padStart(2,'0');
   const dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -80,11 +80,12 @@ const Streak=(()=>{
     const d=day(t),left=`${Math.max(1,Math.ceil(n-(d.s||0)/60))} мин`;
     const state=c.today?'Цель дня выполнена. Светильник горит.':c.risk?`Вчера был пропуск — фитиль ещё тлеет. Осталось сегодня: ${left}.`:c.n?`Сегодня осталось: ${left}, и серия продолжится.`:`Почитайте сегодня ${n} ${plural(n,'минуту','минуты','минут')}, чтобы зажечь светильник.`;
     // календарь: 20 недель, столбцы — недели (пн…вс)
-    const W=isM()?17:24,now=new Date(),wd=(now.getDay()+6)%7;
-    const start=shift(t,-(W-1)*7-wd);let cells='',months='',lastM=-1;
+    const W=isM()?Math.max(10,Math.min(17,Math.floor((innerWidth-90)/18))):24,now=new Date(),wd=(now.getDay()+6)%7;
+    const start=shift(t,-(W-1)*7-wd);let cells='',months='',lastM=-9;
     for(let w=0;w<W;w++){
       const wk=shift(start,w*7),m=+wk.split('-')[1];
-      months+=`<span>${m!==lastM&&+wk.split('-')[2]<=7||w===0?['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'][m-1]:''}</span>`;if(+wk.split('-')[2]<=7||w===0)lastM=m;
+      const dd0=+wk.split('-')[2],lab=(w===0?dd0<=17:dd0<=7)&&w-lastM>=3;
+      months+=`<span>${lab?['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'][m-1]:''}</span>`;if(lab)lastM=w;
       for(let i=0;i<7;i++){const k=shift(start,w*7+i);if(k>t){cells+='<i class="fut"></i>';continue}
         const p=prog(k),dd=(S.days||{})[k],more=dd&&(dd.s||0)/60>=n*2;
         const lv=p>=1?(more?4:3):p>=.5?2:p>0?1:0;
@@ -99,7 +100,7 @@ const Streak=(()=>{
     const medal=(on,big,name,sub)=>`<div class="md${on?' on':''}"><span>${big}</span><b>${name}</b><small>${sub}</small></div>`;
     const html=`<div class="stk">
       <div class="shero ${c.today?'lit':c.n?'wait':'off'} lv${lvl(c.n)}">${LAMP}<div><div class="snum">${c.n}<small>${dn(c.n)} подряд</small></div><p>${state}</p>
-        <div class="sbar"><i style="width:${Math.round(c.p*100)}%"></i></div></div></div>
+        <div class="stprog"><i style="width:${Math.round(c.p*100)}%"></i></div></div></div>
       <div class="sstats"><div><b>${hm(Math.round((d.s||0)/60))}</b><small>сегодня</small></div><div><b>${bst}</b><small>лучшая серия</small></div><div><b>${hm(mon)}</b><small>за этот месяц</small></div><div><b>${hm(tot)}</b><small>всего чтения</small></div></div>
       <h5>Календарь чтения</h5>
       <div class="scal" style="--w:${W}"><div class="sm">${months}</div><div class="sd"><span>пн</span><span></span><span>ср</span><span></span><span>пт</span><span></span><span>вс</span></div><div class="sg">${cells}</div></div>
