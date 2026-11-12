@@ -299,13 +299,17 @@ document.addEventListener('mouseover',e=>{
     $$(`[data-ref="${ref}"] .w[data-i="${t.dataset.a}"]`).forEach(x=>x.classList.add('hi'));
   }
 });
-/* сноска открыта: любое нажатие закрывает её и больше ничего не делает (слово под пальцем не открывается) */
+/* сноска открыта: любое касание закрывает её и ничего больше не делает (слово под пальцем не открывается).
+   Работает на касаниях: закрываем в конце касания, а следующий за ним «click» гасим до того, как его увидит остальной код. */
 const fnOpen=()=>{const p=$('#pop');return p&&!p.hidden&&p.dataset.kind==='fn'};
 const fnClose=()=>{const p=$('#pop');p.hidden=true;p.dataset.kind=''};
-document.addEventListener('click',e=>{if(!fnOpen())return;
-  const onFn=e.target.closest&&e.target.closest('.fn');fnClose();if(!onFn){e.preventDefault();e.stopPropagation()}},true);
+let FNSW=null,FNSWALLOW=0;
+window.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'||!fnOpen()){FNSW=null;return}FNSW={x:e.clientX,y:e.clientY,moved:false,id:e.pointerId}},true);
+window.addEventListener('pointermove',e=>{if(FNSW&&e.pointerId===FNSW.id&&Math.hypot(e.clientX-FNSW.x,e.clientY-FNSW.y)>10)FNSW.moved=true},true);
+const fnEnd=e=>{if(!FNSW)return;const m=FNSW.moved;FNSW=null;if(fnOpen()){fnClose();if(!m)FNSWALLOW=Date.now()+500}};
+window.addEventListener('pointerup',fnEnd,true);window.addEventListener('pointercancel',()=>{FNSW=null},true);
+window.addEventListener('click',e=>{if(Date.now()<FNSWALLOW){FNSWALLOW=0;e.preventDefault();e.stopImmediatePropagation()}},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&fnOpen())fnClose()});
-document.addEventListener('scroll',()=>{if(fnOpen())fnClose()},{passive:true,capture:true});
 document.addEventListener('mouseover',e=>{const f=e.target.closest&&e.target.closest('.fn');if(f&&matchMedia('(hover:hover)').matches)fnShow(f)});
 document.addEventListener('mouseout',e=>{if(e.target.closest&&e.target.closest('.fn'))$('#pop').hidden=true});
 document.addEventListener('mouseout',e=>{if(e.target.closest&&e.target.closest('.w,.tw,.tw0')){$('#pop').hidden=true;hiClear()}});
