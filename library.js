@@ -10,7 +10,7 @@ const Lib=(()=>{
   const hasAcc=()=>!!(Sync.user&&Sync.user.access);
   const num=k=>{const m=/^\d+/.exec(k);return m?+m[0]:0};
   const cmp=(a,b)=>num(a)-num(b)||(a<b?-1:a>b?1:0);
-  const LBL={NIESE:'Греч. · Нисе',WHISTON:'Англ. · Уистон',CW:'Греч. · Кон–Вендланд',YONGE:'Англ. · Йонг',RST:'Синод.',KJVA:'KJV',RAHLFS:'LXX · Ральфс',KAHANA:'Евр. · Кахана',DSS:'Иврит · рукопись',RU:'Рус. · перевод'};
+  const LBL={NIESE:'Греч. · Нисе',WHISTON:'Англ. · Уистон',CW:'Греч. · Кон–Вендланд',GRC:'Греч. · First1K',YONGE:'Англ. · Йонг',RST:'Синод.',KJVA:'KJV',RAHLFS:'LXX · Ральфс',KAHANA:'Евр. · Кахана',DSS:'Иврит · рукопись',RU:'Рус. · перевод'};
   const lbl=t=>LBL[t.tid]||t.tid;
   const plain=t=>t.lang==='grc'?'grc':t.lang==='heb'?'heb':t.lang==='en'?'en':'ru';
 
@@ -35,7 +35,7 @@ const Lib=(()=>{
   }
   function chosen(w){
     const sel=(ST().t||{})[w.id];let ids=sel&&sel.filter(x=>w.texts.some(t=>t.tid===x));
-    if(!ids||!ids.length){const pub=w.texts.filter(t=>t.access==='public');ids=(pub.length?pub:w.texts).slice(0,2).map(t=>t.tid)}
+    if(!ids||!ids.length){const pub=w.texts.filter(t=>t.access==='public');let pl=pub.length?pub:w.texts;if(pl.length<2&&hasAcc())pl=pl.concat(w.texts.filter(t=>!pl.includes(t)));ids=pl.slice(0,2).map(t=>t.tid)}
     return ids;
   }
   /* ---------- соответствие LXX → еврейская нумерация ---------- */
