@@ -264,7 +264,7 @@ const Rdr=(()=>{
       </article>`;
     }
     box.innerHTML=h+'</div>';
-    const mt=$('#miniT');if(mt)mt.textContent=ch.mini||B.title;
+    const mt=$('#miniT');if(mt)mt.textContent=ch.mini||B.title;topLib(ch.mini||B.title);
     if(y){const el=box.querySelector(`.bkt [data-i="${y}"]`);if(el){scrollTo(0,el.getBoundingClientRect().top+scrollY-90);return}}
     scrollTo(0,0);
   }

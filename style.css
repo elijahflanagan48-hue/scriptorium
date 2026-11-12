@@ -818,3 +818,13 @@ body{text-rendering:optimizeLegibility;font-kerning:normal;font-optical-sizing:a
 @media(max-width:820px){.bkl{padding-left:0;text-indent:0}.bkorn{margin-top:20px}}
 .bkt .bkh p{text-align:center!important;text-indent:0!important;hyphens:manual;-webkit-hyphens:manual}
 .bksub.caps{word-spacing:normal}
+
+/* телефон: «прилипающее» наведение после касания не подсвечивает слова — только нажатое слово */
+@media(hover:none){
+  .w:hover:not(.pin):not(.hi),.tw:hover:not(.hi),.tw0:hover,.rv .tw:hover:not(.hi),.lt .w:hover,.bkt .w:hover{background:transparent}
+}
+/* ручка у нижних окон: потянуть вниз, чтобы закрыть */
+@media(max-width:820px){
+  #modal:not(.drop) .sheet::before{content:"";display:block;width:40px;height:5px;border-radius:3px;margin:-10px auto 12px;background:color-mix(in srgb,var(--ink) 20%,transparent)}
+}
+#bookBtn.lib{--gt:var(--t1);--gi:var(--accent-ink)}#bookBtn.lib .gdot,#bookBtn.lib i:first-child{display:none}

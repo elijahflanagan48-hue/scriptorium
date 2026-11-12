@@ -499,7 +499,7 @@ function applyBody(){
 }
 function showSec(s,fromNav){
   if(s==='read'&&S.sec==='read'&&fromNav&&!isM()){S.side=!S.side;touchSettings();applyBody();return}
-  document.body.classList.remove('bkmode');if($('#miniT')&&typeof cur!=='undefined')$('#miniT').textContent=`${bookRu(cur.book)} ${cur.ch}`;
+  document.body.classList.remove('bkmode');if($('#miniT')&&typeof cur!=='undefined')$('#miniT').textContent=`${bookRu(cur.book)} ${cur.ch}`;if(typeof cur!=='undefined')topLib('');
   const was=S.sec;S.sec=s;applyBody();$('#menu').hidden=true;if(s==='search')warmSearch();
   if(s==='read'){$('#page').hidden=true;$('#reader').hidden=false;if(was!=='read')scrollTo(0,0)}
   else{$('#reader').hidden=true;$('#page').hidden=false;if(was==='read'||isM())closeInsp();if(s==='set')Settings.render();else Pages.render(s);scrollTo(0,0)}
@@ -530,7 +530,7 @@ function omniRun(x){
   else Pages.search(x.q);
 }
 function bind(){
-  $('#bookBtn').onclick=()=>bookSheet();$('#mini').onclick=()=>document.body.classList.contains('bkmode')?Rdr.toc():bookSheet();$('#setBtn').onclick=()=>showSec('set');$('#aaBtn').onclick=()=>readSheet();$('#mMore').onclick=moreSheet;$('#accBtn').onclick=accSheet;
+  $('#bookBtn').onclick=()=>{if(document.body.classList.contains('bkmode'))return Rdr.toc();if(S.sec==='lib'&&$('.lrd-pg')){const s=S.lib||{};return Rdr.openLib(s.w,s.p?s.p+'|'+(s.c||''):'')}bookSheet()};$('#mini').onclick=()=>document.body.classList.contains('bkmode')?Rdr.toc():bookSheet();$('#setBtn').onclick=()=>showSec('set');$('#aaBtn').onclick=()=>readSheet();$('#mMore').onclick=moreSheet;$('#accBtn').onclick=accSheet;
   $('#mSearch').onclick=()=>{showSec('search');setTimeout(()=>{const i=$('#qInp');if(i)i.focus()},50)};
   $('#inspClose').onclick=closeInsp;placeholder();
   const ji=$('#jumpInp');
@@ -615,3 +615,18 @@ let _lt=0;document.addEventListener('touchend',e=>{const n=Date.now();if(n-_lt<3
 /* панель слова → поиск в библиотеке / везде */
 document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('[data-libq],[data-allq]');if(!a)return;
   if(isM())closeInsp();if(a.dataset.libq)Pages.search(a.dataset.libq,{scope:'lib',mode:'forms'});else Pages.search(a.dataset.allq,{scope:'all',mode:'forms'})});
+
+/* нижние окна на телефоне: смахнуть вниз, чтобы закрыть (когда содержимое прокручено к началу) */
+(function(){let y0=null,x0=0,dy=0,drag=false;const sh=()=>$('#sheet'),m=()=>$('#modal');
+  document.addEventListener('touchstart',e=>{const s=e.target.closest('#sheet');if(!s||!isM()||m().classList.contains('drop')||m().hidden)return;
+    if(e.target.closest('input,textarea,select,.thgrid,.scal,.snav'))return;
+    y0=e.touches[0].clientY;x0=e.touches[0].clientX;dy=0;drag=false},{passive:true});
+  document.addEventListener('touchmove',e=>{if(y0==null)return;const s=sh(),d=e.touches[0].clientY-y0,dx=Math.abs(e.touches[0].clientX-x0);
+    if(!drag){if(d>8&&s.scrollTop<=0&&d>dx){drag=true;s.style.transition='none'}else if(d<-4||dx>12||s.scrollTop>0){y0=null;return}else return}
+    dy=Math.max(0,d);s.style.transform=`translateY(${dy}px)`;m().style.setProperty('--dim',Math.max(0,1-dy/400));if(e.cancelable)e.preventDefault()},{passive:false});
+  document.addEventListener('touchend',()=>{if(y0==null)return;y0=null;const s=sh();if(!drag)return;drag=false;s.style.transition='';
+    if(dy>90){s.style.transform=`translateY(100%)`;setTimeout(()=>{s.style.transform='';closeModal()},180)}else s.style.transform='';m().style.removeProperty('--dim');dy=0});
+})();
+/* верхняя кнопка книги: в библиотеке и читалке показывает читаемое сочинение */
+function topLib(label){const b=$('#bookBtn'),l=$('#bookLabel');if(!b||!l)return;
+  if(label){l.textContent=label;b.className='pill only-m lib'}else{l.textContent=`${bookRu(cur.book)} ${cur.ch}`;b.className='pill only-m '+gcls()}}

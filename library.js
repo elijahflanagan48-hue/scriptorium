@@ -122,6 +122,7 @@ const Lib=(()=>{
     if(rows.length>LIM)h+=`<button class="more wide" data-lmore>Показать ещё (${rows.length-LIM})</button>`;
     h+=`<div class="lsrc">${ts.map(t=>`<div><b>${esc(lbl(t))}</b>: ${esc(t.name)}. ${esc(t.license)}.</div>`).join('')}</div></div>`;
     box.innerHTML=h;
+    {const pt=(part.title_ru||w.title_ru);topLib(`${pt.length>26?pt.slice(0,25)+'…':pt}${multi&&c!=='0'?' · '+c:''}`)}
     if(HIT){const el=document.getElementById('lv-'+HIT.k);HIT=null;if(el)el.scrollIntoView({block:'center'})}
   }
   async function step(d){
