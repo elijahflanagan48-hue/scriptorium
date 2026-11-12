@@ -106,7 +106,7 @@ const trHTML=(id,v,text,d)=>{const a=d.al&&d.al[id]&&d.al[id][v],ch=text.trim().
     if(!/\p{L}/u.test(c))return esc(c)+sp;
     return `<span class="tw0" data-t="${id}" data-j="${i}" data-na="${ok?0:1}">${esc(c)}</span>`+sp}).join(' ')};
 function fnShow(el){const p=el.dataset.fn.split('|'),f=FNS[p[0]+'|'+(CUR&&CUR.book||'')];const lst=(f&&f[p[1]])||[];const n=lst[+p[2]];if(!n)return;
-  const pop=$('#pop');pop.innerHTML=`<div class="fnt">${esc(n[2])}</div>`;pop.hidden=false;
+  const pop=$('#pop');pop.dataset.kind='fn';pop.innerHTML=`<button class="fnx" data-fnx aria-label="Закрыть сноску">✕</button><div class="fnt">${esc(n[2])}</div><div class="fnh">нажмите в любом месте, чтобы закрыть</div>`;pop.hidden=false;
   const r=el.getBoundingClientRect(),pw=pop.offsetWidth,ph=pop.offsetHeight;let x=Math.min(Math.max(8,r.left+r.width/2-pw/2),innerWidth-pw-8),y=r.bottom+8;if(y+ph>innerHeight-8)y=r.top-ph-8;pop.style.left=x+'px';pop.style.top=y+'px'}
 
 const vnHTML=(ref,v)=>`<span class="vn" data-ref="${ref}" title="Выделение и заметка">${v}${S.notes[ref]?'<span class="note-dot">✎</span>':''}</span>`;
@@ -249,7 +249,7 @@ function decode(k,m){try{return k[0]==='G'||/^[A-Z]{1,2} /.test(m)?decGrc(m):dec
 async function popWord(anchor,wd,isH,note){
   const [surf,k,m]=wd;const dm=decode(isH?'H':'G',m);const lx=k?await lexOf(k):null;if(!anchor.matches(':hover'))return;
   const pop=$('#pop');
-  pop.innerHTML=`<div class="lm ${isH?'he':'gr'}">${esc(lx?lx.lemma:surf)}</div><div class="meta">${lx?esc(lx.tr)+' · ':''}${esc(dm.pos||'')}${dm.detail?' · '+esc(dm.detail):''}</div>`+
+  pop.dataset.kind='';pop.innerHTML=`<div class="lm ${isH?'he':'gr'}">${esc(lx?lx.lemma:surf)}</div><div class="meta">${lx?esc(lx.tr)+' · ':''}${esc(dm.pos||'')}${dm.detail?' · '+esc(dm.detail):''}</div>`+
     (lx?`<div class="gl">${esc(lx.gloss)}</div>`:'')+(k&&OCC&&OCC[k]?`<div class="cnt">${OCC[k].length} употр. в оригинале · клик — статья</div>`:'')+(note?`<div class="auto">${note}</div>`:'');
   pop.hidden=false;const r=anchor.getBoundingClientRect(),pw=pop.offsetWidth,ph=pop.offsetHeight;
   let x=Math.min(Math.max(8,r.left+r.width/2-pw/2),innerWidth-pw-8),y=r.bottom+8;if(y+ph>innerHeight-8)y=r.top-ph-8;
@@ -274,7 +274,7 @@ function missHTML(m,short){
     (m.wd?`<div class="cnt">рядом: «${esc(m.nbText)}» ← ${esc(m.wd[0])}${short?'':' · клик — статья'}</div>`:'');
 }
 function popNote(anchor,m){
-  const pop=$('#pop');pop.innerHTML=missHTML(m,false);pop.hidden=false;
+  const pop=$('#pop');pop.dataset.kind='';pop.innerHTML=missHTML(m,false);pop.hidden=false;
   const r=anchor.getBoundingClientRect(),pw=pop.offsetWidth,ph=pop.offsetHeight;
   let x=Math.min(Math.max(8,r.left+r.width/2-pw/2),innerWidth-pw-8),y=r.bottom+8;if(y+ph>innerHeight-8)y=r.top-ph-8;
   pop.style.left=x+'px';pop.style.top=y+'px';
@@ -297,6 +297,13 @@ document.addEventListener('mouseover',e=>{
     $$(`[data-ref="${ref}"] .w[data-i="${t.dataset.a}"]`).forEach(x=>x.classList.add('hi'));
   }
 });
+/* сноска открыта: любое нажатие закрывает её и больше ничего не делает (слово под пальцем не открывается) */
+const fnOpen=()=>{const p=$('#pop');return p&&!p.hidden&&p.dataset.kind==='fn'};
+const fnClose=()=>{const p=$('#pop');p.hidden=true;p.dataset.kind=''};
+document.addEventListener('click',e=>{if(!fnOpen())return;
+  const onFn=e.target.closest&&e.target.closest('.fn');fnClose();if(!onFn){e.preventDefault();e.stopPropagation()}},true);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&fnOpen())fnClose()});
+document.addEventListener('scroll',()=>{if(fnOpen())fnClose()},{passive:true,capture:true});
 document.addEventListener('mouseover',e=>{const f=e.target.closest&&e.target.closest('.fn');if(f&&matchMedia('(hover:hover)').matches)fnShow(f)});
 document.addEventListener('mouseout',e=>{if(e.target.closest&&e.target.closest('.fn'))$('#pop').hidden=true});
 document.addEventListener('mouseout',e=>{if(e.target.closest&&e.target.closest('.w,.tw,.tw0')){$('#pop').hidden=true;hiClear()}});
