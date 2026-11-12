@@ -353,7 +353,9 @@ html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
 /* скрытие панелей при чтении на телефоне */
 @media(max-width:820px){
   #top,#tabbar{transition:transform .28s var(--ease)}
-  body.immersive #top{transform:translateY(-100%)}
+  /* при чтении шапка «отцепляется» и уезжает вместе с текстом: тогда Safari перестаёт
+     заливать полосу со временем и батареей сплошным цветом, и текст мягко просвечивает под ней */
+  body.immersive #top{position:relative;transform:translateY(-100%);background:transparent;border-bottom-color:transparent;box-shadow:none}
   body.immersive #tabbar{transform:translateY(100%)}
   #lbar{bottom:calc(var(--bar) + 12px + env(safe-area-inset-bottom));transition:bottom .28s var(--ease)}
   body.immersive #lbar{bottom:calc(14px + env(safe-area-inset-bottom))}
