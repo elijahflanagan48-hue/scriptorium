@@ -142,6 +142,45 @@ const Rdr=(()=>{
     await putBook(b);return b;
   }
 
+
+  /* ---------- оформление текста сочинений ---------- */
+  const C0={josephus:'Содержание книги',lxx:'Пролог',apocrypha:'Пролог'};
+  const plainV=v=>Array.isArray(v)?v.map(x=>x[0]).join(' '):String(v||'');
+  function titleOf(v){
+    let s=plainV(v).trim();if(!s)return{t:''};
+    s=s.replace(/^CHAPTER\s+[\w.]+\.?\s*/i,'').replace(/^Book\s+[IVXLC\d]+\.?\s*/i,'').replace(/^ΚΕΦ(?:ΑΛΑΙΟΝ)?\.?\s*[\wͰ-Ͽ]+\.?\s*/,'').replace(/\s+/g,' ').trim();
+    const caps=/\p{Lu}/u.test(s)&&s===s.toUpperCase();
+    return{t:s.replace(/\.$/,caps?'':'.').replace(/\.$/,''),caps};
+  }
+  /* английский Уистон: заголовок главы стоит прописными в начале первого раздела */
+  function capsHead(s){
+    const tk=s.split(/\s+/);let i=0;const isC=x=>/\p{L}/u.test(x)&&x===x.toUpperCase();
+    while(i<tk.length&&(isC(tk[i])||!/\p{L}/u.test(tk[i])))i++;
+    if(i<5||i>=tk.length)return null;
+    const t=tk.slice(0,i-1).join(' ').replace(/[,;:.]+$/,''),first=tk[i-1];
+    return{t,rest:first.charAt(0)+first.slice(1).toLowerCase()+' '+tk.slice(i).join(' ')};
+  }
+  const END_C=/[.!?…»"”’)\]]\s*$/,END_G=/[.;!?…»”)\]]\s*$/;
+  /* разделы сочинения → абзацы: новый абзац только там, где кончилось предложение
+     и (в русском и английском) следующий раздел начинается с заглавной; стихотворные главы — строками */
+  function flow(items,lang){
+    const cased=lang==='ru'||lang==='en',END=cased?END_C:END_G;
+    const txt=items.map(x=>plainV(x.v).trim());
+    const n=txt.length||1,avg=txt.reduce((a,s)=>a+s.length,0)/n,open=txt.filter(s=>s&&!END.test(s)).length/n;
+    const up=s=>/^[«"„“'(\[—–-]?\s*[\p{Lu}\d]/u.test(s);
+    if(lang!=='heb'&&n>4&&(avg<115&&open>.3||avg<100)){/* поэзия: строфы до конца предложения */
+      const out=[];let cur=null;items.forEach((x,i)=>{if(!txt[i])return;if(!cur){cur={kind:'stz',items:[]};out.push(cur)}cur.items.push(x);if(END.test(txt[i])&&cur.items.length>=2)cur=null});return out}
+    const out=[];let cur=null,len=0;
+    items.forEach((x,i)=>{const s=txt[i];if(!s)return;
+      const prev=cur&&txt[items.indexOf(cur.items[cur.items.length-1])];
+      const brk=!cur||(END.test(prev)&&(!cased||up(s)))||(len>2600&&END.test(prev));
+      if(brk){cur={kind:'p',items:[]};out.push(cur);len=0}
+      cur.items.push(x);len+=s.length});
+    return out;
+  }
+  const tidyText=(s,lang)=>{s=String(s).replace(/[ \t ]{2,}/g,' ').replace(/\s+([,.;:!?»)])/g,'$1').replace(/([«(])\s+/g,'$1');
+    if(lang==='ru'||lang==='en')s=s.replace(/ - /g,' — ').replace(/--/g,'—');return s};
+
   /* ---------- источники ---------- */
   const LW={josephus:'Глава',philo:'Глава',lxx:'Глава',apocrypha:'Глава',qumran:'Фрагмент',eusebius:'Глава',apfathers:'Глава'};
   function libText(w){
@@ -161,29 +200,35 @@ const Rdr=(()=>{
         let [pid,c]=(pos||'').split('|');const ps=parts();
         if(!ps.some(p=>p.id===pid))pid=ps[0]&&ps[0].id;if(!pid)return{empty:true};
         const d=await load(pid);if(!d||d.locked)return{locked:!!(d&&d.locked)||t().access==='account',pid,ptitle:Lib.part(w,pid)};
-        let ks=Object.keys(d).sort(cmp);const real=ks.filter(k=>k!=='0');if(real.length)ks=real.concat(ks.includes('0')&&!real.length?['0']:[]);
+        const ks=Object.keys(d).sort(cmp);
         if(c==='$last')c=ks[ks.length-1];if(!ks.includes(c))c=ks[0];
-        const sec=d[c]||{},sk=Object.keys(sec).sort(cmp);
-        let sub='';if(typeof sec['0']==='string'){sub=sec['0'].trim();if(sub===sub.toUpperCase())sub=sub.charAt(0)+sub.slice(1).toLowerCase()}
-        const paras=sk.filter(k=>k!=='0').map(k=>({n:Lib.disp(w,c,k),v:sec[k]}));
+        const sec=d[c]||{},sk=Object.keys(sec).sort(cmp).filter(k=>k!=='0'),lang=t().lang;
+        const items=sk.map(k=>({n:w.id==='philo'?'§'+k:k,v:sec[k]}));
+        let inl=null;if(items.length&&lang==='en'&&typeof items[0].v==='string'){const sp=capsHead(items[0].v);if(sp){inl=sp.t;items[0]={n:items[0].n,v:sp.rest}}}
         const i=ks.indexOf(c),pi=ps.findIndex(p=>p.id===pid);
         const prev=i>0?pid+'|'+ks[i-1]:pi>0?ps[pi-1].id+'|$last':null;
         const next=i<ks.length-1?pid+'|'+ks[i+1]:pi<ps.length-1?ps[pi+1].id+'|':null;
-        const pt=Lib.part(w,pid),one=ks.length===1;
-        return{pos:pid+'|'+c,head:one?w.title_ru:pt,title:one?pt:`${LW[w.id]||'Глава'} ${c}`,sub,paras,prev,next,
-          nextT:next?(next.startsWith(pid+'|')?`${LW[w.id]||'Глава'} ${next.split('|')[1]}`:Lib.part(w,next.split('|')[0])):'',
-          lang:t().lang,mini:`${pt.length>26?pt.slice(0,25)+'…':pt}${one?'':' · '+c}`,nums:true,
-          src:`${t().name}. ${t().license||''}`,where:{pid,ks,i}};
+        const pt=Lib.part(w,pid),one=ks.length===1,LWd=LW[w.id]||'Глава';
+        const lab=k=>k==='0'?(C0[w.id]||'Вступление'):`${LWd} ${k}`;
+        const ttl=inl?{t:inl,caps:true}:titleOf(sec['0']);let h1,label,sub='',caps=false;
+        if(one){h1=pt;label=w.title_ru;if(ttl.t){sub=ttl.t;caps=ttl.caps}}
+        else if(ttl.t&&!ttl.caps&&ttl.t.length<=150){h1=ttl.t;label=lab(c)}
+        else{h1=lab(c);label='';if(ttl.t){sub=ttl.t;caps=ttl.caps}}
+        const nt=next?(next.startsWith(pid+'|')?(()=>{const k=next.split('|')[1],x=titleOf((d[k]||{})['0']);return lab(k)+(x.t&&!x.caps&&x.t.length<90?' · '+x.t:'')})():Lib.part(w,next.split('|')[0])):'';
+        return{pos:pid+'|'+c,head:one?'':pt,label,title:h1,sub,caps,blocks:flow(items,lang),prev,next,nextT:nt,
+          lang,mini:`${pt.length>26?pt.slice(0,25)+'…':pt}${one?'':' · '+c}`,nums:true,
+          src:`${t().name}. ${t().license||''}`};
       },
-      async toc(pos){const [pid]=(pos||'').split('|');const ps=parts();let cur=null;
-        try{const d=await load(pid);if(d&&!d.locked)cur=Object.keys(d).filter(k=>k!=='0').sort(cmp)}catch(e){}
-        return ps.map(p=>({pos:p.id+'|',t:p.title_ru,on:p.id===pid,kids:p.id===pid&&cur&&cur.length>1?cur.map(k=>({pos:p.id+'|'+k,t:`${LW[w.id]||'Глава'} ${k}`,on:pos===p.id+'|'+k})):null}))}};
+      async toc(pos){const [pid]=(pos||'').split('|');const ps=parts();let kids=null;
+        try{const d=await load(pid);if(d&&!d.locked){const ks=Object.keys(d).sort(cmp);if(ks.length>1)kids=ks.map(k=>{const x=titleOf((d[k]||{})['0']);
+          return{pos:pid+'|'+k,t:(k==='0'?(C0[w.id]||'Вступление'):`${LW[w.id]||'Глава'} ${k}`),d:x.t&&!x.caps?x.t:'',on:pos===pid+'|'+k}})}}catch(e){}
+        return ps.map(p=>({pos:p.id+'|',t:p.title_ru,on:p.id===pid,kids:p.id===pid?kids:null}))}};
   }
   async function ownSrc(id){
     const b=await getBook(id);if(!b)return null;
     return{key:'own:'+id,kind:'own',title:b.title,author:b.author,book:b,
       async chapter(pos){let i=Math.max(0,Math.min(b.chapters.length-1,+pos||0));const c=b.chapters[i];
-        return{pos:String(i),head:b.title,title:c.t||'',paras:c.p.map(v=>({v})),prev:i>0?String(i-1):null,next:i<b.chapters.length-1?String(i+1):null,
+        return{pos:String(i),head:b.title,title:c.t||'',blocks:c.p.map(v=>({kind:'p',items:[{v}]})),prev:i>0?String(i-1):null,next:i<b.chapters.length-1?String(i+1):null,
           nextT:i<b.chapters.length-1?b.chapters[i+1].t:'',lang:b.lang,mini:`${b.title.length>22?b.title.slice(0,21)+'…':b.title} · ${i+1}/${b.chapters.length}`,nums:false,
           frac:`Глава ${i+1} из ${b.chapters.length}`}},
       async toc(pos){return b.chapters.map((c,i)=>({pos:String(i),t:c.t||`Часть ${i+1}`,on:String(i)===String(pos)}))}};
@@ -204,16 +249,23 @@ const Rdr=(()=>{
     if(ch.locked)h+=`<div class="bkt"><div class="lnote warm">Этот текст открывается после входа в личный кабинет с доступом. <button class="mini" data-bk="acc">Войти</button></div></div>`;
     else if(ch.empty)h+=`<p class="hint">Здесь пока нет текста.</p>`;
     else{
+      const L=ch.lang||'ru';
+      const num=(n,first)=>n==null?'':first?`<span class="bkn">${esc(n)}</span>`:`<sup class="bks">${esc(n)}</sup>`;
+      const body=v=>Array.isArray(v)?words(v):esc(tidyText(v,L)).replace(/\n/g,'<br>');
+      let pi=0;
+      const bl=ch.blocks.map((b,bi)=>{
+        if(b.kind==='stz')return `<div class="bkstz" data-i="${pi++}">${b.items.map(x=>`<div class="bkl">${num(x.n,true)}${body(x.v)}</div>`).join('')}</div>`;
+        return `<p data-i="${pi++}"${bi===0?' class="first"':''}>${b.items.map((x,k)=>(bi===0&&k===0?'':num(x.n,k===0))+body(x.v)).join(' ')}</p>`}).join('');
       h+=`<article class="bkt${(S.rjust===undefined?!isM():S.rjust)?' just':''}${S.rnum===false||!ch.nums?' nonum':''}"${lang}>
-        <header class="bkh"><small>${esc(ch.head||'')}${ch.frac?' · '+esc(ch.frac):''}</small>${ch.title?`<h1>${esc(ch.title)}</h1>`:''}${ch.sub?`<p class="bksub">${esc(ch.sub)}</p>`:''}</header>
-        ${ch.paras.map((p,i)=>`<p data-i="${i}">${p.n!=null?`<span class="bkn">${esc(p.n)}</span>`:''}${words(p.v)}</p>`).join('')}
+        <header class="bkh">${ch.head?`<small>${esc(ch.head)}${ch.frac?' · '+esc(ch.frac):''}</small>`:ch.frac?`<small>${esc(ch.frac)}</small>`:''}${ch.label?`<span class="bklab">${esc(ch.label)}</span>`:''}${ch.title?`<h1>${esc(ch.title)}</h1>`:''}${ch.sub?`<p class="bksub${ch.caps?' caps':''}">${esc(ch.caps?ch.sub.toLowerCase():ch.sub)}</p>`:''}<i class="bkorn" aria-hidden="true"></i></header>
+        ${bl}
         <nav class="bknav">${ch.prev?`<button class="bkprev" data-bk="prev">‹ Назад</button>`:'<span></span>'}${ch.next?`<button class="bknext" data-bk="next"><small>Дальше</small>${esc(ch.nextT||'Следующая глава')} ›</button>`:'<span class="bkend">Конец книги</span>'}</nav>
         ${ch.src?`<div class="bksrc">${esc(ch.src)}</div>`:''}
       </article>`;
     }
     box.innerHTML=h+'</div>';
     const mt=$('#miniT');if(mt)mt.textContent=ch.mini||B.title;
-    if(y){const el=box.querySelector(`.bkt p[data-i="${y}"]`);if(el){scrollTo(0,el.getBoundingClientRect().top+scrollY-90);return}}
+    if(y){const el=box.querySelector(`.bkt [data-i="${y}"]`);if(el){scrollTo(0,el.getBoundingClientRect().top+scrollY-90);return}}
     scrollTo(0,0);
   }
   async function openLib(id,pos){const s=await libSrc(id);if(!s)return;const rp=RP()['lib:'+id];show(s,pos||(rp&&rp.pos)||'',!pos&&!!rp)}
@@ -222,7 +274,7 @@ const Rdr=(()=>{
   addEventListener('scroll',()=>{
     if(!B||!document.body.classList.contains('bkmode'))return;
     clearTimeout(saveT);saveT=setTimeout(()=>{
-      const ps=$$('.bkt p[data-i]');let y=0;for(const p of ps){if(p.getBoundingClientRect().bottom>100){y=+p.dataset.i;break}}
+      const ps=$$('.bkt [data-i]');let y=0;for(const p of ps){if(p.getBoundingClientRect().bottom>100){y=+p.dataset.i;break}}
       const r=RP()[B.key];if(r&&r.pos===POS&&r.y!==y){r.y=y;r.t=Date.now();save()}
     },400);
   },{passive:true});
@@ -230,7 +282,7 @@ const Rdr=(()=>{
   /* ---------- окна ---------- */
   async function toc(){
     if(!B)return;const list=await B.toc(POS);
-    openModal(`<h3>${esc(B.title)}</h3>${B.author?`<p class="hint">${esc(B.author)}</p>`:''}<div class="bktoc">${list.map(x=>`<button data-bkgo="${esc(x.pos)}" class="${x.on?'on':''}">${esc(x.t)}</button>`+(x.kids?`<div class="bkkids">${x.kids.map(k=>`<button data-bkgo="${esc(k.pos)}" class="${k.on?'on':''}">${esc(k.t)}</button>`).join('')}</div>`:'')).join('')}</div>`+
+    openModal(`<h3>${esc(B.title)}</h3>${B.author?`<p class="hint">${esc(B.author)}</p>`:''}<div class="bktoc">${list.map(x=>`<button data-bkgo="${esc(x.pos)}" class="${x.on?'on':''}">${esc(x.t)}</button>`+(x.kids?`<div class="bkkids${x.kids.some(k=>k.d)?' long':''}">${x.kids.map(k=>`<button data-bkgo="${esc(k.pos)}" class="${k.on?'on':''}"><b>${esc(k.t)}</b>${k.d?`<small>${esc(k.d)}</small>`:''}</button>`).join('')}</div>`:'')).join('')}</div>`+
       (B.kind==='own'?`<div class="mlist" style="margin-top:16px"><button data-bk="del" class="danger">Удалить книгу с этого устройства</button></div>`:''),{drop:1});
     const on=$('#sheet .bktoc button.on:last-of-type')||$('#sheet .bktoc .on');if(on){const sh=$('#sheet');sh.scrollTop=on.offsetTop-sh.clientHeight/2}
   }
