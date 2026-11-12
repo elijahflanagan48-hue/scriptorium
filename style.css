@@ -697,3 +697,13 @@ body.calm *,body.calm *::before,body.calm *::after{transition-duration:0s!import
 #upd [data-updx]{width:36px;height:40px;border-radius:12px;color:var(--bg);opacity:.6}
 @media(min-width:821px){#upd{bottom:24px}}
 @keyframes updIn{from{transform:translate(-50%,30px);opacity:0}}
+
+/* ---------- приложение с экрана «Домой»: текст заходит под строку со временем ---------- */
+@media(max-width:820px){
+  html.standalone{--top:calc(62px + env(safe-area-inset-top))}
+  html.standalone #top{padding-top:env(safe-area-inset-top)}
+  /* мягкая дымка под временем и батареей: значки читаются, текст под ними просвечивает */
+  html.standalone body::after{content:"";position:fixed;z-index:45;top:0;left:0;right:0;height:env(safe-area-inset-top);pointer-events:none;
+    background:linear-gradient(to bottom,rgba(0,0,0,.34),rgba(0,0,0,.14));-webkit-backdrop-filter:blur(6px) saturate(1.2);backdrop-filter:blur(6px) saturate(1.2)}
+  html.standalone body[class*="theme-"]:is(.theme-dark,.theme-candle,.theme-sea,.theme-forest,.theme-dusk,.theme-graphite,.theme-black,.theme-ember)::after{background:color-mix(in srgb,var(--bg) 55%,transparent)}
+}
