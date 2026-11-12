@@ -14,7 +14,10 @@ const J=p=>{const pm=PRIV.exec(p);if(pm){if(!cache.has(p))cache.set(p,(Sync.user
   if(!cache.has(p)){const pr=window.__pre&&window.__pre[p];if(pr){delete window.__pre[p];cache.set(p,pr.then(x=>{if(x==null)throw 0;return x}).catch(()=>{cache.delete(p);return null}))}}
   if(!cache.has(p))cache.set(p,fetch(p).then(r=>{if(!r.ok)throw 0;return r.json()}).catch(()=>{cache.delete(p);return null}));return cache.get(p)};
 let PEND=false,CUR=null,IDX,BOOKS,BI={},TRS={},OCC=null,LEX={},cur=S.last,token=0,sideT=null,INSP=null;
-const MQ=window.matchMedia('(max-width:820px)'),isM=()=>MQ.matches;
+const MQ=window.matchMedia('(max-width:820px),(pointer:coarse) and (max-height:500px)'),isM=()=>MQ.matches;
+/* телефон боком: широкие раскладки (Стол, Манускрипт) доступны только так */
+const isLand=()=>isM()&&innerWidth>innerHeight;
+const LY=()=>{const l=S.layout||'R';return isM()&&!isLand()&&(l==='B'||l==='D')?'A':l};
 
 /* ---------- genres ---------- */
 const GEN={law:'Закон',hist:'История',poe:'Поэзия',pro:'Пророки',gos:'Евангелия и Деяния',epi:'Послания',rev:'Откровение'};
@@ -117,12 +120,12 @@ async function render(scrollV){
   const t=++token;applyBody();
   $('#bookLabel').textContent=`${bookRu(cur.book)} ${cur.ch}`;if($('#miniT'))$('#miniT').textContent=`${bookRu(cur.book)} ${cur.ch}`;$('#bookBtn').className='pill only-m '+gcls();
   renderTabs();buildSide();
-  const R=$('#reader'),ck=cur.book+cur.ch+S.layout,book=cur.book,ch=cur.ch,P=chapterParts(book,ch);
+  const R=$('#reader'),ck=cur.book+cur.ch+LY()+(isLand()?'L':''),book=cur.book,ch=cur.ch,P=chapterParts(book,ch);
   let stage=0;
   const show=(d,st,final)=>{
     if(t!==token||st<=stage)return;stage=st;CUR=d;
     if(R._ck!==ck){R._ck=ck;R.classList.remove('enter');void R.offsetWidth;R.classList.add('enter')}
-    R.innerHTML=({R:viewR,A:viewA,B:viewB,D:viewD}[S.layout]||viewR)(d)+(S.layout==='B'&&isM()?'':navHTML());
+    R.innerHTML=({R:viewR,A:viewA,B:viewB,D:viewD}[LY()]||viewR)(d)+navHTML();
     renderBar();initSplit();
     if(final&&scrollV){const el=$(`[data-v="${scrollV}"]`,R);if(el){el.scrollIntoView({block:'center'});el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1700)}}
   };
@@ -183,8 +186,7 @@ function viewA(d){
     return `<div class="vrow ${wo&&p?'':'no-o'}${hlc(ref)}" data-v="${v}" data-ref="${ref}">${p?left+right:`<div class="vo">${vnHTML(ref,v)}${d.orig[v]?origHTML(d.orig[v],d.lang):missOrig(d.lang)}</div>`}</div>`}).join('')+`</div></article>`;
 }
 function viewB(d){
-  if(isM())return viewSplit(d);
-  const cols=S.sel,n=cols.length;
+  const cols=isM()?S.sel.slice(0,3):S.sel,n=cols.length;
   let h=head()+chipsHTML(d)+`<div class="desk" style="grid-template-columns:52px repeat(${n},minmax(0,1fr))"><div class="colhead"></div>`+
     cols.map(c=>`<div class="colhead"><span>${c==='ORIG'?(d.lang==='heb'?'Иврит · WLC':'Греческий · SBLGNT'):esc(TRS[c].name)}</span>${n>1?`<button data-rm="${c}" title="Убрать колонку">✕</button>`:''}</div>`).join('');
   for(const v of d.verses){const ref=`${cur.book}.${cur.ch}.${v}`,hc=hlc(ref);
@@ -416,7 +418,7 @@ document.addEventListener('input',e=>{
 function applyHl(ref){
   $$(`[data-ref="${ref}"]`).forEach(el=>{if(el.classList.contains('vn'))return;['hl1','hl2','hl3','hl4'].forEach(c=>el.classList.remove(c));if(S.hl[ref])el.classList.add('hl'+S.hl[ref])});
   $$(`.vn[data-ref="${ref}"]`).forEach(el=>{el.querySelector('.note-dot')?.remove();if(S.notes[ref])el.insertAdjacentHTML('beforeend','<span class="note-dot">✎</span>')});
-  if(S.layout==='D')render();
+  if(LY()==='D')render();
 }
 
 /* ---------- modals & controls ---------- */
@@ -504,7 +506,7 @@ function toggleTheme(){S.theme=S.theme==='light'?'sepia':S.theme==='sepia'?'dark
 /* ---------- sections, tabs, omnibox ---------- */
 function applyBody(){
   const keep=['drawer','insp-open','icol','rd-novn','listening','immersive','bkmode'].filter(c=>document.body.classList.contains(c));
-  document.body.className=[`theme-${effTheme()}`,`layout-${S.layout}`,`sec-${S.sec||'read'}`,S.side===false?'side-off':'',S.calm?'calm':'',S.lampOff?'lamp-off':'',...keep].filter(Boolean).join(' ');
+  document.body.className=[`theme-${effTheme()}`,`layout-${LY()}`,isLand()?'land':'',`sec-${S.sec||'read'}`,S.side===false?'side-off':'',S.calm?'calm':'',S.lampOff?'lamp-off':'',...keep].filter(Boolean).join(' ');
   syncThemeColor();if(typeof laySwUi==='function')laySwUi();
 }
 function showSec(s,fromNav){
@@ -649,3 +651,7 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
 function laySwUi(){$$('#laySw [data-lsw]').forEach(b=>{const on=b.dataset.lsw===S.layout;b.classList.toggle('on',on);b.setAttribute('aria-checked',on)})}
 document.addEventListener('click',e=>{const b=e.target.closest('#laySw [data-lsw]');if(!b)return;
   S.layout=b.dataset.lsw;touchSettings();if(S.sec!=='read')showSec('read');render();laySwUi()});
+
+/* поворот телефона: перестраиваем раскладку */
+{let lastL=null;const re=()=>{const k=isM()+':'+isLand();if(k===lastL)return;lastL=k;applyBody();if(S.sec==='read')render()};
+  addEventListener('resize',()=>{clearTimeout(re._t);re._t=setTimeout(re,150)});MQ.addEventListener('change',re);setTimeout(()=>{lastL=isM()+':'+isLand()},0)}
