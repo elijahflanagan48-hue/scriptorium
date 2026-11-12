@@ -10,7 +10,7 @@ const Lib=(()=>{
   const hasAcc=()=>!!(Sync.user&&Sync.user.access);
   const num=k=>{const m=/^\d+/.exec(k);return m?+m[0]:0};
   const cmp=(a,b)=>num(a)-num(b)||(a<b?-1:a>b?1:0);
-  const LBL={NIESE:'Греч. · Нисе',WHISTON:'Англ. · Уистон',CW:'Греч. · Кон–Вендланд',GRC:'Греч. · First1K',YONGE:'Англ. · Йонг',RST:'Синод.',KJVA:'KJV',RAHLFS:'LXX · Ральфс',KAHANA:'Евр. · Кахана',DSS:'Иврит · рукопись',RU:'Рус. · перевод'};
+  const LBL={NIESE:'Греч. · Нисе',WHISTON:'Англ. · Уистон',CW:'Греч. · Кон–Вендланд',GRC:'Греч. · First1K',CAFE:'Англ. · CAFE (машинный)',YONGE:'Англ. · Йонг',RST:'Синод.',KJVA:'KJV',RAHLFS:'LXX · Ральфс',KAHANA:'Евр. · Кахана',DSS:'Иврит · рукопись',RU:'Рус. · перевод'};
   const lbl=t=>LBL[t.tid]||t.tid;
   const plain=t=>t.lang==='grc'?'grc':t.lang==='heb'?'heb':t.lang==='en'?'en':'ru';
 
