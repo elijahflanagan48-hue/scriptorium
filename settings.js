@@ -82,7 +82,7 @@ const Settings=(()=>{
     const s=e.target.closest('[data-set]');
     if(s){const k=s.dataset.set,v=s.dataset.v;
       if(k.startsWith('rd.'))return rdSet(k.slice(3),isNaN(+v)?v:+v);
-      if(k==='layout'){S.layout=v;applyBody();re();return}
+      if(k==='layout'){S.layout=v;applyBody();window.render&&window.render();re();return}
       if(k==='tAuto'){S.tAuto=v;if(v){const c=themeById(S.theme);if(c.night)S.tNight=c.id;else S.tDay=c.id;S.tDay=S.tDay||'light';S.tNight=S.tNight||'dark'}applyBody();re();return}
       if(k==='lrate'){S.lrate=+v;re();return}
       if(k==='goal'){S.goal=v;Streak.ui();Streak.check();re();return}

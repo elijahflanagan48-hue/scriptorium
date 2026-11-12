@@ -505,7 +505,7 @@ function toggleTheme(){S.theme=S.theme==='light'?'sepia':S.theme==='sepia'?'dark
 function applyBody(){
   const keep=['drawer','insp-open','icol','rd-novn','listening','immersive','bkmode'].filter(c=>document.body.classList.contains(c));
   document.body.className=[`theme-${effTheme()}`,`layout-${S.layout}`,`sec-${S.sec||'read'}`,S.side===false?'side-off':'',S.calm?'calm':'',S.lampOff?'lamp-off':'',...keep].filter(Boolean).join(' ');
-  syncThemeColor();
+  syncThemeColor();if(typeof laySwUi==='function')laySwUi();
 }
 function showSec(s,fromNav){
   if(s==='read'&&S.sec==='read'&&fromNav&&!isM()){S.side=!S.side;touchSettings();applyBody();return}
@@ -644,3 +644,8 @@ function topLib(label){const b=$('#bookBtn'),l=$('#bookLabel');if(!b||!l)return;
 /* нажатое слово подсвечивается, пока открыта его карточка */
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('.w,.tw,.tw0');if(!t||t.closest('#inspector,#sheet,#pop'))return;
   $$('.tap').forEach(x=>x.classList.remove('tap'));t.classList.add('tap')},true);
+
+/* переключатель раскладки в верхней панели (компьютер) */
+function laySwUi(){$$('#laySw [data-lsw]').forEach(b=>{const on=b.dataset.lsw===S.layout;b.classList.toggle('on',on);b.setAttribute('aria-checked',on)})}
+document.addEventListener('click',e=>{const b=e.target.closest('#laySw [data-lsw]');if(!b)return;
+  S.layout=b.dataset.lsw;touchSettings();if(S.sec!=='read')showSec('read');render();laySwUi()});
