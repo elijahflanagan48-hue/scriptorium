@@ -77,22 +77,32 @@ def step_text():
     nl = [norm(x) for x in lines]
     tn = [norm(s[1]) for s in STORIES]
 
-    def occ(k):
-        return [i for i, x in enumerate(nl) if re.sub(r'^\d+ ', '', x) == tn[k]]
-    # начало тела: первое вхождение 1-го заголовка, после которого 2-й заголовок не рядом (иначе это оглавление)
+    import difflib
+    num = []
+    for k, st in enumerate(STORIES):
+        num.append(sum(1 for x in STORIES[:k + 1] if x[0] == st[0]))
+
+    def occ(k):  # строки-заголовки: «N. Название» (допускается «N Название» и мелкие расхождения в написании)
+        r = []
+        for i, x in enumerate(lines):
+            m = re.match(r'^(\d+)\.?\s+(.+)$', x)
+            if not m or int(m.group(1)) != num[k] or len(x) > 200: continue
+            if difflib.SequenceMatcher(None, norm(m.group(2)), tn[k]).ratio() >= 0.6: r.append(i)
+        return r
+    # начало тела: первое вхождение 1-го заголовка, после которого 2-й заголовок не в соседней строке (иначе это оглавление)
     pos = []
     o0 = occ(0); o1 = occ(1)
     start = None
     for i in o0:
         nxt = [j for j in o1 if j > i]
-        if nxt and nxt[0] - i > 3: start = i; break
+        if nxt and nxt[0] - i > 1: start = i; break
     if start is None: sys.exit('Не нашёл начало текста (заголовок «О творении»).')
     pos.append(start)
     for k in range(1, len(STORIES)):
         c = [i for i in occ(k) if i > pos[-1]]
         if not c: sys.exit('Не нашёл заголовок №%d «%s». Пришлите мне вывод.' % (k + 1, STORIES[k][1]))
         pos.append(c[0])
-    END = re.compile(r'^(Источник|Комментарии|Библиотеке требуются|Поделиться|Рейтинг|Оглавление|Предыдущая|Следующая|Скачать|Читать также|Похожие)', re.I)
+    END = re.compile(r'^(Примечания|\* \* \*|Источник|Комментарии|Библиотеке требуются|Поделиться|Рейтинг|Оглавление|Предыдущая|Следующая|Скачать|Читать также|Похожие)', re.I)
     ot, nt, report = {}, {}, []
     for k, (tst, title, ref, kw, *_) in enumerate(STORIES):
         a = pos[k] + 1
