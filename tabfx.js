@@ -13,7 +13,11 @@
   const ORDER=['read','lib','search','notes','more'];
   const keyOf=s=>['set','hist'].includes(s)?'more':s;
   const btn=k=>k==='more'?$('#mMore'):TB.querySelector(`[data-sec="${k}"]`);
-  let last=null,lastKey=null,anim=null;
+  let last=null,lastKey=null,lastKeyPrev=null,anim=null;
+  /* у каждого раздела свой цвет: Читать — синий, Полки — янтарь, Поиск — бирюза, Заметки — роза, Ещё — фиалка */
+  const HUE={read:['#4C7DFF','#2653D6','#9DB8FF'],lib:['#E39A2B','#A8650E','#F2C27E'],search:['#16A3A8','#0B7A7F','#7FDDE0'],notes:['#E2627F','#B63A58','#F4A3B5'],more:['#8B6CF0','#5F45C4','#C4B5FF']};
+  const night=()=>{try{return themeById(effTheme()).night}catch(e){return false}};
+  const tint=k=>{const h=HUE[k]||HUE.read;TB.style.setProperty('--tbc',h[0]);TB.style.setProperty('--tbi',night()?h[2]:h[1])};
 
   function geo(k){const b=btn(k);if(!b)return null;const t=b.querySelector('.tbi').getBoundingClientRect(),r=TB.getBoundingClientRect();
     return{x:t.left-r.left,y:t.top-r.top,w:t.width,h:t.height}}
@@ -23,13 +27,15 @@
     const g=geo(k);if(!g||!isM()){pill.style.opacity=0;return}
     pill.style.opacity=1;
     if(!animate||!last||calm()||Math.abs(last.x-g.x)<2){if(anim)anim.cancel();set(g);last=g;return}
-    const a=last,right=g.x>a.x,L=Math.min(a.x,g.x),R=Math.max(a.x+a.w,g.x+g.w),sq=g.h*.16;
+    const a=last,right=g.x>a.x,ca=(HUE[lastKeyPrev]||HUE.read)[0],cb=(HUE[k]||HUE.read)[0],L=Math.min(a.x,g.x),R=Math.max(a.x+a.w,g.x+g.w),sq=g.h*.16;
     if(anim)anim.cancel();
     anim=pill.animate([
       {transform:`translate(${a.x}px,${a.y}px)`,width:a.w+'px',height:a.h+'px'},
       {transform:`translate(${right?a.x:L}px,${g.y+sq/2}px)`,width:(R-L)+'px',height:(g.h-sq)+'px',offset:.46},
       {transform:`translate(${g.x}px,${g.y}px)`,width:g.w+'px',height:g.h+'px'}
     ],{duration:560,easing:'cubic-bezier(.62,0,.24,1)'});
+    pill.style.background=`linear-gradient(${right?'90deg':'270deg'},color-mix(in srgb,${ca} 18%,transparent),color-mix(in srgb,${cb} 22%,transparent))`;
+    anim.onfinish=()=>{pill.style.background=''};
     set(g);last=g;
   }
   /* значок прорисовывается штрихом */
@@ -51,8 +57,8 @@
     ],{duration:460,easing:'cubic-bezier(.16,.84,.3,1)'});
   }
   function onChange(){
-    const k=keyOf(S.sec||'read');if(k===lastKey){move(k,false);return}
-    const from=lastKey;lastKey=k;
+    const k=keyOf(S.sec||'read');if(k===lastKey){tint(k);move(k,false);return}
+    const from=lastKey;lastKeyPrev=from;lastKey=k;tint(k);
     if(from==null){move(k,false);return}
     move(k,true);draw(k);
     enter(Math.sign(ORDER.indexOf(k)-ORDER.indexOf(from))||1);

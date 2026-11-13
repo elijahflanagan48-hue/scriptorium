@@ -876,3 +876,12 @@ body{text-rendering:optimizeLegibility;font-kerning:normal;font-optical-sizing:a
   background:color-mix(in srgb,var(--accent) 16%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 10%,transparent);
   transition:opacity .3s var(--ease);will-change:transform,width}
 #tabbar.fx button{transition:color .35s var(--ease) .08s}
+
+/* цвета разделов в нижней панели */
+@property --tbc{syntax:'<color>';inherits:true;initial-value:#4C7DFF}
+@property --tbi{syntax:'<color>';inherits:true;initial-value:#2653D6}
+#tabbar.fx{transition:--tbc .55s var(--ease),--tbi .55s var(--ease),transform .28s var(--ease);
+  background:linear-gradient(to top,color-mix(in srgb,var(--tbc) 7%,color-mix(in srgb,var(--paper) 92%,transparent)),color-mix(in srgb,var(--paper) 92%,transparent) 70%)!important}
+#tabbar.fx::before{content:"";position:absolute;left:0;right:0;top:-1px;height:1px;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--tbc) 45%,transparent),transparent);opacity:.7}
+.tbpill{background:color-mix(in srgb,var(--tbc) 18%,transparent);box-shadow:0 6px 16px -6px color-mix(in srgb,var(--tbc) 45%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tbc) 16%,transparent)}
+.sec-read #tabbar.fx [data-sec="read"],.sec-lib #tabbar.fx [data-sec="lib"],.sec-search #tabbar.fx [data-sec="search"],.sec-notes #tabbar.fx [data-sec="notes"],.sec-set #tabbar.fx #mMore,.sec-hist #tabbar.fx #mMore{color:var(--tbi)}
