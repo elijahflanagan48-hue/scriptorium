@@ -22,6 +22,14 @@ const Settings=(()=>{
   const group=(id,title,desc,body)=>`<section class="sgp" id="set-${id}"><div class="sgh"><span class="sgi">${ico(id)}</span><div><h2>${title}</h2>${desc?`<p>${desc}</p>`:''}</div></div>${body}</section>`;
   const card=h=>`<div class="scard">${h}</div>`;
 
+  let offOpen=false;
+  function offHTML(){
+    const B=Offline.busy,trs=(IDX&&IDX.translations)||[],done=[...trs.map(t=>t.id),'orig'].filter(id=>Offline.status(id)).length;
+    const line=(id,name,sub)=>{const on=Offline.status(id),me=B&&B.id===id;
+      return `<div class="soff-r"><div class="srl"><b>${esc(name)}</b><small>${me?`скачивается… ${Math.round(100*B.done/Math.max(1,B.total))}%`:(on?'на устройстве · '+on:esc(sub||''))}</small></div><div class="src">${me?'<span class="hint">…</span>':on?`<button class="sbtn" data-sact="off-del:${id}">Удалить</button>`:`<button class="sbtn pri" data-sact="off-get:${id}"${B?' disabled':''}>Скачать</button>`}</div></div>`};
+    const grp=(n,l)=>l.length?`<h5 class="tgh">${n}</h5>`+l.map(t=>line(t.id,t.name,t.license)).join(''):'';
+    return row('Библия без интернета',done?`на устройстве: ${done}`:'скачайте нужные переводы, чтобы читать без сети',`<button class="sbtn" data-sact="off-toggle">${offOpen?'Скрыть список':'Выбрать'}</button>`)+
+      (offOpen?`<div class="soff">`+grp('Русские переводы',trs.filter(t=>t.lang==='ru'))+grp('Английские переводы',trs.filter(t=>t.lang!=='ru'))+`<h5 class="tgh">Оригинал</h5>`+line('orig','Иврит и греческий с морфологией и словарём','около 20 МБ')+`</div>`:'')}
   function html(){
     const r=rd(),a=S.tAuto||'',trs=(IDX&&IDX.translations)||[],prim=primary();
     const mk=t=>!a?(S.theme===t.id?1:0):(t.night?(themeById(S.tNight||'dark').id===t.id?'ночью':0):(themeById(S.tDay||'light').id===t.id?'днём':0));
@@ -65,7 +73,7 @@ const Settings=(()=>{
     const n=Object.keys(S.notes||{}).length,hl=Object.keys(S.hl||{}).length,w=Object.keys(S.wnotes||{}).length;
     h+=group('data','Данные',`Заметок к стихам: ${n} · выделений: ${hl} · заметок к словам: ${w}`,
       card(row('Заметки и выделения','сохранить в файл или загрузить из файла',`<div class="sbtns"><button class="sbtn" data-sact="export">Сохранить</button><label class="sbtn">Загрузить<input type="file" accept=".json" hidden data-simport></label></div>`)+
-        (typeof Offline!=='undefined'?row('Библия без интернета',Offline.busy?`скачивается… ${Offline.busy.done} из ${Offline.busy.total}`:`русские переводы: ${Offline.status('ru')?'на устройстве ('+Offline.status('ru')+')':'ещё не скачаны'} · английские: ${Offline.status('en')?'на устройстве':'нет'} · оригинал: ${Offline.status('orig')?'на устройстве':'нет'}`,`<div class="sbtns"><button class="sbtn" data-sact="off-ru">Русские</button><button class="sbtn" data-sact="off-en">Английские</button><button class="sbtn" data-sact="off-orig">Оригинал (20 МБ)</button></div>`):'')+
+        (typeof Offline!=='undefined'?offHTML():'')+
         row('История поиска',`${(S.qhist||[]).length} запросов`,`<button class="sbtn" data-sact="qhist">Очистить</button>`)+
         row('Недавно открытые места',`${(S.recent||[]).length} мест`,`<button class="sbtn" data-sact="recent">Очистить</button>`)+
         row('Вид текста по умолчанию','вернуть размер, шрифт и интервал',`<button class="sbtn" data-sact="resetrd">Сбросить</button>`)));
@@ -109,7 +117,9 @@ const Settings=(()=>{
       if(k==='acc')accSheet();
       if(k==='voice'){try{speechSynthesis.cancel();const p=primary(),en=TRS[p]&&TRS[p].lang==='en';const u=new SpeechSynthesisUtterance(en?'In the beginning God created the heaven and the earth.':'В начале сотворил Бог небо и землю.');u.lang=en?'en-US':'ru-RU';u.rate=S.lrate||1;speechSynthesis.speak(u)}catch(err){}}
       if(k==='export'){const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([JSON.stringify({hl:S.hl,notes:S.notes,wnotes:S.wnotes},null,1)],{type:'application/json'}));l.download='adfontes-notes.json';l.click()}
-      if(k==='off-ru'||k==='off-en'||k==='off-orig'){Offline.start(k.slice(4));render();return}
+      if(k==='off-toggle'){offOpen=!offOpen;render();return}
+      if(k.startsWith('off-get:')){Offline.start(k.slice(8));render();return}
+      if(k.startsWith('off-del:')){Offline.drop(k.slice(8)).then(render);return}
       if(k==='qhist'){S.qhist=[];save();render()}
       if(k==='recent'){S.recent=[];save();render()}
       if(k==='resetrd'){S.rd={};applyRd();window.render&&window.render();re()}}

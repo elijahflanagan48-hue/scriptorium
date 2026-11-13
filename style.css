@@ -1107,3 +1107,5 @@ html.ipad #side .chs{grid-template-columns:repeat(6,minmax(0,1fr))}
 .kintro p{margin:0 0 .8em;line-height:1.6}.kintro h5{margin:1em 0 .4em}.kintro ul{margin:0 0 .8em;padding-left:1.2em;line-height:1.55}
 .kintro .kfr{margin:.6em 0 1em}.kintro .kfr button,.kfront+*{font:inherit}.kintro .kfr button{background:none;border:1px solid var(--line);border-radius:10px;padding:7px 12px;cursor:pointer;color:inherit}
 .kfront p{margin:0 0 .7em;line-height:1.55;font-size:14.5px}.kfront h3{margin:1.2em 0 .6em}
+
+.soff{margin:4px 0 8px;border-top:1px solid var(--line)}.soff-r{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.soff-r .srl small{display:block;color:var(--ink2,#777);font-size:12.5px}.soff .tgh{margin:12px 0 2px}

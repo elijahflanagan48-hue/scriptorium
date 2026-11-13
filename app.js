@@ -163,7 +163,7 @@ async function render(scrollV){
   // 3) скрытые переводы (через сервер) — дорисовываем, когда придут
   if(hasPriv){const[T2,A2]=await Promise.all([Promise.all(P.t),Promise.all(P.a)]);show(buildChapter(book,ch,o,P.ids,T2,A2),3,true)}
   if(t!==token)return;
-  firstDone();try{Offline.auto()}catch(e){}
+  firstDone();
   setTimeout(()=>{if(t!==token)return;const i=BI[book],ids=P.ids.filter(id=>!isPriv(id));
     const adj=[];if(ch<BOOKS[i].chapters)adj.push([book,ch+1]);else if(BOOKS[i+1])adj.push([BOOKS[i+1].id,1]);
     if(ch>1)adj.push([book,ch-1]);else if(i>0)adj.push([BOOKS[i-1].id,BOOKS[i-1].chapters]);

@@ -11,7 +11,8 @@ const Sync=(()=>{
     const get=k=>open().then(d=>new Promise(res=>{const q=d.transaction('p').objectStore('p').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>res(undefined)})).catch(()=>undefined);
     const put=(k,v)=>open().then(d=>{d.transaction('p','readwrite').objectStore('p').put(v,k)}).catch(()=>{});
     const clear=()=>open().then(d=>{d.transaction('p','readwrite').objectStore('p').clear()}).catch(()=>{});
-    return{get,put,clear}})();
+    const dropPrefix=ps=>open().then(d=>new Promise(res=>{const t=d.transaction('p','readwrite'),q=t.objectStore('p').openKeyCursor();q.onsuccess=()=>{const c=q.result;if(!c)return;if(ps.some(p=>String(c.key).startsWith(p)))t.objectStore('p').delete(c.key);c.continue()};t.oncomplete=()=>res();t.onerror=()=>res()})).catch(()=>{});
+    return{get,put,clear,dropPrefix}})();
   const UK='scriptorium.user';
   const saveUser=u=>{try{u?localStorage.setItem(UK,JSON.stringify(u)):localStorage.removeItem(UK)}catch(e){}};
   const cachedUser=()=>{try{return tok()?JSON.parse(localStorage.getItem(UK)||'null'):null}catch(e){return null}};
@@ -82,6 +83,7 @@ const Sync=(()=>{
         if(navigator.onLine&&Date.now()-(c.t||0)>6048e5)api('/api/p?k='+encodeURIComponent(key)).then(v=>PC.put(key,{t:Date.now(),v})).catch(()=>{});
         return c.v}}
       const v=await api('/api/p?k='+encodeURIComponent(key));if(!big)PC.put(key,{t:Date.now(),v});return v},
+    pdrop:prefixes=>PC.dropPrefix(prefixes),
     pcached:async key=>{const c=await PC.get(key);return !!(c&&c.v!==undefined)},
     admin:(path,body)=>api('/api/admin/'+path,body?'POST':'GET',body),
     signOut:async()=>{setTok('');user=null;saveUser(null);await PC.clear();hooks.status();return''}
