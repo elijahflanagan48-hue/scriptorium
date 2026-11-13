@@ -39,7 +39,7 @@ const trGroups=()=>[['Русские переводы',IDX.translations.filter(t
   IDX=await J('data/index.json');
   if(!IDX){document.body.innerHTML='<p style="padding:40px;font-family:sans-serif">Не найдены файлы данных. Запустите приложение через сервер: в папке приложения выполните <code>python3 -m http.server 8000</code> и откройте <code>http://localhost:8000</code>.</p>';return}
   BOOKS=IDX.books;BOOKS.forEach((b,i)=>BI[b.id]=i);IDX.translations.forEach(t=>TRS[t.id]=t);trSort();
-  PEND=S.sel.includes('BTI');S.sel=S.sel.filter(x=>x==='ORIG'||TRS[x]);if(!S.sel.length)S.sel=['ORIG','RST'];
+  PEND=S.sel.includes('BTI');if(S.sel.some(x=>PRIVT.some(p=>p[0]===x)))S.wantSel=[...S.sel];S.sel=S.sel.filter(x=>x==='ORIG'||TRS[x]);if(!S.sel.length)S.sel=['ORIG','RST'];
   if(!S.recent)S.recent=[];if(!S.wnotes)S.wnotes={};if(!S.ts)S.ts={};if(!S.qhist)S.qhist=[];if(!S.saved)S.saved=[];if(S.side===undefined)S.side=true;
   if(!S.rmode){S.rmode=1;S.layout='R'}if(!S.done)S.done={};
   if(BI[cur.book]===undefined)cur={book:'Gen',ch:1};
@@ -47,7 +47,8 @@ const trGroups=()=>[['Русские переводы',IDX.translations.filter(t
   S.tabs=(S.tabs||[]).filter(t=>t&&BI[t.book]!==undefined);if(!S.tabs.length){S.tabs=[{book:cur.book,ch:cur.ch}];S.tab=0}
   S.tab=Math.min(Math.max(0,S.tab|0),S.tabs.length-1);S.sec='read';
   try{speechSynthesis.getVoices()}catch(e){}
-  bind();go(cur.book,cur.ch,h&&h.v);
+  const lv=S.lastV&&S.lastV.b===cur.book&&S.lastV.c===cur.ch?S.lastV.v:0;
+  bind();go(cur.book,cur.ch,h?h.v:lv);
   Sync.init(S,{status:accStatus,applied:()=>{save();cur=S.last;applyRd();render();if(S.sec==='set')Settings.render()}});
   if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 })();
@@ -58,7 +59,7 @@ function primary(){return S.sel.find(x=>x!=='ORIG')||null}
 
 /* ---------- navigation ---------- */
 function go(book,ch,v){
-  cur={book,ch};S.last=cur;S.tabs[S.tab]={book,ch};
+  cur={book,ch};S.last=cur;S.tabs[S.tab]={book,ch};if(!v)S.lastV=null;
   const rk=book+'.'+ch;S.recent=[rk,...(S.recent||[]).filter(x=>x!==rk)].slice(0,40);S.sts=Date.now();save();
   if(S.sec!=='read')showSec('read');
   try{history.replaceState(null,'','#'+book+'.'+ch+(v?'.'+v:''))}catch(e){}
@@ -478,6 +479,7 @@ function syncPrivate(){
     if(ok&&!TRS[id]){const t={id,name,lang:'ru',license:'скрытый доступ',books:id==='KASS'?BOOKS.filter(b=>b.testament==='NT').map(b=>b.id):BOOKS.map(b=>b.id)};TRS[id]=t;IDX.translations.push(t);trSort();ch=true;
       if(id==='BTI'&&(!S.btiShown||PEND)){S.btiShown=1;PEND=false;if(!S.sel.includes('BTI'))S.sel.push('BTI');save()}}
     if(!ok&&TRS[id]){delete TRS[id];IDX.translations=IDX.translations.filter(t=>t.id!==id);S.sel=S.sel.filter(x=>x!==id);if(!S.sel.length)S.sel=['ORIG','RST'];ch=true}}
+  if(ok&&S.wantSel){const ns=S.wantSel.filter(x=>x==='ORIG'||TRS[x]);if(ns.some(x=>x!=='ORIG')){S.sel=ns;ch=true}delete S.wantSel;save()}
   if(!ok)for(const k of [...cache.keys()])if(PRIV.test(k))cache.delete(k);
   if(ch)render();
 }
@@ -683,3 +685,10 @@ document.addEventListener('click',e=>{const b=e.target.closest('#laySw [data-lsw
 
 /* планшет: выбор главы в выдвижном списке закрывает его */
 document.addEventListener('click',e=>{if(document.body.classList.contains('tabd')&&e.target.closest('#side [data-go]'))setTimeout(()=>document.body.classList.remove('drawer'),120)});
+
+/* запоминаем, где остановились читать: стих у верхнего края */
+(function(){let t=null;addEventListener('scroll',()=>{if(t)return;t=setTimeout(()=>{t=null;try{if(!CUR||S.sec!=='read')return;const R=document.getElementById('reader');if(!R)return;
+  const els=R.querySelectorAll('[data-v]');let v=0;for(const e of els){if(e.getBoundingClientRect().bottom>110){v=+e.dataset.v;break}}
+  if(!v||v===1&&scrollY<200){if(S.lastV){S.lastV=null;localStorage.setItem(KEY,JSON.stringify(S))}return}
+  if(S.lastV&&S.lastV.v===v&&S.lastV.b===cur.book&&S.lastV.c===cur.ch)return;
+  S.lastV={b:cur.book,c:cur.ch,v};localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}},900)},{passive:true})})();
