@@ -310,7 +310,7 @@ const Pages=(()=>{
     const t=e.target;
     const g=t.closest('[data-go]');if(g){const[b,c]=g.dataset.go.split('.');go(b,+c);return}
     const gr=t.closest('[data-goref]');if(gr){const[b,c,v]=gr.dataset.goref.split('.');go(b,+c,+v||0);if(!+v)scrollTo(0,0);return}
-    const op=t.closest('[data-open]');if(op){if(op.dataset.open==='bible')showSec('read');else Lib.open(op.dataset.open);return}
+    const op=t.closest('[data-open]');if(op){if(op.dataset.open==='bible')showSec('read');else if(op.dataset.open==='kids')Kids.open();else Lib.open(op.dataset.open);return}
     const q=t.closest('[data-q]');if(q){Q.mode='forms';search(q.dataset.q);return}
     const us=t.closest('[data-unsave]');if(us){S.saved.splice(+us.dataset.unsave,1);save();lib();return}
     const m=t.closest('[data-mode]');if(m){Q.mode=m.dataset.mode;Q.limit=60;$$('[data-mode]').forEach(b=>b.classList.toggle('on',b===m));results();return}
