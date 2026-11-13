@@ -867,3 +867,12 @@ body{text-rendering:optimizeLegibility;font-kerning:normal;font-optical-sizing:a
 }
 .mlist button.landonly:not(.on){opacity:.6}.mlist button.landonly.on small,.mlist button.landonly.on small b{color:inherit;opacity:.9}
 .mlist button small b{color:var(--accent-ink);font-weight:700}
+
+/* ---------- нижняя панель: перетекающая капсула ---------- */
+#tabbar.fx .tbi{background:none!important}
+#tabbar.fx svg{animation:none!important}
+#tabbar.fx button{position:relative;z-index:1}
+.tbpill{position:absolute;left:0;top:0;z-index:0;width:60px;height:34px;border-radius:999px;pointer-events:none;opacity:0;
+  background:color-mix(in srgb,var(--accent) 16%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 10%,transparent);
+  transition:opacity .3s var(--ease);will-change:transform,width}
+#tabbar.fx button{transition:color .35s var(--ease) .08s}
