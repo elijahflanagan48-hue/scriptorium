@@ -17,6 +17,9 @@ let PEND=false,CUR=null,IDX,BOOKS,BI={},TRS={},OCC=null,LEX={},cur=S.last,token=
 const MQ=window.matchMedia('(max-width:820px),(pointer:coarse) and (max-height:500px)'),isM=()=>MQ.matches;
 /* телефон боком: широкие раскладки (Стол, Манускрипт) доступны только так */
 const isLand=()=>isM()&&innerWidth>innerHeight;
+const isTab=()=>document.documentElement.classList.contains('ipad');
+/* планшет с интерфейсом компьютера, но без места под постоянный список книг: список — выдвижная панель */
+const tabD=()=>isTab()&&!isM()&&innerWidth<1300;
 const LY=()=>{const l=S.layout||'R';return isM()&&!isLand()&&(l==='B'||l==='D')?'A':l};
 
 /* ---------- genres ---------- */
@@ -284,8 +287,9 @@ function popNote(anchor,m){
 const prefetchEl=t=>{if(t.classList.contains('w'))prefetchWord(t.dataset.k);else if(t.classList.contains('tw')&&CUR){const wd=origWord(t);if(wd)prefetchWord(wd[1])}};
 let LASTTAP=null;
 document.addEventListener('touchstart',e=>{const t=e.target.closest&&e.target.closest('.w,.tw,.tw0');if(t){LASTTAP=t;prefetchEl(t)}},{passive:true});
+let LASTTOUCH=0;document.addEventListener('touchstart',()=>{LASTTOUCH=Date.now()},{passive:true,capture:true});
 document.addEventListener('mouseover',e=>{
-  if(isM())return;
+  if(isM()||Date.now()-LASTTOUCH<1200)return;
   const t=e.target.closest&&e.target.closest('.w,.tw,.tw0');if(!t)return;
   const ref=refOf(t);hiClear();
   if(t.classList.contains('tw0')){const m=missInfo(t);popNote(t,m);if(m.nb!=null)$$(`[data-ref="${ref}"] .tw[data-j="${m.nb}"]`).forEach(x=>{if(x.dataset.t===t.dataset.t)x.classList.add('hi')});return}
@@ -510,10 +514,11 @@ function toggleTheme(){S.theme=S.theme==='light'?'sepia':S.theme==='sepia'?'dark
 /* ---------- sections, tabs, omnibox ---------- */
 function applyBody(){
   const keep=['drawer','insp-open','icol','rd-novn','listening','immersive','bkmode'].filter(c=>document.body.classList.contains(c));
-  document.body.className=[`theme-${effTheme()}`,`layout-${LY()}`,isLand()?'land':'',`sec-${S.sec||'read'}`,S.side===false?'side-off':'',S.calm?'calm':'',S.lampOff?'lamp-off':'',...keep].filter(Boolean).join(' ');
+  document.body.className=[`theme-${effTheme()}`,`layout-${LY()}`,isLand()?'land':'',`sec-${S.sec||'read'}`,(S.side===false||tabD())?'side-off':'',tabD()?'tabd':'',S.calm?'calm':'',S.lampOff?'lamp-off':'',...keep].filter(Boolean).join(' ');
   syncThemeColor();if(typeof laySwUi==='function')laySwUi();
 }
 function showSec(s,fromNav){
+  if(s==='read'&&S.sec==='read'&&fromNav&&tabD()){document.body.classList.toggle('drawer');return}
   if(s==='read'&&S.sec==='read'&&fromNav&&!isM()){S.side=!S.side;touchSettings();applyBody();return}
   document.body.classList.remove('bkmode');if($('#miniT')&&typeof cur!=='undefined')$('#miniT').textContent=`${bookRu(cur.book)} ${cur.ch}`;if(typeof cur!=='undefined')topLib('');
   const was=S.sec;S.sec=s;applyBody();$('#menu').hidden=true;if(s==='search')warmSearch();
@@ -546,7 +551,7 @@ function omniRun(x){
   else Pages.search(x.q);
 }
 function bind(){
-  $('#bookBtn').onclick=()=>{if(document.body.classList.contains('bkmode'))return Rdr.toc();if(S.sec==='lib'&&$('.lrd-pg')){const s=S.lib||{};return Rdr.openLib(s.w,s.p?s.p+'|'+(s.c||''):'')}bookSheet()};$('#mini').onclick=()=>document.body.classList.contains('bkmode')?Rdr.toc():bookSheet();$('#setBtn').onclick=()=>showSec('set');$('#aaBtn').onclick=()=>readSheet();$('#mMore').onclick=moreSheet;$('#accBtn').onclick=accSheet;
+  $('#bookBtn').onclick=()=>{if(document.body.classList.contains('bkmode'))return Rdr.toc();if(isTab()&&!isM()&&S.sec==='read'){if(tabD())document.body.classList.toggle('drawer');else{S.side=!S.side;touchSettings();applyBody()}return}if(S.sec==='lib'&&$('.lrd-pg')){const s=S.lib||{};return Rdr.openLib(s.w,s.p?s.p+'|'+(s.c||''):'')}bookSheet()};$('#mini').onclick=()=>document.body.classList.contains('bkmode')?Rdr.toc():bookSheet();$('#setBtn').onclick=()=>showSec('set');$('#aaBtn').onclick=()=>readSheet();$('#mMore').onclick=moreSheet;$('#accBtn').onclick=accSheet;
   $('#mSearch').onclick=()=>{showSec('search');setTimeout(()=>{const i=$('#qInp');if(i)i.focus()},50)};
   $('#inspClose').onclick=closeInsp;placeholder();
   const ji=$('#jumpInp');
@@ -659,3 +664,6 @@ document.addEventListener('click',e=>{const b=e.target.closest('#laySw [data-lsw
 /* поворот телефона: перестраиваем раскладку */
 {let lastL=null;const re=()=>{const k=isM()+':'+isLand();if(k===lastL)return;lastL=k;applyBody();if(S.sec==='read')render()};
   addEventListener('resize',()=>{clearTimeout(re._t);re._t=setTimeout(re,150)});MQ.addEventListener('change',re);setTimeout(()=>{lastL=isM()+':'+isLand()},0)}
+
+/* планшет: выбор главы в выдвижном списке закрывает его */
+document.addEventListener('click',e=>{if(document.body.classList.contains('tabd')&&e.target.closest('#side [data-go]'))setTimeout(()=>document.body.classList.remove('drawer'),120)});
