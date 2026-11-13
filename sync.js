@@ -69,6 +69,6 @@ const Sync=(()=>{
     redeem:async code=>{try{await api('/api/redeem','POST',{code});const m=await api('/api/me');user={...user,access:!!m.access,owner:!!m.owner};hooks.status();return''}catch(e){return fail(e)}},
     pget:key=>api('/api/p?k='+encodeURIComponent(key)),
     admin:(path,body)=>api('/api/admin/'+path,body?'POST':'GET',body),
-    signOut:async()=>{setTok('');user=null;hooks.status();return''}
+    signOut:async()=>{setTok('');user=null;try{window.clearPrivCache&&window.clearPrivCache()}catch(e){};hooks.status();return''}
   };
 })();
