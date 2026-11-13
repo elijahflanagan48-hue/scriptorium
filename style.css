@@ -1094,3 +1094,16 @@ button.plopt{display:flex;flex-direction:row;align-items:center;gap:12px}button.
 #side *{max-width:100%}
 .chs{grid-template-columns:repeat(7,minmax(0,1fr))}
 html.ipad #side .chs{grid-template-columns:repeat(6,minmax(0,1fr))}
+
+/* вставки Кулакова */
+.kh{font-family:var(--serif);font-style:italic;font-weight:600;font-size:.9em;line-height:1.35;color:var(--gc);margin:1.5em 0 .45em;letter-spacing:.01em}
+.rdg .rtext>.kh:first-child{margin-top:.4em}
+.pageA .kh{margin:1.2em 4px .4em}.kh.kwide{grid-column:1/-1;margin:1em 0 .3em}
+.ms .kh{text-align:center;margin:1.4em 0 .4em}
+.kintro{margin:0 0 18px;border:1px solid var(--line);border-radius:14px;background:var(--paper);padding:0 16px}
+.kintro summary{cursor:pointer;list-style:none;padding:12px 0;font-weight:700;display:flex;align-items:baseline;gap:10px}
+.kintro summary::-webkit-details-marker{display:none}.kintro summary::before{content:'▸';color:var(--gc);font-size:.85em}.kintro[open] summary::before{content:'▾'}
+.kintro summary small{font-weight:500;font-size:12px;color:var(--ink2,#777)}
+.kintro p{margin:0 0 .8em;line-height:1.6}.kintro h5{margin:1em 0 .4em}.kintro ul{margin:0 0 .8em;padding-left:1.2em;line-height:1.55}
+.kintro .kfr{margin:.6em 0 1em}.kintro .kfr button,.kfront+*{font:inherit}.kintro .kfr button{background:none;border:1px solid var(--line);border-radius:10px;padding:7px 12px;cursor:pointer;color:inherit}
+.kfront p{margin:0 0 .7em;line-height:1.55;font-size:14.5px}.kfront h3{margin:1.2em 0 .6em}

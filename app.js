@@ -8,7 +8,7 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(typ
 const stamp=k=>{S.ts[k]=Date.now();save()};
 const touchSettings=()=>{S.sts=Date.now();save()};
 const cache=new Map();
-const PRIV=/^data\/(tr|align|nt)\/(BTI|NRT|RSP|KASS)\/([^/]+)\.json$/;const FNS={};
+const PRIV=/^data\/(tr|align|nt|ins)\/(BTI|NRT|RSP|KASS)\/([^/]+)\.json$/;const FNS={},INS={};
 const PRIVT=[['BTI','Современный перевод (Кулаков, BTI)'],['NRT','Новый русский перевод (НРП, Biblica)'],['RSP','Современный перевод (РБО)'],['KASS','Новый Завет, еп. Кассиан (1970)']];
 const J=p=>{const pm=PRIV.exec(p);if(pm){if(!cache.has(p))cache.set(p,(Sync.user&&Sync.user.access?Sync.pget(pm[1]+'/'+pm[2]+'/'+pm[3]):Promise.resolve(null)).catch(()=>{cache.delete(p);return null}));return cache.get(p)}
   if(!cache.has(p)){const pr=window.__pre&&window.__pre[p];if(pr){delete window.__pre[p];cache.set(p,pr.then(x=>{if(x==null)throw 0;return x}).catch(()=>{cache.delete(p);return null}))}}
@@ -95,7 +95,7 @@ const refLabel=r=>`${bookRu(r.book)} ${r.ch}${r.v?':'+r.v:''}`;
 const isPriv=id=>PRIV.test(`data/tr/${id}/x.json`);
 function chapterParts(book,ch){
   const ids=S.sel.filter(x=>x!=='ORIG'&&TRS[x]&&TRS[x].books.includes(book));
-  return{book,ids,o:J(`data/origc/${book}/${ch}.json`),t:ids.map(id=>J(`data/tr/${id}/${book}.json`)),a:ids.map(id=>isPriv(id)?Promise.all([J(`data/align/${id}/${book}.json`),J(`data/nt/${id}/${book}.json`).then(x=>{FNS[id+'|'+book]=x||{}})]).then(r=>r[0]):J(`data/align/${id}/${book}.json`))};
+  return{book,ids,o:J(`data/origc/${book}/${ch}.json`),t:ids.map(id=>J(`data/tr/${id}/${book}.json`)),a:ids.map(id=>isPriv(id)?Promise.all([J(`data/align/${id}/${book}.json`),J(`data/nt/${id}/${book}.json`).then(x=>{FNS[id+'|'+book]=x||{}}),id==='BTI'?J(`data/ins/BTI/${book}.json`).then(x=>{INS[book]=x||null}):0]).then(r=>r[0]):J(`data/align/${id}/${book}.json`))};
 }
 function buildChapter(book,ch,o,ids,T,A){
   const orig=o?o.chapters[ch]||{}:{},lang=o?o.lang:(BOOKS[BI[book]].testament==='NT'?'grc':'heb'),tr={},al={};
@@ -117,6 +117,21 @@ function fnShow(el){const p=el.dataset.fn.split('|'),f=FNS[p[0]+'|'+(CUR&&CUR.bo
 
 const vnHTML=(ref,v)=>`<span class="vn" data-ref="${ref}" title="Выделение и заметка">${v}${S.notes[ref]?'<span class="note-dot">✎</span>':''}</span>`;
 const hlc=ref=>S.hl[ref]?' hl'+S.hl[ref]:'';
+/* вставки Кулакова: подзаголовки перед стихами и введение к книге (только когда читаем перевод Кулакова) */
+const insOn=()=>primary()==='BTI'&&rd().ins!==false;
+function insMap(d){
+  if(d._im)return d._im;const m={},I=INS[d.book];d._im=m;if(!I||!I.s||!insOn())return m;
+  for(const k in I.s){const[c,v]=k.split(':').map(Number);if(c!==d.ch)continue;const t=d.verses.find(x=>x>=v);if(t!==undefined)(m[t]=m[t]||[]).push(...I.s[k])}
+  return m}
+const khHTML=(d,v)=>{const h=insMap(d)[v];return h?h.map(t=>`<div class="kh">${esc(t)}</div>`).join(''):''};
+function kintroHTML(d){
+  const I=INS[d.book];if(d.ch!==1||!I||!insOn()||!(I.i&&I.i.length))return'';
+  const fr=(d.book==='Gen'||d.book==='Matt')?`<p class="kfr"><button data-kfront>Предисловие переводчиков и условные знаки</button></p>`:'';
+  return `<details class="kintro"><summary>О книге<small>введение Кулакова</small></summary>`+I.i.map(p=>`<p>${esc(p)}</p>`).join('')+
+    (I.o&&I.o.length?`<h5>Основное содержание книги</h5><ul>`+I.o.map(p=>`<li>${esc(p)}</li>`).join('')+`</ul>`:'')+fr+`</details>`}
+async function kfront(){
+  const f=await J('data/ins/BTI/_front.json');if(!f){openModal('<h3>Предисловие</h3><p class="hint">Не удалось загрузить.</p>');return}
+  openModal(`<h3>Предисловие переводчиков</h3><div class="kfront">`+(f.pre||[]).map(p=>`<p>${esc(p)}</p>`).join('')+`<h3>Пояснения, условные знаки и сокращения</h3>`+(f.exp||[]).map(p=>`<p>${esc(p)}</p>`).join('')+`</div>`)}
 
 /* ---------- render ---------- */
 async function render(scrollV){
@@ -180,20 +195,20 @@ function renderBar(){
 }
 function viewA(d){
   const p=primary(),others=S.sel.filter(x=>x!=='ORIG'&&x!==p),wo=S.sel.includes('ORIG');
-  return `<article class="pageA">${head()}${chipsHTML(d)}<div class="vcards">`+d.verses.map(v=>{
+  return `<article class="pageA">${head()}${chipsHTML(d)}${kintroHTML(d)}<div class="vcards">`+d.verses.map(v=>{
     const ref=`${cur.book}.${cur.ch}.${v}`;
     const txt=p&&d.tr[p]?d.tr[p][v]:null;
     const left=`<div class="vt">${vnHTML(ref,v)}${txt?trHTML(p,v,txt,d):(p?'<span class="miss">—</span>':'')}`+
      (others.length?`<div class="alts">`+others.map(o=>d.tr[o]&&d.tr[o][v]?`<div><span class="tag">${o}</span>${trHTML(o,v,d.tr[o][v],d)}</div>`:'').join('')+`</div>`:'')+`</div>`;
     const right=wo?`<div class="vo">${d.orig[v]?origHTML(d.orig[v],d.lang):missOrig(d.lang)}</div>`:'';
-    return `<div class="vrow ${wo&&p?'':'no-o'}${hlc(ref)}" data-v="${v}" data-ref="${ref}">${p?left+right:`<div class="vo">${vnHTML(ref,v)}${d.orig[v]?origHTML(d.orig[v],d.lang):missOrig(d.lang)}</div>`}</div>`}).join('')+`</div></article>`;
+    return (p?khHTML(d,v):'')+`<div class="vrow ${wo&&p?'':'no-o'}${hlc(ref)}" data-v="${v}" data-ref="${ref}">${p?left+right:`<div class="vo">${vnHTML(ref,v)}${d.orig[v]?origHTML(d.orig[v],d.lang):missOrig(d.lang)}</div>`}</div>`}).join('')+`</div></article>`;
 }
 function viewB(d){
   const cols=isM()?S.sel.slice(0,3):S.sel,n=cols.length;
   let h=head()+chipsHTML(d)+`<div class="desk" style="grid-template-columns:52px repeat(${n},minmax(0,1fr))"><div class="colhead"></div>`+
     cols.map(c=>`<div class="colhead"><span>${c==='ORIG'?(d.lang==='heb'?'Иврит · WLC':'Греческий · SBLGNT'):esc(TRS[c].name)}</span>${n>1?`<button data-rm="${c}" title="Убрать колонку">✕</button>`:''}</div>`).join('');
   for(const v of d.verses){const ref=`${cur.book}.${cur.ch}.${v}`,hc=hlc(ref);
-    h+=`<div class="cell n${hc}" data-v="${v}" data-ref="${ref}">${vnHTML(ref,v)}</div>`+cols.map(c=>c==='ORIG'?
+    h+=(cols.includes('BTI')&&primary()==='BTI'?khHTML(d,v).replace(/class="kh"/g,'class="kh kwide"'):'')+`<div class="cell n${hc}" data-v="${v}" data-ref="${ref}">${vnHTML(ref,v)}</div>`+cols.map(c=>c==='ORIG'?
       `<div class="cell orig-c${hc}" data-ref="${ref}">${d.orig[v]?origHTML(d.orig[v],d.lang):missOrig(d.lang)}</div>`:
       `<div class="cell${hc}" data-ref="${ref}">${d.tr[c]&&d.tr[c][v]?trHTML(c,v,d.tr[c][v],d):'<span class="miss">—</span>'}</div>`).join('')}
   return h+'</div>';
@@ -217,10 +232,10 @@ function initSplit(){
 }
 function viewD(d){
   const p=primary(),others=S.sel.filter(x=>x!=='ORIG'&&x!==p);
-  return `<article class="ms">${head()}${chipsHTML(d)}`+d.verses.map(v=>{
+  return `<article class="ms">${head()}${chipsHTML(d)}${kintroHTML(d)}`+d.verses.map(v=>{
     const ref=`${cur.book}.${cur.ch}.${v}`,hc=hlc(ref);
     const mid=p?(d.tr[p]&&d.tr[p][v]?trHTML(p,v,d.tr[p][v],d):'<span class="miss">—</span>'):(d.orig[v]?origHTML(d.orig[v],d.lang):'');
-    return `<div class="row" data-v="${v}" data-ref="${ref}"><div class="lm ${d.lang==='heb'?'heb':''}">${S.sel.includes('ORIG')&&p?(d.orig[v]?origHTML(d.orig[v],d.lang):missOrig(d.lang)):''}</div>`+
+    return (p?khHTML(d,v):'')+`<div class="row" data-v="${v}" data-ref="${ref}"><div class="lm ${d.lang==='heb'?'heb':''}">${S.sel.includes('ORIG')&&p?(d.orig[v]?origHTML(d.orig[v],d.lang):missOrig(d.lang)):''}</div>`+
       `<div class="mid${hc}">${vnHTML(ref,v)}${mid}</div>`+
       `<div class="rm">${others.map(o=>d.tr[o]&&d.tr[o][v]?`<div><b>${o}</b> ${trHTML(o,v,d.tr[o][v],d)}</div>`:'').join('')}${S.notes[ref]?`<div class="note">${esc(S.notes[ref])}</div>`:''}</div></div>`}).join('')+`</article>`;
 }
@@ -398,6 +413,7 @@ document.addEventListener('click',async e=>{
   $('#menu').hidden=true;
   if(t.id==='defMore'){const d=$('#def');d.classList.toggle('clamp');t.textContent=d.classList.contains('clamp')?'Показать полностью':'Свернуть';return}
   const sy=t.closest('[data-say]');if(sy&&INSP){const txt=sy.dataset.w==='form'?INSP.wd[0]:(INSP.lx?INSP.lx.lemma:INSP.wd[0]);const r=Speech.say(txt,INSP.isH,sy.dataset.say);const n=$('#saynote');if(n)n.textContent=r.ok?'':r.why;return}
+  if(t.closest('[data-kfront]')){kfront();return}
   const it=t.closest('[data-it]');if(it){INSP.tab=it.dataset.it;renderInsp();return}
   if(t.closest('#side')){
     const st=t.closest('[data-st]');if(st){sideT={t:st.dataset.st,from:cur.book,manual:true};buildSide();return}

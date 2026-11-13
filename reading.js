@@ -12,7 +12,7 @@ function applyRd(){
   st.setProperty('--rw',r.width==='wide'?'860px':r.width==='narrow'?'580px':'700px');
   document.body.classList.toggle('rd-novn',!r.vn);
 }
-function setRd(k,v){S.rd=Object.assign(rd(),{[k]:v});touchSettings();applyRd();if(k==='flow'||k==='vn')render();readSheet(true)}
+function setRd(k,v){S.rd=Object.assign(rd(),{[k]:v});touchSettings();applyRd();if(k==='flow'||k==='vn'||k==='ins')render();readSheet(true)}
 
 /* ---------- вид ---------- */
 function viewR(d){
@@ -24,9 +24,9 @@ function viewR(d){
   if(!p){h+=`<p class="hint">Выберите перевод для чтения.</p></article>`;return h}
   const tr=d.tr[p];
   if(!tr){h+=`<div class="rsk">`+'<div class="sk"></div>'.repeat(8)+`</div></article>`;return h}
-  h+=`<div class="rtext" lang="${TRS[p].lang==='en'?'en':'ru'}">`;
+  h+=kintroHTML(d)+`<div class="rtext" lang="${TRS[p].lang==='en'?'en':'ru'}">`;
   for(const v of d.verses){const txt=tr[v];if(!txt)continue;const ref=`${cur.book}.${cur.ch}.${v}`;
-    h+=`<span class="rv${hlc(ref)}" data-v="${v}" data-ref="${ref}">${vnHTML(ref,v)}${trHTML(p,v,txt,d)}</span>${perVerse?'':' '}`}
+    h+=khHTML(d,v)+`<span class="rv${hlc(ref)}" data-v="${v}" data-ref="${ref}">${vnHTML(ref,v)}${trHTML(p,v,txt,d)}</span>${perVerse?'':' '}`}
   h+=`</div>`;
   h+=`</article>`;
   return h;
@@ -50,6 +50,7 @@ function readSheet(keep){
     `<h5>Текст</h5><div class="rseg"><button data-rk="flow" data-rv="auto" class="${r.flow==='auto'?'on':''}">Авто</button><button data-rk="flow" data-rv="para" class="${r.flow==='para'?'on':''}">Сплошной</button><button data-rk="flow" data-rv="verse" class="${r.flow==='verse'?'on':''}">По стихам</button></div>`+
     `<div class="rseg" style="margin-top:8px"><button data-rk="vn" data-rv="${r.vn?0:1}" class="${r.vn?'on':''}">Номера стихов: ${r.vn?'показаны':'скрыты'}</button></div>`+
     `<p class="hint">«Авто»: псалмы и поэзия по стихам, остальное сплошным текстом.</p>`+
+    (Sync.user&&Sync.user.access?`<div class="rseg" style="margin-top:8px"><button data-rk="ins" data-rv="${r.ins===false?1:0}" class="${r.ins===false?'':'on'}">Вставки Кулакова: ${r.ins===false?'скрыты':'показаны'}</button></div><p class="hint">Введения к книгам и подзаголовки — при чтении перевода Кулакова.</p>`:'')+
     `<h5>Раскладка</h5><div class="mlist">`+Object.entries(LAYN).map(([l,n])=>{const wide=isM()&&(l==='B'||l==='D'),off=wide&&!isLand();return `<button data-lay="${l}" class="${S.layout===l?'on':''}${off?' landonly':''}">${n}<small>${LAYD[l]}${wide?(off?' · <b>поверните телефон</b>':' · только боком'):''}</small></button>`}).join('')+`</div>`+(isM()&&!isLand()&&(S.layout==='B'||S.layout==='D')?`<p class="hint">«${LAYN[S.layout]}» включится, когда вы повернёте телефон горизонтально. Сейчас показана «Книга».</p>`:'')+
     `<div class="mlist" style="margin-top:14px"><button data-m="settings">Все настройки</button></div>`;
   if(keep&&!$('#modal').hidden&&$('#sheet .rprev')){const sc=$('#sheet').scrollTop;$('#sheet').innerHTML=html;$('#sheet').scrollTop=sc}else openModal(html);
@@ -106,7 +107,7 @@ document.addEventListener('click',e=>{
 $('#modal').addEventListener('click',e=>{
   const t=e.target;
   const pk=t.closest('[data-rpick]');if(pk){const id=pk.dataset.rpick;S.sel=S.sel.filter(x=>x!==id);const oi=S.sel.indexOf('ORIG');S.sel.splice(oi===0?1:0,0,id);touchSettings();closeModal();if(Listen.on)Listen.stop();render();e.stopPropagation();return}
-  const rk=t.closest('[data-rk]');if(rk){const k=rk.dataset.rk,v=rk.dataset.rv;setRd(k,k==='font'||k==='flow'||k==='width'?v:k==='vn'?v==='1':+v);e.stopPropagation();return}
+  const rk=t.closest('[data-rk]');if(rk){const k=rk.dataset.rk,v=rk.dataset.rv;setRd(k,k==='font'||k==='flow'||k==='width'?v:(k==='vn'||k==='ins')?v==='1':+v);e.stopPropagation();return}
   const th=t.closest('[data-theme]');if(th){S.theme=th.dataset.theme;touchSettings();applyBody();readSheet(true);e.stopPropagation();return}
   if(t.closest('[data-m="more"]')){moreSheet();e.stopPropagation();return}
 },true);
