@@ -7,7 +7,7 @@ const Kids=(()=>{
   /* редакции: public — лежит в репозитории, account — только после входа. ready:true ставится, когда данные загружены */
   const EDS=[
     {id:'bazarov',name:'Базаров, 1857',desc:'Классический пересказ, язык XIX века. Свободный текст.',access:'public',ready:true},
-    {id:'ipb',name:'Институт перевода Библии',desc:'Современная «Библия для детей»: пересказы и цитаты из всех книг Библии.',access:'account',ready:false},
+    {id:'ipb',name:'Институт перевода Библии',desc:'Современная «Библия для детей»: пересказы и цитаты из всех книг Библии.',access:'account',ready:true},
     {id:'sokolov',name:'Прот. Александр Соколов',desc:'Православный пересказ для детей.',access:'account',ready:false},
     {id:'vozd',name:'Прот. Пётр Воздвиженский',desc:'Классический рассказчик для самых маленьких, близко к тексту.',access:'account',ready:false}];
   const ready=()=>EDS.filter(e=>e.ready);
@@ -21,7 +21,7 @@ const Kids=(()=>{
   const text=async t=>{const k=ed().id+'/'+t;if(!TX[k]){const d=await fetchPart(t);if(d&&!d.locked)TX[k]=d;else return d}return TX[k]};
   const lockedMsg=()=>{P().innerHTML=`<div class="pg kids-pg"><div class="lhd"><button class="mini" data-kb="back">‹ Полки</button><h1>Детская Библия</h1></div><div class="lnote warm">Эта редакция открывается после входа в личный кабинет с доступом. <button class="mini" data-kacct>Войти</button></div></div>`};
   const WT={ot:'Ветхий Завет',nt:'Новый Завет'};
-  const img=(x,cls)=>x.img?`<img ${cls?`class="${cls}" `:''}loading="lazy" decoding="async" src="${ibase()}${esc(x.img.f)}" alt="${esc(x.title)}">`:`<span class="knum">${x.n}</span>`;
+  const img=(x,cls)=>x.img?`<img ${cls?`class="${cls}" `:''}loading="lazy" decoding="async" src="data/kids/img/${esc(x.img.ed||ed().id)}/${esc(x.img.f)}" alt="${esc(x.title)}">`:`<span class="knum">${x.n}</span>`;
   const ref=r=>`${bookAb(r.b)} ${r.c}:${r.v}`;
 
   async function open(id){
