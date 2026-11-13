@@ -6,6 +6,15 @@ const Sync=(()=>{
   let S=null,hooks=null,user=null,timer=null,busy=false,last=null,msg='';
   const tok=()=>{try{return localStorage.getItem(TK)||''}catch(e){return''}};
   const setTok=t=>{try{t?localStorage.setItem(TK,t):localStorage.removeItem(TK)}catch(e){}};
+  /* закрытые тексты, однажды полученные с сервера, хранятся на устройстве (IndexedDB): читать можно без сети */
+  const PC=(()=>{let db=null;const open=()=>db||(db=new Promise((res,rej)=>{try{const r=indexedDB.open('adfontes-priv',1);r.onupgradeneeded=()=>r.result.createObjectStore('p');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}}));
+    const get=k=>open().then(d=>new Promise(res=>{const q=d.transaction('p').objectStore('p').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>res(undefined)})).catch(()=>undefined);
+    const put=(k,v)=>open().then(d=>{d.transaction('p','readwrite').objectStore('p').put(v,k)}).catch(()=>{});
+    const clear=()=>open().then(d=>{d.transaction('p','readwrite').objectStore('p').clear()}).catch(()=>{});
+    return{get,put,clear}})();
+  const UK='scriptorium.user';
+  const saveUser=u=>{try{u?localStorage.setItem(UK,JSON.stringify(u)):localStorage.removeItem(UK)}catch(e){}};
+  const cachedUser=()=>{try{return tok()?JSON.parse(localStorage.getItem(UK)||'null'):null}catch(e){return null}};
   async function api(path,method='GET',body){
     const r=await fetch(API+path,{method,headers:{'content-type':'application/json',...(tok()?{authorization:'Bearer '+tok()}:{})},body:body?JSON.stringify(body):undefined});
     let j={};try{j=await r.json()}catch(e){}
@@ -15,7 +24,8 @@ const Sync=(()=>{
   function init(state,h){
     S=state;hooks=h;if(!S.ts)S.ts={};if(!S.sts)S.sts=0;
     if(!enabled)return;
-    if(tok())api('/api/me').then(r=>{user={email:r.email,access:!!r.access,owner:!!r.owner};h.status();syncNow()}).catch(e=>{if(e.status===401)setTok('');h.status()});
+    const cu=cachedUser();if(cu){user=cu;h.status()}
+    if(tok())api('/api/me').then(r=>{user={email:r.email,access:!!r.access,owner:!!r.owner};saveUser(user);h.status();syncNow()}).catch(e=>{if(e.status===401){setTok('');user=null;saveUser(null);PC.clear()}h.status()});
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&user)syncNow()});
   }
   const ensureTs=()=>{
@@ -52,11 +62,11 @@ const Sync=(()=>{
       const body=payload();
       if(!remote||JSON.stringify(body)!==JSON.stringify(remote))await api('/api/state','PUT',{data:body});
       last=new Date();
-    }catch(e){if(e.status===401){setTok('');user=null}msg='Не удалось синхронизировать: '+(e.message||e)}
+    }catch(e){if(e.status===401){setTok('');user=null;saveUser(null);PC.clear()}msg='Не удалось синхронизировать: '+(e.message||e)}
     busy=false;hooks.status();
   }
   function changed(){if(!enabled||!user)return;clearTimeout(timer);timer=setTimeout(syncNow,1800)}
-  const login=async r=>{setTok(r.token);let m={};try{m=await api('/api/me')}catch(e){}user={email:m.email||r.email,access:!!m.access,owner:!!m.owner};hooks.status();syncNow()};
+  const login=async r=>{setTok(r.token);let m={};try{m=await api('/api/me')}catch(e){}user={email:m.email||r.email,access:!!m.access,owner:!!m.owner};saveUser(user);hooks.status();syncNow()};
   const fail=e=>e.message==='Failed to fetch'?'Нет связи с сервером':e.message;
   const auth=async(path,email,password)=>{try{await login(await api(path,'POST',{email,password}));return''}catch(e){return fail(e)}};
   return{
@@ -67,8 +77,13 @@ const Sync=(()=>{
     forgot:async email=>{try{await api('/api/forgot','POST',{email});return''}catch(e){return fail(e)}},
     reset:async(email,code,password)=>{try{await login(await api('/api/reset','POST',{email,code,password}));return''}catch(e){return fail(e)}},
     redeem:async code=>{try{await api('/api/redeem','POST',{code});const m=await api('/api/me');user={...user,access:!!m.access,owner:!!m.owner};hooks.status();return''}catch(e){return fail(e)}},
-    pget:key=>api('/api/p?k='+encodeURIComponent(key)),
+    pget:async key=>{const big=/\/img\//.test(key);
+      if(!big){const c=await PC.get(key);if(c!==undefined&&c!==null&&c.v!==undefined){
+        if(navigator.onLine&&Date.now()-(c.t||0)>6048e5)api('/api/p?k='+encodeURIComponent(key)).then(v=>PC.put(key,{t:Date.now(),v})).catch(()=>{});
+        return c.v}}
+      const v=await api('/api/p?k='+encodeURIComponent(key));if(!big)PC.put(key,{t:Date.now(),v});return v},
+    pcached:async key=>{const c=await PC.get(key);return !!(c&&c.v!==undefined)},
     admin:(path,body)=>api('/api/admin/'+path,body?'POST':'GET',body),
-    signOut:async()=>{setTok('');user=null;try{window.clearPrivCache&&window.clearPrivCache()}catch(e){};hooks.status();return''}
+    signOut:async()=>{setTok('');user=null;saveUser(null);await PC.clear();hooks.status();return''}
   };
 })();

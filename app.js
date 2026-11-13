@@ -10,14 +10,9 @@ const touchSettings=()=>{S.sts=Date.now();save()};
 const cache=new Map();
 const PRIV=/^data\/(tr|align|nt|ins)\/(BTI|NRT|RSP|KASS)\/([^/]+)\.json$/;const FNS={},INS={};
 const PRIVT=[['BTI','Современный перевод (Кулаков, BTI)'],['NRT','Новый русский перевод (НРП, Biblica)'],['RSP','Современный перевод (РБО)'],['KASS','Новый Завет, еп. Кассиан (1970)']];
-/* локальный кэш приватных переводов (IndexedDB): открывается мгновенно, обновляется в фоне */
-const IDB=(()=>{let d=null;const open=()=>d||(d=new Promise(r=>{try{const q=indexedDB.open('adfontes-p',1);q.onupgradeneeded=()=>q.result.createObjectStore('k');q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}}));
-  const tx=(m,f)=>open().then(db=>db?new Promise(r=>{try{const t=db.transaction('k',m),s=t.objectStore('k'),q=f(s);t.oncomplete=()=>r(q&&q.result);t.onerror=()=>r(null);t.onabort=()=>r(null)}catch(e){r(null)}}):null);
-  return{get:k=>tx('readonly',s=>s.get(k)),set:(k,v)=>tx('readwrite',s=>s.put(v,k)),clear:()=>tx('readwrite',s=>s.clear())}})();
-window.clearPrivCache=()=>{IDB.clear()};
-const privGet=(p,pm)=>{const ok=Sync.user&&Sync.user.access;if(!ok)return Promise.resolve(null);
-  const net=()=>Sync.pget(pm[1]+'/'+pm[2]+'/'+pm[3]).then(x=>{if(x!=null)IDB.set(p,x);return x});
-  return IDB.get(p).then(c=>{if(c!=null){net().catch(()=>{});return c}return net()})};
+/* закрытые тексты кэшируются на устройстве в Sync.pget (IndexedDB) */
+window.clearPrivCache=()=>{};
+const privGet=(p,pm)=>(Sync.user&&Sync.user.access)?Sync.pget(pm[1]+'/'+pm[2]+'/'+pm[3]):Promise.resolve(null);
 const J=p=>{const pm=PRIV.exec(p);if(pm){if(!cache.has(p))cache.set(p,privGet(p,pm).catch(()=>{cache.delete(p);return null}));return cache.get(p)}
   if(!cache.has(p)){const pr=window.__pre&&window.__pre[p];if(pr){delete window.__pre[p];cache.set(p,pr.then(x=>{if(x==null)throw 0;return x}).catch(()=>{cache.delete(p);return null}))}}
   if(!cache.has(p))cache.set(p,fetch(p).then(r=>{if(!r.ok)throw 0;return r.json()}).catch(()=>{cache.delete(p);return null}));return cache.get(p)};
@@ -168,7 +163,7 @@ async function render(scrollV){
   // 3) скрытые переводы (через сервер) — дорисовываем, когда придут
   if(hasPriv){const[T2,A2]=await Promise.all([Promise.all(P.t),Promise.all(P.a)]);show(buildChapter(book,ch,o,P.ids,T2,A2),3,true)}
   if(t!==token)return;
-  firstDone();
+  firstDone();try{Offline.auto()}catch(e){}
   setTimeout(()=>{if(t!==token)return;const i=BI[book],ids=P.ids.filter(id=>!isPriv(id));
     const adj=[];if(ch<BOOKS[i].chapters)adj.push([book,ch+1]);else if(BOOKS[i+1])adj.push([BOOKS[i+1].id,1]);
     if(ch>1)adj.push([book,ch-1]);else if(i>0)adj.push([BOOKS[i-1].id,BOOKS[i-1].chapters]);

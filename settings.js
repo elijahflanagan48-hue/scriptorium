@@ -65,6 +65,7 @@ const Settings=(()=>{
     const n=Object.keys(S.notes||{}).length,hl=Object.keys(S.hl||{}).length,w=Object.keys(S.wnotes||{}).length;
     h+=group('data','Данные',`Заметок к стихам: ${n} · выделений: ${hl} · заметок к словам: ${w}`,
       card(row('Заметки и выделения','сохранить в файл или загрузить из файла',`<div class="sbtns"><button class="sbtn" data-sact="export">Сохранить</button><label class="sbtn">Загрузить<input type="file" accept=".json" hidden data-simport></label></div>`)+
+        (typeof Offline!=='undefined'?row('Библия без интернета',Offline.busy?`скачивается… ${Offline.busy.done} из ${Offline.busy.total}`:`русские переводы: ${Offline.status('ru')?'на устройстве ('+Offline.status('ru')+')':'ещё не скачаны'} · английские: ${Offline.status('en')?'на устройстве':'нет'} · оригинал: ${Offline.status('orig')?'на устройстве':'нет'}`,`<div class="sbtns"><button class="sbtn" data-sact="off-ru">Русские</button><button class="sbtn" data-sact="off-en">Английские</button><button class="sbtn" data-sact="off-orig">Оригинал (20 МБ)</button></div>`):'')+
         row('История поиска',`${(S.qhist||[]).length} запросов`,`<button class="sbtn" data-sact="qhist">Очистить</button>`)+
         row('Недавно открытые места',`${(S.recent||[]).length} мест`,`<button class="sbtn" data-sact="recent">Очистить</button>`)+
         row('Вид текста по умолчанию','вернуть размер, шрифт и интервал',`<button class="sbtn" data-sact="resetrd">Сбросить</button>`)));
@@ -108,6 +109,7 @@ const Settings=(()=>{
       if(k==='acc')accSheet();
       if(k==='voice'){try{speechSynthesis.cancel();const p=primary(),en=TRS[p]&&TRS[p].lang==='en';const u=new SpeechSynthesisUtterance(en?'In the beginning God created the heaven and the earth.':'В начале сотворил Бог небо и землю.');u.lang=en?'en-US':'ru-RU';u.rate=S.lrate||1;speechSynthesis.speak(u)}catch(err){}}
       if(k==='export'){const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([JSON.stringify({hl:S.hl,notes:S.notes,wnotes:S.wnotes},null,1)],{type:'application/json'}));l.download='adfontes-notes.json';l.click()}
+      if(k==='off-ru'||k==='off-en'||k==='off-orig'){Offline.start(k.slice(4));render();return}
       if(k==='qhist'){S.qhist=[];save();render()}
       if(k==='recent'){S.recent=[];save();render()}
       if(k==='resetrd'){S.rd={};applyRd();window.render&&window.render();re()}}
