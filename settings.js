@@ -26,7 +26,8 @@ const Settings=(()=>{
   function offHTML(){
     const B=Offline.busy,trs=(IDX&&IDX.translations)||[],done=[...trs.map(t=>t.id),'orig'].filter(id=>Offline.status(id)).length;
     const line=(id,name,sub)=>{const on=Offline.status(id),me=B&&B.id===id;
-      return `<div class="soff-r"><div class="srl"><b>${esc(name)}</b><small>${me?`скачивается… ${Math.round(100*B.done/Math.max(1,B.total))}%`:(on?'на устройстве · '+on:esc(sub||''))}</small></div><div class="src">${me?'<span class="hint">…</span>':on?`<button class="sbtn" data-sact="off-del:${id}">Удалить</button>`:`<button class="sbtn pri" data-sact="off-get:${id}"${B?' disabled':''}>Скачать</button>`}</div></div>`};
+      const q=Offline.queued(id);
+      return `<div class="soff-r"><div class="srl"><b>${esc(name)}</b><small>${me?`скачивается… ${Math.round(100*B.done/Math.max(1,B.total))}%`:q?'в очереди':(on?'на устройстве · '+on:esc(sub||''))}</small></div><div class="src">${me?'<span class="hint">…</span>':q?`<button class="sbtn" data-sact="off-del:${id}">Убрать</button>`:on?`<button class="sbtn" data-sact="off-del:${id}">Удалить</button>`:`<button class="sbtn pri" data-sact="off-get:${id}">Скачать</button>`}</div></div>`};
     const grp=(n,l)=>l.length?`<h5 class="tgh">${n}</h5>`+l.map(t=>line(t.id,t.name,t.license)).join(''):'';
     return row('Библия без интернета',done?`на устройстве: ${done}`:'скачайте нужные переводы, чтобы читать без сети',`<button class="sbtn" data-sact="off-toggle">${offOpen?'Скрыть список':'Выбрать'}</button>`)+
       (offOpen?`<div class="soff">`+grp('Русские переводы',trs.filter(t=>t.lang==='ru'))+grp('Английские переводы',trs.filter(t=>t.lang!=='ru'))+`<h5 class="tgh">Оригинал</h5>`+line('orig','Иврит и греческий с морфологией и словарём','около 20 МБ')+`</div>`:'')}
