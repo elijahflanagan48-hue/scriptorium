@@ -523,7 +523,7 @@ function showSec(s,fromNav){
   document.body.classList.remove('bkmode');if($('#miniT')&&typeof cur!=='undefined')$('#miniT').textContent=`${bookRu(cur.book)} ${cur.ch}`;if(typeof cur!=='undefined')topLib('');
   const was=S.sec;S.sec=s;applyBody();$('#menu').hidden=true;if(s==='search')warmSearch();
   if(s==='read'){$('#page').hidden=true;$('#reader').hidden=false;if(was!=='read')scrollTo(0,0)}
-  else{$('#reader').hidden=true;$('#page').hidden=false;if(was==='read'||isM())closeInsp();if(s==='set')Settings.render();else if(s==='plans')Plans.render();else Pages.render(s);scrollTo(0,0)}
+  else{$('#reader').hidden=true;$('#page').hidden=false;if(was==='read'||isM())closeInsp();if(s==='set')Settings.render();else if(s==='plans'){if(was!=='plans')Plans.reset();Plans.render()}else Pages.render(s);scrollTo(0,0)}
 }
 function renderTabs(){
   const el=$('#tabs');if(!el)return;

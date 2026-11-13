@@ -36,9 +36,9 @@ const Plans=(()=>{
   function state(id){
     const p=plan(id),st=P()[id];if(!p||!st)return null;
     const rd=readSince(st.start),done=p.D.map((d,i)=>!!(st.done||{})[i]||d.every(k=>rd.has(k)));
-    const nDone=done.filter(Boolean).length,next=done.indexOf(false),dayN=Math.min(p.D.length-1,dayDiff(st.start,today()));
+    const nDone=done.filter(Boolean).length,next=done.indexOf(false),dd=dayDiff(st.start,today()),dayN=Math.min(p.D.length-1,dd);
     const behind=done.slice(0,dayN+1).filter(x=>!x).length-(done[dayN]?0:1);
-    return{p,st,rd,done,nDone,next,dayN,behind:Math.max(0,behind),ahead:next>dayN+1?next-dayN-1:0,finished:next<0};
+    return{p,st,rd,done,nDone,next,dayN,wait:dd<0?-dd:0,behind:Math.max(0,behind),ahead:next>dayN+1?next-dayN-1:0,finished:next<0};
   }
   /* «Быт 12–15, Пс 11, 59» */
   function label(ks){
@@ -99,11 +99,57 @@ const Plans=(()=>{
   function grid(s){
     return `<div class="plgrd" style="--cols:${s.p.D.length>120?(isM()?26:37):Math.min(s.p.D.length,15)}">${s.p.D.map((d,i)=>`<i class="${s.done[i]?'ok':i<=s.dayN?'miss':''}${i===s.next?' nx':''}" style="--i:${i}" title="День ${i+1}: ${esc(label(d))}"></i>`).join('')}</div>`;
   }
+
+  /* ---------- подробно о плане (до начала) ---------- */
+  const ERAS={chron:[[0,'Начало и патриархи'],[29,'Исход и пустыня'],[81,'Завоевание и судьи'],[97,'Царство: Саул, Давид, Соломон'],[173,'Разделённое царство и пророки'],[238,'Плен'],[259,'Возвращение'],[273,'Жизнь Христа'],[319,'Церковь и послания']]};
+  const ERC=['#B5722A','#C2643F','#8A6B3E','#3E7A4F','#1C7889','#6B4FBF','#4C7DFF','#E2627F','#E39A2B'];
+  function startDate(k){const d=new Date();d.setHours(12,0,0,0);
+    if(k==='tom')d.setDate(d.getDate()+1);
+    if(k==='mon')d.setDate(d.getDate()+((8-d.getDay())%7||7));
+    if(k==='m1'){d.setMonth(d.getMonth()+1,1)}
+    return d}
+  const fmtD=(d,o)=>d.toLocaleDateString('ru-RU',o||{day:'numeric',month:'long'});
+  function months(p,sd){
+    const days=p.D.length,mx=Math.max(...p.D.map(d=>d.length)),out=[];
+    const end=new Date(sd);end.setDate(end.getDate()+days-1);
+    let m=new Date(sd.getFullYear(),sd.getMonth(),1);
+    while(m<=end){const y=m.getFullYear(),mo=m.getMonth(),first=(new Date(y,mo,1).getDay()+6)%7,n=new Date(y,mo+1,0).getDate();
+      let cells='';for(let i=0;i<first;i++)cells+='<i class="e"></i>';
+      for(let d=1;d<=n;d++){const dt=new Date(y,mo,d,12),idx=Math.round((dt-sd)/864e5);
+        if(idx<0||idx>=days){cells+=`<i class="o">${d}</i>`;continue}
+        const lv=Math.ceil(p.D[idx].length/mx*4);cells+=`<button class="l${lv}${idx===VSEL?' sel':''}" data-plsel="${idx}" title="${esc(label(p.D[idx]))}">${d}</button>`}
+      out.push(`<div class="plmon"><b>${m.toLocaleDateString('ru-RU',{month:'long'})}${y!==new Date().getFullYear()?' '+y:''}</b><div class="plmg"><span>пн</span><span>вт</span><span>ср</span><span>чт</span><span>пт</span><span>сб</span><span>вс</span>${cells}</div></div>`);
+      m=new Date(y,mo+1,1)}
+    return out;
+  }
+  function detail(){
+    const id=VIEW==='book'?`book:${VBOOK}:${VDAYS}`:VIEW,p=plan(id);if(!p){VIEW=null;return render()}
+    const N=p.D.length,C=p.D.flat().length,sd=startDate(VSTART),end=new Date(sd);end.setDate(end.getDate()+N-1);
+    if(VSEL>=N)VSEL=0;
+    const books=[];for(const k of p.D.flat()){const b=k.split('.')[0];let x=books.find(y=>y.b===b);if(!x)books.push(x={b,n:0});x.n++}
+    const era=ERAS[VIEW];
+    const sdd=new Date(sd);sdd.setDate(sdd.getDate()+VSEL);
+    let h=`<div class="pg plp pld" style="--pc:${p.c}">
+      <button class="mini" data-plback>‹ Все планы</button>
+      <header class="pldh"><div class="pldk">План чтения</div><h1>${esc(VIEW==='book'?'План по книге':p.name)}</h1><p>${esc(VIEW==='book'?'Любая книга Библии в своём темпе':p.sub)}</p>${VIEW==='book'?'':`<small>${esc(p.d)}</small>`}</header>`;
+    if(VIEW==='book')h+=`<div class="plform big"><select data-plbook>${BOOKS.map(b=>`<option value="${b.id}"${b.id===VBOOK?' selected':''}>${esc(b.ru)}</option>`).join('')}</select><label>за <input type="number" min="1" max="365" value="${VDAYS}" data-pln> ${pl(VDAYS,'день','дня','дней')}</label></div>`;
+    h+=`<div class="pldstats"><div><b>${N}</b><small>${pl(N,'день','дня','дней')}</small></div><div><b>${C}</b><small>${pl(C,'глава','главы','глав')}</small></div><div><b>${(C/N).toFixed(C/N<10?1:0).replace('.',',')}</b><small>глав в день</small></div><div><b>~${Math.max(1,Math.round(C/N*4))}</b><small>минут в день</small></div></div>`;
+    if(era){h+=`<h5>Путь по истории</h5><div class="plera">${era.map(([s,n],i)=>{const e=(era[i+1]||[N])[0];return `<button data-plsel="${s}" style="flex:${e-s};--ec:${ERC[i]}" title="${esc(n)}: дни ${s+1}–${e}"><span>${esc(n)}</span></button>`}).join('')}</div><div class="plerl">${era.map(([s,n],i)=>`<span style="--ec:${ERC[i]}"><i></i>${esc(n)} <em>дни ${s+1}–${(era[i+1]||[N])[0]}</em></span>`).join('')}</div>`}
+    h+=`<h5>Что вы прочитаете</h5><div class="plcov">${books.map((x,i)=>`<span class="g-${genreOf(x.b)}" style="flex:${x.n};--r:100%;--i:${i}" title="${esc(BOOKS[BI[x.b]].ru)}: ${x.n} гл."></span>`).join('')}</div><div class="plbooks">${books.length>14?`${books.length} ${pl(books.length,'книга','книги','книг')}: ${esc(BOOKS[BI[books[0].b]].ru)} … ${esc(BOOKS[BI[books[books.length-1].b]].ru)}`:books.map(x=>esc(BOOKS[BI[x.b]].ru)).join(' · ')}</div>`;
+    h+=`<h5>Начать</h5><div class="sseg plstart">${[['today','Сегодня'],['tom','Завтра'],['mon','С понедельника'],['m1','С 1-го']].map(([k,n])=>`<button data-plsd="${k}" class="${VSTART===k?'on':''}">${n}</button>`).join('')}</div>
+      <p class="hint">${fmtD(sd,{day:'numeric',month:'long',weekday:'long'})} — ${fmtD(end,{day:'numeric',month:'long',year:'numeric'})}</p>`;
+    const MS=months(p,sd);h+=`<h5>Календарь</h5><div class="plcal">${MS.slice(0,3).join('')}</div>${MS.length>3?`<details class="plall"${VALL?' open':''} data-plcal><summary>Весь календарь · ${MS.length} мес.</summary><div class="plcal">${MS.slice(3).join('')}</div></details>`:''}
+      <div class="plpick"><div class="plh">День ${VSEL+1} · ${fmtD(sdd,{day:'numeric',month:'long',weekday:'short'})}</div><div class="plpr">${esc(label(p.D[VSEL]))}</div></div>`;
+    h+=`<details class="plall"><summary>Все ${N} ${pl(N,'день','дня','дней')} списком</summary><div class="pldays">${p.D.map((d,i)=>{const dt=new Date(sd);dt.setDate(dt.getDate()+i);return `<button data-plsel="${i}"><b>${i+1}</b><span class="pldt">${fmtD(dt,{day:'numeric',month:'short'})}</span>${esc(label(d))}</button>`}).join('')}</div></details>`;
+    h+=`<div class="plcta"><button class="sbtn pri" data-plbegin="${id}">${P()[id]?'План уже идёт':`Начать план · ${fmtD(sd)}`}</button></div></div>`;
+    const y=scrollY,first=!$('#page .pld');$('#page').innerHTML=h;if(first)scrollTo(0,0);else scrollTo(0,y);
+    if(first)$('#page .pld').classList.add('anim');
+  }
   /* ---------- страница планов ---------- */
   function card(id){
     const s=state(id);if(!s)return'';const {p}=s,N=p.D.length,pct=Math.round(s.nDone/N*100);
     const di=s.finished?-1:s.next,day=di>=0?p.D[di]:[];
-    const status=s.finished?'План пройден!':s.behind?`отставание: ${s.behind} ${pl(s.behind,'день','дня','дней')}`:s.ahead?`впереди на ${s.ahead} ${pl(s.ahead,'день','дня','дней')}`:'по графику';
+    const status=s.wait?`начнётся ${new Date(s.st.start+'T12:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}`:s.finished?'План пройден!':s.behind?`отставание: ${s.behind} ${pl(s.behind,'день','дня','дней')}`:s.ahead?`впереди на ${s.ahead} ${pl(s.ahead,'день','дня','дней')}`:'по графику';
     return `<article class="plc" style="--pc:${p.c}">
       <header><div class="plring" style="--pct:${pct}"><span>${pct}%</span></div><div><h3>${esc(p.name)}</h3><p>${s.finished?'':`День ${di+1} из ${N}`} · <span class="${s.behind?'warn':''}">${status}</span></p></div></header>
       ${(()=>{const t=stats(s);return `<div class="plstats"><div><b data-cnt="${t.read}">${t.read}</b><small>глав из ${t.total}</small></div><div><b data-cnt="${t.run}">${t.run}</b><small>${pl(t.run,'день','дня','дней')} подряд</small></div><div><b>${s.finished?'✓':t.eta||'—'}</b><small>${s.finished?'завершён':'прогноз окончания'}</small></div></div>
@@ -116,15 +162,16 @@ const Plans=(()=>{
   }
   function groupRows(ks,rd){const g=[];for(const k of ks){const b=k.split('.')[0];const l=g[g.length-1];if(l&&l.b===b)l.k.push(k);else g.push({b,k:[k]})}
     return g.map(x=>{const ok=x.k.every(k=>rd.has(k));const n=x.k.filter(k=>rd.has(k)).length;return `<button data-plk="${x.k.find(k=>!rd.has(k))||x.k[0]}" class="${ok?'ok':''}"><i></i>${esc(label(x.k))}${!ok&&n?`<small class="plpart">${n} из ${x.k.length}</small>`:''}</button>`}).join('')}
+  let VALL=false,VIEW=null,VSTART='today',VSEL=0,VBOOK='Rom',VDAYS=14;
   function render(){
+    if(VIEW)return detail();
     const act=Object.keys(P()).filter(id=>plan(id));
     const free=DEF.filter(d=>!P()[d.id]);
     let h=`<div class="pg plp"><div class="pghead"><h1>Планы чтения</h1></div>`;
     const ch=contHTML(10);if(ch)h+=`<h5>Продолжить чтение</h5>`+ch;
     if(act.length)h+=`<h5>Мои планы</h5><div class="plgrid">${act.map(card).join('')}</div>`;
-    h+=`<h5>${act.length?'Ещё планы':'Выберите план'}</h5><div class="plcat">${free.map(d=>{const n=plan(d.id).D.length;return `<div class="plopt" style="--pc:${d.c}"><div><b>${esc(d.name)}</b><span>${esc(d.sub)} · ${n} ${pl(n,'день','дня','дней')}</span><small>${esc(d.d)}</small></div><button class="sbtn" data-plstart="${d.id}">Начать</button></div>`}).join('')}
-      <div class="plopt own"><div><b>План по книге</b><span>Любая книга Библии за выбранное число дней</span>
-        <div class="plform"><select data-plbook>${BOOKS.map(b=>`<option value="${b.id}">${esc(b.ru)}</option>`).join('')}</select><label><input type="number" min="1" max="365" value="14" data-pln> дней</label></div></div><button class="sbtn" data-plown>Начать</button></div></div>`;
+    h+=`<h5>${act.length?'Ещё планы':'Выберите план'}</h5><div class="plcat">${free.map(d=>{const P0=plan(d.id),n=P0.D.length,c=P0.D.flat().length;return `<button class="plopt" data-plview="${d.id}" style="--pc:${d.c}"><div><b>${esc(d.name)}</b><span>${esc(d.sub)}</span><small>${n} ${pl(n,'день','дня','дней')} · ${c} ${pl(c,'глава','главы','глав')} · ~${Math.max(1,Math.round(c/n*4))} мин в день</small></div><i class="plgo">›</i></button>`}).join('')}
+      <button class="plopt own" data-plview="book"><div><b>План по книге</b><span>Любая книга Библии за выбранное число дней</span><small>Выберите книгу и темп — увидите расписание</small></div><i class="plgo">›</i></button></div>`;
     h+=`<p class="hint">День засчитывается сам, когда вы прочитали все его главы (хотя бы 40 секунд на главе), или отметьте его вручную. Хронологический порядок — по плану <a href="https://www.blueletterbible.org/assets-v3/pdf/dbrp/1Yr_ChronologicalPlan.pdf" target="_blank" rel="noopener">Blue Letter Bible</a>; датировка некоторых книг (Иов, Иоиль, псалмы) спорна, план следует распространённому мнению.</p></div>`;
     const y=scrollY,first=!$('#page .plp');$('#page').innerHTML=h;scrollTo(0,y);
     if(first&&!S.calm&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
@@ -134,7 +181,9 @@ const Plans=(()=>{
       $('#page .plp').classList.add('anim');
     }
   }
-  const start=id=>{P()[id]={start:today(),done:{}};touchSettings();save();render()};
+  const start=(id,sd)=>{P()[id]={start:sd?dk(sd):today(),done:{}};VIEW=null;touchSettings();save();render();scrollTo(0,0)};
+  document.addEventListener('toggle',e=>{if(e.target.matches&&e.target.matches('[data-plcal]'))VALL=e.target.open},true);
+  document.addEventListener('change',e=>{if(S.sec!=='plans'||VIEW!=='book')return;if(e.target.matches('[data-plbook]'))VBOOK=e.target.value;if(e.target.matches('[data-pln]'))VDAYS=Math.max(1,Math.min(365,+e.target.value||14));VSEL=0;render()});
   document.addEventListener('click',e=>{
     const t=e.target;
     const bp=t.closest('[data-bpgo]');if(bp){const [b,c,v]=bp.dataset.bpgo.split('|');closeModal();go(b,+c,+v||undefined);return}
@@ -142,6 +191,11 @@ const Plans=(()=>{
     const q=(a)=>{const el=t.closest('['+a+']');return el&&el.getAttribute(a)};
     let v;
     if(v=q('data-plstart'))return start(v);
+    if(v=q('data-plview')){VIEW=v;VSTART='today';VSEL=0;return render()}
+    if(t.closest('[data-plback]')){VIEW=null;render();scrollTo(0,0);return}
+    if(v=q('data-plsd')){VSTART=v;return render()}
+    if((v=q('data-plsel'))!=null&&VIEW){VSEL=+v;render();const el=$('.plpick');if(el&&el.getBoundingClientRect().top>innerHeight-120)el.scrollIntoView({block:'center',behavior:'smooth'});return}
+    if(v=q('data-plbegin')){if(!P()[v])start(v,startDate(VSTART));else{VIEW=null;render()}return}
     if(t.closest('[data-plown]')){const b=$('[data-plbook]').value,n=Math.max(1,Math.min(365,+$('[data-pln]').value||14));return start(`book:${b}:${n}`)}
     if(v=q('data-plk'))return goKey(v);
     if(v=q('data-plgo')){const [id,i]=v.split('|'),s=state(id),d=s.p.D[+i];return goKey(d.find(k=>!s.rd.has(k))||d[0])}
@@ -170,5 +224,5 @@ const Plans=(()=>{
       if(nav)nav.insertAdjacentHTML('beforebegin',h);else R.insertAdjacentHTML('beforeend',h);return}
   }
   new MutationObserver(()=>{clearTimeout(chapterHint._t);chapterHint._t=setTimeout(chapterHint,200)}).observe($('#reader'),{childList:true});
-  return{render,contHTML,label,state};
+  return{render:()=>{render()},reset:()=>{VIEW=null},contHTML,label,state};
 })();
