@@ -52,16 +52,16 @@ const Speech=(()=>{
   const tr=(txt,isH)=>isH?heb(txt):grc(txt);
   const stripGrc=t=>t.normalize('NFD').replace(/[̀-ͅ]/g,'').normalize('NFC');
   const stripHeb=t=>t.replace(/[֑-ֽֿ֯׀׃-ׇ]/g,'');
-  function pick(lang){const vs=window.speechSynthesis?speechSynthesis.getVoices():[];return vs.find(v=>v.lang.toLowerCase().replace('_','-').startsWith(lang))||null}
+  function pick(lang){if(!VS.length)loadV();const vs=VS.filter(v=>v.lang.toLowerCase().replace('_','-').startsWith(lang)||(lang==='he'&&/^iw/i.test(v.lang)));return vs.find(v=>/premium|enhanced|natural/i.test(v.name))||vs.find(v=>v.localService)||vs[0]||null}
   /** mode: 'native' — голос греческого/иврита; 'tr' — транскрипция русским голосом */
   function say(text,isH,mode){
     if(!('speechSynthesis' in window))return{ok:false,why:'Браузер не поддерживает озвучку.'};
     speechSynthesis.cancel();
     let phrase,lang,why='';
     if(mode==='tr'){phrase=tr(text,isH).replace(/-/g,' ');lang='ru'}
-    else{phrase=isH?stripHeb(text):stripGrc(text);lang=isH?'he':'el'}
+    else{phrase=isH?keepNiqqud(text):stripGrc(text);lang=isH?'he':'el'}
     const v=pick(lang);
-    if(!v&&mode!=='tr')why=`В системе нет голоса для ${isH?'иврита':'греческого'}. Нажми «Как читается» — прочту транскрипцию русским голосом.`;
+    if(!v&&mode!=='tr')why=`На этом устройстве нет голоса для ${isH?'иврита':'греческого'}. iPhone/iPad: Настройки → Универсальный доступ → Устно → Голоса → ${isH?'Иврит (Carmit)':'Греческий (Melina)'}. Пока можно нажать «Как читается».`;
     if(!v&&mode!=='tr')return{ok:false,why};
     const u=new SpeechSynthesisUtterance(phrase);if(v){u.voice=v;u.lang=v.lang}else u.lang='ru-RU';u.rate=mode==='tr'?.75:.8;
     speechSynthesis.speak(u);return{ok:true};
