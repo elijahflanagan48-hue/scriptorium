@@ -728,8 +728,11 @@ body.calm *,body.calm *::before,body.calm *::after{transition-duration:0s!import
 /* ---------- плашка обновления ---------- */
 #upd{position:fixed;z-index:250;left:50%;bottom:calc(var(--bar,0px) + 14px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:10px;width:min(440px,calc(100% - 24px));padding:10px 10px 10px 16px;border-radius:18px;background:var(--ink);color:var(--bg);box-shadow:0 14px 40px rgba(10,14,28,.3);animation:updIn .45s cubic-bezier(.3,1.4,.5,1) both}
 #upd span{flex:1;min-width:0}#upd b{display:block;font-size:15px}#upd small{opacity:.7;font-size:12.5px}
-#upd [data-upd]{height:40px;padding:0 16px;border-radius:12px;background:var(--accent);color:#fff;font-weight:800}
-#upd [data-updx]{width:36px;height:40px;border-radius:12px;color:var(--bg);opacity:.6}
+#upd [data-upd]{height:44px;min-width:118px;padding:0 18px;border-radius:12px;background:var(--accent);color:#fff;font-weight:800;touch-action:manipulation;-webkit-tap-highlight-color:transparent;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .12s,filter .12s}
+#upd [data-upd]:active{transform:scale(.94);filter:brightness(.88)}
+#upd.busy{pointer-events:none}#upd.busy [data-upd]{filter:brightness(.9)}
+#upd .usp{width:14px;height:14px;border-radius:50%;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;animation:uspin .7s linear infinite}@keyframes uspin{to{transform:rotate(360deg)}}
+#upd [data-updx]{width:40px;height:44px;touch-action:manipulation;border-radius:12px;color:var(--bg);opacity:.6}
 @media(min-width:821px) and (pointer:fine),(min-width:821px) and (min-height:501px){#upd{bottom:24px}}
 @keyframes updIn{from{transform:translate(-50%,30px);opacity:0}}
 

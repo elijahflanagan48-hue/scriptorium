@@ -14,15 +14,22 @@ const Update=(()=>{
     }catch(e){}
     return found;
   }
+  let busy=false;
   async function apply(){
-    try{const r=await navigator.serviceWorker?.getRegistration();if(r)await r.update()}catch(e){}
+    if(busy)return;busy=true;
+    const el=document.getElementById('upd');
+    if(el){el.classList.add('busy');const b=el.querySelector('[data-upd]');if(b)b.innerHTML='<i class="usp"></i>Обновляю…';const s=el.querySelector('small');if(s)s.textContent='секунду, приложение перезапустится';const x=el.querySelector('[data-updx]');if(x)x.hidden=true}
+    try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}
     try{if(typeof save==='function')save()}catch(e){}
+    await new Promise(r=>setTimeout(r,350)); // дать нажатию отрисоваться
+    try{const r=await navigator.serviceWorker?.getRegistration();if(r)await Promise.race([r.update(),new Promise(z=>setTimeout(z,1200))])}catch(e){}
     location.reload();
+    setTimeout(()=>{busy=false;const e2=document.getElementById('upd');if(e2){e2.classList.remove('busy');const b=e2.querySelector('[data-upd]');if(b)b.textContent='Попробовать снова'}},8000);
   }
   function offer(){
     if(shown||!found)return;shown=true;
     const el=document.createElement('div');el.id='upd';el.setAttribute('role','status');
-    el.innerHTML=`<span><b>Вышло обновление</b><small>новые функции и исправления</small></span><button data-upd>Обновить</button><button data-updx aria-label="Позже">✕</button>`;
+    el.innerHTML=`<span><b>Вышло обновление</b><small>новые функции и исправления</small></span><button data-upd type="button">Обновить</button><button data-updx aria-label="Позже">✕</button>`;
     document.body.appendChild(el);
   }
   document.addEventListener('click',e=>{
