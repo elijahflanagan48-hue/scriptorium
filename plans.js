@@ -72,6 +72,33 @@ const Plans=(()=>{
     else{const h=contHTML(6);if(h){const t=$('#sheet h3');if(t)t.insertAdjacentHTML('afterend',`<div class="conth">Продолжить чтение</div>`+h)}}
   };
 
+  /* ---------- графики ---------- */
+  function stats(s){
+    const set=new Set(s.p.D.flat()),byDay={};
+    for(const [d,v] of Object.entries(S.days||{}))if(d>=s.st.start&&v.c)for(const [k,t] of Object.entries(v.c))if(t>=40&&set.has(k))byDay[d]=(byDay[d]||0)+1;
+    const total=set.size,read=[...set].filter(k=>s.rd.has(k)).length;
+    const el=Math.max(1,dayDiff(s.st.start,today())+1),pace=s.nDone/el;
+    let eta='';if(!s.finished&&pace>0){const left=s.p.D.length-s.nDone,dt=new Date();dt.setDate(dt.getDate()+Math.ceil(left/pace));eta=dt.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}).replace('.','')}
+    let run=0;for(let i=0;i<60;i++){const d=new Date();d.setDate(d.getDate()-i);const k=dk(d);if(byDay[k])run++;else if(i>0)break}
+    return{byDay,total,read,eta,run};
+  }
+  /* полоса книг: каждая книга — отрезок по числу глав, закрашено прочитанное */
+  function coverage(s){
+    const books=[];for(const k of s.p.D.flat()){const b=k.split('.')[0];let x=books.find(y=>y.b===b);if(!x)books.push(x={b,n:0,r:0});x.n++;if(s.rd.has(k))x.r++}
+    books.sort((a,b)=>BI[a.b]-BI[b.b]);const N=books.reduce((a,x)=>a+x.n,0);
+    return `<div class="plcov" role="img" aria-label="Прочитано по книгам">${books.map((x,i)=>`<span class="g-${genreOf(x.b)}" style="flex:${x.n};--r:${(x.r/x.n*100).toFixed(1)}%;--i:${i}" title="${esc(BOOKS[BI[x.b]].ru)}: ${x.r} из ${x.n}"></span>`).join('')}</div>
+      <div class="plcovl">${books.length>8?`<span>${esc(BOOKS[BI[books[0].b]].ab)}</span><span>${esc(BOOKS[BI[books[books.length-1].b]].ab)}</span>`:books.map(x=>`<span style="flex:${x.n}">${esc(BOOKS[BI[x.b]].ab)}</span>`).join('')}</div>`;
+  }
+  /* 14 дней: столбики глав в день */
+  function bars(st){
+    const days=[];for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push([dk(d),d])}
+    const mx=Math.max(3,...days.map(([k])=>st.byDay[k]||0));
+    return `<div class="plbars">${days.map(([k,d],i)=>{const v=st.byDay[k]||0;return `<div class="plb${k===today()?' td':''}" title="${d.toLocaleDateString('ru-RU',{day:'numeric',month:'short'})}: ${v} гл."><i style="--h:${(v/mx*100).toFixed(0)}%;--i:${i}">${v?`<em>${v}</em>`:''}</i><span>${'пвсчпсв'[(d.getDay()+6)%7]}</span></div>`}).join('')}</div>`;
+  }
+  /* сетка всех дней плана */
+  function grid(s){
+    return `<div class="plgrd" style="--cols:${s.p.D.length>120?(isM()?26:37):Math.min(s.p.D.length,15)}">${s.p.D.map((d,i)=>`<i class="${s.done[i]?'ok':i<=s.dayN?'miss':''}${i===s.next?' nx':''}" style="--i:${i}" title="День ${i+1}: ${esc(label(d))}"></i>`).join('')}</div>`;
+  }
   /* ---------- страница планов ---------- */
   function card(id){
     const s=state(id);if(!s)return'';const {p}=s,N=p.D.length,pct=Math.round(s.nDone/N*100);
@@ -79,6 +106,8 @@ const Plans=(()=>{
     const status=s.finished?'План пройден!':s.behind?`отставание: ${s.behind} ${pl(s.behind,'день','дня','дней')}`:s.ahead?`впереди на ${s.ahead} ${pl(s.ahead,'день','дня','дней')}`:'по графику';
     return `<article class="plc" style="--pc:${p.c}">
       <header><div class="plring" style="--pct:${pct}"><span>${pct}%</span></div><div><h3>${esc(p.name)}</h3><p>${s.finished?'':`День ${di+1} из ${N}`} · <span class="${s.behind?'warn':''}">${status}</span></p></div></header>
+      ${(()=>{const t=stats(s);return `<div class="plstats"><div><b data-cnt="${t.read}">${t.read}</b><small>глав из ${t.total}</small></div><div><b data-cnt="${t.run}">${t.run}</b><small>${pl(t.run,'день','дня','дней')} подряд</small></div><div><b>${s.finished?'✓':t.eta||'—'}</b><small>${s.finished?'завершён':'прогноз окончания'}</small></div></div>
+        <div class="plviz"><div class="plvh">Пройдено по книгам</div>${coverage(s)}<div class="plvh">Последние две недели</div>${bars(t)}<div class="plvh">Все дни плана</div>${grid(s)}</div>`})()}
       ${s.finished?'':`<div class="pltoday"><div class="plh">${di<=s.dayN?'Сегодня':'Следующее чтение'}</div>${day.length?`<div class="plread">${groupRows(day,s.rd)}</div>`:''}
         <div class="plact"><button class="sbtn pri" data-plgo="${id}|${di}">Читать</button><button class="sbtn" data-pldone="${id}|${di}">Отметить день</button></div></div>`}
       <details class="plall"><summary>Весь план</summary><div class="pldays">${p.D.map((d,i)=>`<button data-plday="${id}|${i}" class="${s.done[i]?'ok':''}${i===di?' cur':''}"><b>${i+1}</b>${esc(label(d))}</button>`).join('')}</div></details>
@@ -97,7 +126,13 @@ const Plans=(()=>{
       <div class="plopt own"><div><b>План по книге</b><span>Любая книга Библии за выбранное число дней</span>
         <div class="plform"><select data-plbook>${BOOKS.map(b=>`<option value="${b.id}">${esc(b.ru)}</option>`).join('')}</select><label><input type="number" min="1" max="365" value="14" data-pln> дней</label></div></div><button class="sbtn" data-plown>Начать</button></div></div>`;
     h+=`<p class="hint">День засчитывается сам, когда вы прочитали все его главы (хотя бы 40 секунд на главе), или отметьте его вручную. Хронологический порядок — по плану <a href="https://www.blueletterbible.org/assets-v3/pdf/dbrp/1Yr_ChronologicalPlan.pdf" target="_blank" rel="noopener">Blue Letter Bible</a>; датировка некоторых книг (Иов, Иоиль, псалмы) спорна, план следует распространённому мнению.</p></div>`;
-    const y=scrollY;$('#page').innerHTML=h;scrollTo(0,y);
+    const y=scrollY,first=!$('#page .plp');$('#page').innerHTML=h;scrollTo(0,y);
+    if(first&&!S.calm&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+      $$('#page .plring').forEach(r=>{const to=+getComputedStyle(r).getPropertyValue('--pct')||0,sp=r.querySelector('span'),t0=performance.now();
+        const st=t=>{const k=Math.min(1,(t-t0)/1100),e=1-Math.pow(1-k,3),v=to*e;r.style.setProperty('--pct',v.toFixed(1));sp.textContent=Math.round(v)+'%';if(k<1)requestAnimationFrame(st)};r.style.setProperty('--pct',0);requestAnimationFrame(st)});
+      $$('#page [data-cnt]').forEach(b=>{const to=+b.dataset.cnt,t0=performance.now();if(!to)return;const st=t=>{const k=Math.min(1,(t-t0)/900);b.textContent=Math.round(to*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(st)};requestAnimationFrame(st)});
+      $('#page .plp').classList.add('anim');
+    }
   }
   const start=id=>{P()[id]={start:today(),done:{}};touchSettings();save();render()};
   document.addEventListener('click',e=>{
@@ -110,11 +145,20 @@ const Plans=(()=>{
     if(t.closest('[data-plown]')){const b=$('[data-plbook]').value,n=Math.max(1,Math.min(365,+$('[data-pln]').value||14));return start(`book:${b}:${n}`)}
     if(v=q('data-plk'))return goKey(v);
     if(v=q('data-plgo')){const [id,i]=v.split('|'),s=state(id),d=s.p.D[+i];return goKey(d.find(k=>!s.rd.has(k))||d[0])}
-    if(v=q('data-pldone')){const [id,i]=v.split('|');const st=P()[id];st.done=st.done||{};st.done[i]=1;touchSettings();save();return render()}
+    if(v=q('data-pldone')){const [id,i]=v.split('|');const st=P()[id];st.done=st.done||{};st.done[i]=1;touchSettings();save();render();burst(id);return}
     if(v=q('data-plday')){const [id,i]=v.split('|');const st=P()[id];st.done=st.done||{};if(st.done[i])delete st.done[i];else st.done[i]=1;touchSettings();save();return render()}
     if(v=q('data-plrestart')){if(confirm('Начать план заново с сегодняшнего дня? Отметки будут сброшены.'))start(v);return}
     if(v=q('data-pldel')){if(confirm('Убрать этот план?')){delete P()[v];touchSettings();save();render()}return}
   });
+  /* отметка дня: галочка и брызги цвета плана */
+  function burst(id){
+    if(S.calm||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    const card=[...$$('.plc')].find(c=>c.querySelector(`[data-pldel="${id}"]`));if(!card)return;const ring=card.querySelector('.plring');if(!ring)return;
+    const r=ring.getBoundingClientRect(),c=getComputedStyle(card).getPropertyValue('--pc')||'#4C7DFF';
+    const box=document.createElement('div');box.className='plburst';box.style.left=(r.left+r.width/2)+'px';box.style.top=(r.top+r.height/2)+'px';
+    box.innerHTML=`<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="${c}"/><path d="M12 20.5l5.5 5.5 11-12" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`+Array.from({length:14},(_,i)=>`<i style="--a:${i*360/14}deg;--d:${38+Math.random()*26}px;background:${c}"></i>`).join('');
+    document.body.appendChild(box);setTimeout(()=>box.remove(),1100);
+  }
   /* в конце главы: следующее по плану */
   function chapterHint(){
     if(S.sec!=='read'||typeof cur==='undefined')return;const R=$('#reader');if(!R||R.querySelector('.plnext'))return;
