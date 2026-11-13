@@ -268,6 +268,48 @@ def step_harvest2():
     print('Кандидатов всего: %d' % len(res))
 
 
+def step_sheet():
+    """Контактные листы (плашки с номерами) для выбора картин вручную: Шнорр и Тиссо НЗ."""
+    try:
+        from PIL import Image, ImageDraw
+    except ImportError:
+        print('Нужен Pillow: pip3 install pillow'); return
+    res = json.load(open(os.path.join(OUT, 'harvest.json'), encoding='utf-8'))
+    sd = os.path.join(OUT, 'sheets'); os.makedirs(sd, exist_ok=True)
+    td = os.path.join(OUT, 'thumbs'); os.makedirs(td, exist_ok=True)
+    def num(t):
+        m = re.search(r'1860 (\d+)', t); return int(m.group(1)) if m else 9999
+    groups = {'schnorr': sorted([t for t, v in res.items() if v.get('src') == 'schnorr'], key=num),
+              'tissotnt': sorted([t for t, v in res.items() if v.get('src') == 'tissot_nt']),
+              'dore': sorted([t for t, v in res.items() if v.get('src') == 'dore'])}
+    index = {}
+    for g, titles in groups.items():
+        for k in range(0, len(titles), 20):
+            chunk = titles[k:k + 20]
+            W, H = 300, 230
+            sh = Image.new('RGB', (W * 5, H * 4), 'white'); dr = ImageDraw.Draw(sh)
+            for i, t in enumerate(chunk):
+                v = res[t]; fn = os.path.join(td, re.sub(r'\W+', '_', t)[:80] + '.jpg')
+                if not os.path.exists(fn):
+                    try:
+                        open(fn, 'wb').write(get(v['thumb'], binary=True))
+                    except Exception as e:
+                        print('  не скачалось', t[:50], e); continue
+                try:
+                    im = Image.open(fn).convert('RGB')
+                except Exception:
+                    continue
+                im.thumbnail((W - 6, H - 30)); x, y = (i % 5) * W, (i // 5) * H
+                sh.paste(im, (x + 3, y + 3))
+                lab = '%s%s' % (g[0], num(t) if g == 'schnorr' else k + i)
+                dr.rectangle([x, y + H - 26, x + W, y + H], fill='black'); dr.text((x + 6, y + H - 22), lab, fill='white')
+                index[lab] = t
+            sh.save(os.path.join(sd, '%s_%02d.jpg' % (g, k // 20)), quality=80)
+            print('  лист', g, k // 20)
+    json.dump(index, open(os.path.join(OUT, 'sheet_index.json'), 'w'), ensure_ascii=False)
+    print('Готово: kids_out/sheets/')
+
+
 def step_apply():
     """Скачать картины по ручному выбору picks.json: {id: 'File:...'} и обновить images.json"""
     pk = json.load(open(os.path.join(OUT, 'picks.json'), encoding='utf-8'))
@@ -337,5 +379,6 @@ if __name__ == '__main__':
     if a in ('images', 'all'): step_images()
     if a == 'harvest': step_harvest()
     if a == 'harvest2': step_harvest2()
+    if a == 'sheet': step_sheet()
     if a == 'apply': step_apply()
     if a in ('pack', 'all', 'apply'): step_pack()
