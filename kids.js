@@ -9,7 +9,7 @@ const Kids=(()=>{
     {id:'bazarov',name:'Базаров, 1857',desc:'Классический пересказ, язык XIX века. Свободный текст.',access:'public',ready:true},
     {id:'ipb',name:'Институт перевода Библии',desc:'Современная «Библия для детей»: пересказы и цитаты из всех книг Библии.',access:'account',ready:true},
     {id:'sokolov',name:'Прот. Александр Соколов',desc:'Православный пересказ для детей.',access:'account',ready:false},
-    {id:'vozd',name:'Прот. Пётр Воздвиженский',desc:'Классический рассказчик для самых маленьких, близко к тексту.',access:'account',ready:false}];
+    {id:'vozd',name:'Прот. Пётр Воздвиженский',desc:'Классический рассказчик для самых маленьких, близко к тексту.',access:'account',ready:true}];
   const ready=()=>EDS.filter(e=>e.ready);
   const ST=()=>S.kids||(S.kids={t:'ot',id:''});
   const ed=()=>{const r=ready(),s=ST();return r.find(e=>e.id===s.ed)||r[0]||EDS[0]};
