@@ -7,6 +7,7 @@ const Settings=(()=>{
     layout:'<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M12 4.5v15M6.5 9h3M6.5 12h3M14.5 9h3M14.5 12h3"/>',
     theme:'<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 0 0 17z" fill="currentColor" stroke="none"/>',
     tr:'<path d="M3.5 6h9M8 4v2M5.5 6c.6 3.6 3 6.4 6 7.6M10.5 6c-.7 3.8-3.2 6.6-6.5 7.8"/><path d="M12.5 20l4-9.5 4 9.5M14 16.8h5"/>',
+    kids:'<path d="M4 5.5h6.5a2 2 0 0 1 1.5 .7 2 2 0 0 1 1.5-.7H20v13h-6.5a2 2 0 0 0-1.5.7 2 2 0 0 0-1.5-.7H4z"/><path d="M12 6.2v13"/>',
     listen:'<path d="M4 9.5v5h3.5l5 4v-13l-5 4z"/><path d="M16 9a4.2 4.2 0 0 1 0 6M18.6 6.4a8 8 0 0 1 0 11.2"/>',
     lamp:'<path d="M12 3.5c2.6 3.4 5.5 5.6 5.5 9.4a5.5 5.5 0 0 1-11 0c0-3.8 2.9-6 5.5-9.4z"/><path d="M12 18.4c-1.6 0-2.6-1.2-2.6-2.6 0-1.6 1.4-2.6 2.6-4.4 1.2 1.8 2.6 2.8 2.6 4.4 0 1.4-1 2.6-2.6 2.6z"/>',
     ui:'<path d="M4 7.5h9M17 7.5h3M4 16.5h3M11 16.5h9"/><circle cx="15" cy="7.5" r="2"/><circle cx="9" cy="16.5" r="2"/>',
@@ -14,7 +15,7 @@ const Settings=(()=>{
     acc:'<circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.4-3.8 4.2-5.6 7.5-5.6s6.1 1.8 7.5 5.6"/>',
     about:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.4"/>'};
   const ico=k=>`<svg viewBox="0 0 24 24" aria-hidden="true">${I[k]}</svg>`;
-  const GR=[['text','Текст'],['layout','Раскладка'],['theme','Оформление'],['tr','Переводы'],['listen','Чтение вслух'],['lamp','Светильник'],['ui','Интерфейс'],['data','Данные'],['acc','Аккаунт'],['about','О приложении']];
+  const GR=[['text','Текст'],['layout','Раскладка'],['theme','Оформление'],['tr','Переводы'],['kids','Детская Библия'],['listen','Чтение вслух'],['lamp','Светильник'],['ui','Интерфейс'],['data','Данные'],['acc','Аккаунт'],['about','О приложении']];
   const seg=(key,cur,opts,cls='')=>`<div class="sseg ${cls}" role="radiogroup">`+opts.map(([v,n,st])=>`<button role="radio" aria-checked="${String(cur)===String(v)}" class="${String(cur)===String(v)?'on':''}" data-set="${key}" data-v="${v}"${st?` style="${st}"`:''}>${n}</button>`).join('')+`</div>`;
   const tog=(key,on,label)=>`<button class="stg${on?' on':''}" role="switch" aria-checked="${on}" aria-label="${label}" data-tog="${key}"><i></i></button>`;
   const row=(t,s,ctl,cls='')=>`<div class="srow ${cls}"><div class="srl"><b>${t}</b>${s?`<small>${s}</small>`:''}</div><div class="src">${ctl}</div></div>`;
@@ -47,6 +48,8 @@ const Settings=(()=>{
       card(row('Главный перевод','в режиме «Чтение» и для чтения вслух',`<select class="ssel" data-prim>${trs.filter(t=>S.sel.includes(t.id)).map(t=>`<option value="${t.id}"${t.id===prim?' selected':''}>${esc(t.name)}</option>`).join('')}</select>`)+
         row('Оригинал','иврит и греческий с морфологией',tog('tr.ORIG',S.sel.includes('ORIG'),'Оригинал'))+
         trGroups().map(([n,l])=>`<div class="tgl">${n}</div>`+l.map(t=>row(esc(t.name),t.license?esc(t.license):'',tog('tr.'+t.id,S.sel.includes(t.id),t.name))).join('')).join('')));
+    h+=group('kids','Детская Библия','Какой пересказ показывать в разделе «Детская Библия» на полках',
+      card((typeof Kids!=='undefined'&&Kids.ready().length)?row('Редакция',esc(Kids.ed().desc||''),`<select class="ssel" data-kidsed>${Kids.ready().map(e=>`<option value="${e.id}"${e.id===Kids.ed().id?' selected':''}>${esc(e.name)}${e.access==='account'?' 🔒':''}</option>`).join('')}</select>`):row('Редакции','появятся после загрузки данных','')));
     h+=group('listen','Чтение вслух','Голос берётся из системы телефона или компьютера',
       card(row('Скорость','',seg('lrate',S.lrate||1,[[0.85,'0,85×'],[1,'1×'],[1.25,'1,25×'],[1.5,'1,5×']]))+
         row('Проверить голос','прочитать короткую фразу',`<button class="sbtn" data-sact="voice">▶ Послушать</button>`)));
@@ -111,6 +114,7 @@ const Settings=(()=>{
   });
   document.addEventListener('change',e=>{
     if(S.sec!=='set')return;
+    if(e.target.matches('[data-kidsed]')){Kids.setEd(e.target.value);re();return}
     if(e.target.matches('[data-prim]')){const id=e.target.value;S.sel=S.sel.filter(x=>x!==id);const i=S.sel.findIndex(x=>x!=='ORIG');S.sel.splice(i<0?S.sel.length:i,0,id);re();return}
     if(e.target.matches('[data-simport]')){const f=e.target.files[0];if(!f)return;f.text().then(x=>{const j=JSON.parse(x),now=Date.now();Object.assign(S.hl,j.hl||{});Object.assign(S.notes,j.notes||{});S.wnotes=Object.assign(S.wnotes||{},j.wnotes||{});
       Object.keys(j.hl||{}).forEach(k=>S.ts['h:'+k]=now);Object.keys(j.notes||{}).forEach(k=>S.ts['n:'+k]=now);Object.keys(j.wnotes||{}).forEach(k=>S.ts['w:'+k]=now);save();render()}).catch(()=>alert('Не удалось прочитать файл'))}

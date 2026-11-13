@@ -15,6 +15,7 @@ UA = 'AdFontesKidsBible/1.0 (personal non-commercial Bible study app; https://gi
 SRC = 'https://azbyka.ru/otechnik/Ioann-Bazarov/biblejskaja-istorija/'
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'kids_out')
 OUT = os.path.abspath(os.environ.get('KIDS_OUT', OUT))
+ED = 'bazarov'
 ARTISTS = [('tissot', 'Tissot'), ('doré', 'Doré'), ('schnorr', 'Schnorr')]
 OKLIC = re.compile(r'(public domain|\bpd\b|cc0|cc[- ]by(?!.*(nc|nd))|no restrictions|gfdl)', re.I)
 BADLIC = re.compile(r'(\bnc\b|-nc|\bnd\b|-nd|fair use|copyrighted|all rights)', re.I)
@@ -212,11 +213,11 @@ def step_pack():
                  stories=stories)
     zp = os.path.join(OUT, 'kids_ru.zip')
     with zipfile.ZipFile(zp, 'w', zipfile.ZIP_DEFLATED) as z:
-        z.writestr('ru/index.json', json.dumps(index, ensure_ascii=False, separators=(',', ':')))
-        z.writestr('ru/ot.json', json.dumps(ot, ensure_ascii=False, separators=(',', ':')))
-        z.writestr('ru/nt.json', json.dumps(nt, ensure_ascii=False, separators=(',', ':')))
+        z.writestr(ED + '/index.json', json.dumps(index, ensure_ascii=False, separators=(',', ':')))
+        z.writestr(ED + '/ot.json', json.dumps(ot, ensure_ascii=False, separators=(',', ':')))
+        z.writestr(ED + '/nt.json', json.dumps(nt, ensure_ascii=False, separators=(',', ':')))
         for s in stories:
-            if s['img']: z.write(os.path.join(OUT, 'img', s['img']['f']), 'ru/img/' + s['img']['f'])
+            if s['img']: z.write(os.path.join(OUT, 'img', s['img']['f']), 'img/' + ED + '/' + s['img']['f'])
     # контактный лист для проверки подбора картин
     rows = ''.join('<figure><img src="img/%s"><figcaption><b>%s %s</b><br>%s<br><small>%s</small></figcaption></figure>' % (
         s['img']['f'] if s['img'] else '', s['id'], html.escape(s['title']), html.escape((imgs.get(s['id']) or {}).get('file', '— нет —')), html.escape((imgs.get(s['id']) or {}).get('how', ''))) for s in stories)
