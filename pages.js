@@ -10,6 +10,7 @@ const Pages=(()=>{
   const LIB=[
     {shelf:'Писание',refs:'ссылки вида Ин 3:16',items:[
       {id:'bible',title:'Библия',cover:'Библия',color:'#4C7DFF',ready:true,sub:()=>IDX.translations.map(t=>shortName(t.id)).join(' · ')+' · иврит WLC · греч. SBLGNT'},
+      {id:'kids',title:'Детская Библия',cover:'Детям',color:'#F08A3C',ready:true,sub:'105 основных сюжетов Библии в пересказе, с гравюрами Тиссо и Шнорра · редакции меняются в Настройках'},
       {id:'lxx',title:'Септуагинта',cover:'LXX',color:'#7C5CFF',ready:true,sub:'Греческий Ветхий Завет (Ральфс), слова со Стронгом · с соответствием еврейской нумерации · после входа'},
       {id:'apocrypha',title:'Апокрифы и псевдоэпиграфы',cover:'Апокр.',color:'#E056A0',ready:true,sub:'Неканонические книги: Синодальный перевод · KJV (после входа)'}]},
     {shelf:'Иудейские авторы',refs:'ссылки вида Древн. 18.3.3',items:[

@@ -6,7 +6,7 @@ const Kids=(()=>{
   const P=()=>$('#page');
   /* редакции: public — лежит в репозитории, account — только после входа. ready:true ставится, когда данные загружены */
   const EDS=[
-    {id:'bazarov',name:'Базаров, 1857',desc:'Классический пересказ, язык XIX века. Свободный текст.',access:'public',ready:false},
+    {id:'bazarov',name:'Базаров, 1857',desc:'Классический пересказ, язык XIX века. Свободный текст.',access:'public',ready:true},
     {id:'ipb',name:'Институт перевода Библии',desc:'Современная «Библия для детей»: пересказы и цитаты из всех книг Библии.',access:'account',ready:false},
     {id:'sokolov',name:'Прот. Александр Соколов',desc:'Православный пересказ для детей.',access:'account',ready:false},
     {id:'vozd',name:'Прот. Пётр Воздвиженский',desc:'Классический рассказчик для самых маленьких, близко к тексту.',access:'account',ready:false}];
