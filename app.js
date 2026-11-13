@@ -454,7 +454,7 @@ function dataSheet(){
 }
 function moreSheet(){
   const u=typeof Sync!=='undefined'&&Sync.user;
-  openModal(`<h3>Ещё</h3><div class="mlist mbig"><button data-m="settings"><b>Настройки</b><small>текст, темы, переводы, светильник, данные</small></button><button data-m="hist"><b>История</b><small>недавно открытые места и поиски</small></button><button data-m="acc"><b>Личный кабинет</b><small>${u?esc(u.email):'войти и синхронизировать устройства'}</small></button></div>`);
+  openModal(`<h3>Ещё</h3><div class="mlist mbig"><button data-m="plans"><b>Планы чтения</b><small>за год, хронологический, по книгам · продолжить чтение</small></button><button data-m="settings"><b>Настройки</b><small>текст, темы, переводы, светильник, данные</small></button><button data-m="hist"><b>История</b><small>недавно открытые места и поиски</small></button><button data-m="acc"><b>Личный кабинет</b><small>${u?esc(u.email):'войти и синхронизировать устройства'}</small></button></div>`);
 }
 function syncPrivate(){
   if(!IDX)return;const ok=!!(Sync.user&&Sync.user.access);let ch=false;
@@ -523,7 +523,7 @@ function showSec(s,fromNav){
   document.body.classList.remove('bkmode');if($('#miniT')&&typeof cur!=='undefined')$('#miniT').textContent=`${bookRu(cur.book)} ${cur.ch}`;if(typeof cur!=='undefined')topLib('');
   const was=S.sec;S.sec=s;applyBody();$('#menu').hidden=true;if(s==='search')warmSearch();
   if(s==='read'){$('#page').hidden=true;$('#reader').hidden=false;if(was!=='read')scrollTo(0,0)}
-  else{$('#reader').hidden=true;$('#page').hidden=false;if(was==='read'||isM())closeInsp();if(s==='set')Settings.render();else Pages.render(s);scrollTo(0,0)}
+  else{$('#reader').hidden=true;$('#page').hidden=false;if(was==='read'||isM())closeInsp();if(s==='set')Settings.render();else if(s==='plans')Plans.render();else Pages.render(s);scrollTo(0,0)}
 }
 function renderTabs(){
   const el=$('#tabs');if(!el)return;
@@ -562,7 +562,7 @@ function bind(){
     if(e.key==='Escape'){hideSugg();ji.blur()}
   });
   $('#sugg').addEventListener('mousedown',e=>{const b=e.target.closest('[data-sg]');if(b){e.preventDefault();omniRun(SG[+b.dataset.sg])}});
-  MQ.addEventListener('change',()=>{closeInsp();render();if(S.sec!=='read')Pages.render(S.sec)});
+  MQ.addEventListener('change',()=>{closeInsp();render();if(S.sec==='set')Settings.render();else if(S.sec==='plans')Plans.render();else if(S.sec!=='read')Pages.render(S.sec)});
   let tx=null;$('#reader').addEventListener('touchstart',e=>{const p=e.touches[0];tx=e.touches.length===1?{x:p.clientX,y:p.clientY}:null},{passive:true});
   $('#reader').addEventListener('touchend',e=>{if(!tx)return;const p=e.changedTouches[0],dx=p.clientX-tx.x,dy=p.clientY-tx.y;tx=null;if(Math.abs(dx)>90&&Math.abs(dy)<45&&!getSelection().toString())step(dx<0?1:-1)},{passive:true});
   $('#modal').onclick=e=>{
@@ -571,7 +571,7 @@ function bind(){
     if(e.target.id==='back'){e.preventDefault();bookSheet();return}
     const g=e.target.closest('[data-go]');if(g){const [b,c]=g.dataset.go.split('.');closeModal();go(b,+c);scrollTo(0,0);return}
     const lay=e.target.closest('[data-lay]');if(lay){S.layout=lay.dataset.lay;touchSettings();closeModal();render();return}
-    const m=e.target.closest('[data-m]');if(m){const a=m.dataset.m;if(a==='texts')textsSheet();if(a==='view')readSheet();if(a==='data')dataSheet();if(a==='acc')accSheet();if(a==='hist'){closeModal();showSec('hist')}if(a==='theme')themeSheet();if(a==='settings'||a==='more'){closeModal();showSec('set')}return}
+    const m=e.target.closest('[data-m]');if(m){const a=m.dataset.m;if(a==='texts')textsSheet();if(a==='view')readSheet();if(a==='data')dataSheet();if(a==='acc')accSheet();if(a==='hist'){closeModal();showSec('hist')}if(a==='theme')themeSheet();if(a==='settings'||a==='more'){closeModal();showSec('set')}if(a==='plans'){closeModal();showSec('plans')}return}
     if(/^acc(In|Up|Out|Sync|Forgot|Send|Reset|Redeem|NewCode)$/.test(e.target.id)){accAct(e.target.id);return}
     const rv=e.target.closest('[data-revoke]');if(rv){Sync.admin('revoke',{code:rv.dataset.revoke}).then(loadCodes);return}
     if(e.target.id==='exp'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({hl:S.hl,notes:S.notes,wnotes:S.wnotes},null,1)],{type:'application/json'}));a.download='adfontes-notes.json';a.click()}

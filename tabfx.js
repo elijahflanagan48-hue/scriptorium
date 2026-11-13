@@ -11,7 +11,7 @@
   const pill=document.createElement('i');pill.className='tbpill';pill.setAttribute('aria-hidden','true');
   TB.prepend(pill);TB.classList.add('fx');
   const ORDER=['read','lib','search','notes','more'];
-  const keyOf=s=>['set','hist'].includes(s)?'more':s;
+  const keyOf=s=>['set','hist','plans'].includes(s)?'more':s;
   const btn=k=>k==='more'?$('#mMore'):TB.querySelector(`[data-sec="${k}"]`);
   let last=null,lastKey=null,lastKeyPrev=null,anim=null;
   /* у каждого раздела свой цвет: Читать — синий, Полки — янтарь, Поиск — бирюза, Заметки — роза, Ещё — фиалка */
