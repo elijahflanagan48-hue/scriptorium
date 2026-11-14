@@ -20,9 +20,23 @@ f('data/origc/'+b+'/'+c+'.json');sel.forEach(function(t){f('data/trc/'+t+'/'+b+'
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preload" href="fonts/literata-cyrillic-opsz-normal.woff2" as="font" type="font/woff2" crossorigin><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Frank+Ruhl+Libre:wght@400;500&family=Gentium+Plus:ital@0;1&display=swap" rel="stylesheet" media="print" onload="this.media='all'"><noscript><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Frank+Ruhl+Libre:wght@400;500&family=Gentium+Plus:ital@0;1&display=swap" rel="stylesheet"></noscript>
-<link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="alternate icon" type="image/png" href="icon-192.png"><link rel="stylesheet" href="style.css?v=20261113zbaaaa">
+<link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="alternate icon" type="image/png" href="icon-192.png"><link rel="stylesheet" href="style.css?v=20261113zbaaaaaaa">
+<style>#splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:#F5F7FC;color:#14161F;transition:opacity .45s ease,visibility .45s}
+@media(prefers-color-scheme:dark){#splash{background:#10131C;color:#E8EBF5}}
+#splash.off{opacity:0;visibility:hidden;pointer-events:none}
+#splash .lg{position:relative;width:104px;height:104px;animation:spIn .7s cubic-bezier(.2,1.3,.4,1) both}
+#splash img{width:104px;height:104px;border-radius:24px;box-shadow:0 14px 40px rgba(76,125,255,.28);display:block;animation:spBreath 2.4s ease-in-out .7s infinite}
+#splash .rg{position:absolute;inset:-16px;border-radius:50%;border:2px solid transparent;border-top-color:#4C7DFF;border-right-color:rgba(76,125,255,.35);animation:spSpin 1.4s linear infinite}
+#splash b{display:block;font:800 22px/1 Manrope,system-ui,sans-serif;letter-spacing:.02em;animation:spUp .7s .25s both}
+#splash small{display:block;font:500 13px/1.2 Manrope,system-ui,sans-serif;opacity:.55;margin-top:8px;text-align:center;letter-spacing:.04em}
+@keyframes spIn{from{opacity:0;transform:scale(.6) rotate(-8deg)}to{opacity:1;transform:none}}
+@keyframes spUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes spBreath{50%{transform:scale(1.04)}}
+@keyframes spSpin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){#splash *{animation:none!important}}</style>
 </head>
 <body class="theme-light layout-A sec-read">
+<div id="splash" aria-hidden="true"><div class="lg"><i class="rg"></i><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjIyLjUiIGZpbGw9IiNGRkZGRkYiLz48cGF0aCBmaWxsPSIjMTQxNjFGIiBkPSJNMjkuMzcgNjYuOTlRMjYuODYgNjYuOTkgMjUuNDEgNjUuMTNRMjMuOTcgNjMuMjYgMjQuNTggNTkuMDhRMjUuMTEgNTUuMTMgMjcuMiA1MS4wM1EyOS4yOSA0Ni45MiAzMi4yOSA0My40M1EzNS4yOSAzOS45MyAzOC43MSAzNy44UTQyLjEzIDM1LjY4IDQ1LjI1IDM1LjY4UTQ2LjY5IDM1LjY4IDQ4LjIxIDM2LjIxUTQ5LjUxIDM2LjY2IDUwLjQ5IDM3LjY1UTUxLjg2IDM2LjU5IDUyLjYyIDM1LjA3UTUyLjc3IDM0Ljg0IDUzLjIzIDM0LjkyUTUzLjUzIDM1LjA3IDUzLjUzIDM1LjE0UTUzLjUzIDM1LjIyIDUzLjUzIDM1LjIyTDQ5LjEzIDU5LjI0UTQ4LjU5IDYyLjM1IDQ5LjU4IDYyLjk2UTQ5LjgxIDYzLjExIDUwLjExIDYzLjExUTUwLjg3IDYzLjExIDUyLjAxIDYyLjMxUTUzLjE1IDYxLjUyIDU0LjUyIDYwLjE1UTU0Ljc1IDU5LjkyIDU1LjA1IDYwLjIyUTU1LjM2IDYwLjUzIDU1LjEzIDYwLjc2UTUyLjc3IDYzLjU3IDUwLjY4IDY1LjEzUTQ4LjU5IDY2LjY4IDQ2LjYyIDY2LjY4UTQ0LjQxIDY2LjY4IDQzLjY1IDY0Ljk0UTQyLjg5IDYzLjE5IDQzLjUgNTkuMjRMNDQuNTcgNTMuMjNRNDMuNDMgNTUuNjYgNDEuOTggNTcuNzlRMzkuMDIgNjIuMiAzNS43NSA2NC41OVEzMi40OCA2Ni45OSAyOS4zNyA2Ni45OVpNMzMuNTUgNjIuMDVRMzUuNDUgNjIuMDUgMzcuNDIgNjAuNTNRMzkuNCA1OS4wMSA0MS4xNSA1Ni41OFE0Mi44OSA1NC4xNCA0NC4xNSA1MS4zN1E0NS40IDQ4LjYgNDUuODYgNDYuMTZRNDYuNDcgNDIuOSA0NS4zNiA0MC45NlE0NC4yNiAzOS4wMiA0MS44MyAzOS4wMlEzOS41NSAzOS4xIDM3LjIzIDQxLjAzUTM0LjkxIDQyLjk3IDMzLjE3IDQ2LjI4UTMxLjQyIDQ5LjU4IDMwLjY2IDUzLjg0UTI5Ljk3IDU4LjMyIDMwLjg1IDYwLjE5UTMxLjcyIDYyLjA1IDMzLjU1IDYyLjA1WiBNNTMuODQgODYuOVE1MC43MiA4Ni45IDQ5LjEzIDg1LjY4UTQ3LjUzIDg0LjQ3IDQ3Ljc2IDgyLjk1UTQ3Ljk5IDgxLjU4IDQ4LjkgODAuODZRNDkuODEgODAuMTQgNTEuMDMgODAuMTRRNTIuNjIgODAuMTQgNTMuMjMgODAuOTNRNTMuODQgODEuNzMgNTQuMDMgODIuOFE1NC4yMiA4My44NiA1NC40OCA4NC42NlE1NC43NSA4NS40NiA1NS43NCA4NS40NlE1Ni41NyA4NS40NiA1Ny4xNCA4NC4yOFE1Ny43MSA4My4xIDU4LjMyIDc5LjY4UTU4LjkzIDc2LjI2IDU5LjkyIDY5LjU3TDYzLjc5IDQyLjc0UTY0LjEgNDAuODQgNjMuOTEgNDAuMDFRNjMuNzIgMzkuMTcgNjIuODEgMzguOTFRNjEuODkgMzguNjQgNTkuOTIgMzguNjRRNTkuODQgMzguNjQgNTkuNzcgMzguNjRRNTkuNjEgMzguNDkgNTkuNjkgMzguMTFRNTkuNjkgMzcuNTggNTkuOTIgMzcuNThRNjIuNDMgMzcuNTggNjMuNTcgMzYuODVRNjQuNzEgMzYuMTMgNjUuMDEgMzQuMjNRNjYuMTUgMjcuMzIgNjcuNDggMjIuNzZRNjguODEgMTguMiA3MC42NyAxNS41N1E3Mi41MyAxMi45NSA3NS4wOCAxMS44OVE3Ny42MyAxMC44MiA4MS4xMiAxMC44MlE4NC4zMSAxMC44MiA4Ni4wMiAxMi4wNFE4Ny43MyAxMy4yNiA4Ny40MyAxNVE4Ny4yIDE2LjQ1IDg2LjI1IDE3LjE3UTg1LjMgMTcuODkgODQuMDkgMTcuODlRODIuMzQgMTcuODkgODEuNjUgMTcuMDJRODAuOTcgMTYuMTQgODAuNzggMTUuMDhRODAuNTkgMTQuMDIgODAuMjUgMTMuMTRRNzkuOTEgMTIuMjcgNzguNzcgMTIuMjdRNzYuMTEgMTIuMjcgNzQuMjQgMTcuNDRRNzIuMzggMjIuNiA3MC44NiAzMi42NEw3MC4xOCAzNy4yN1E3MC41NiAzNy4yIDcxLjAxIDM3LjJRNzMuMjIgMzcuMDQgNzUuMTIgMzYuODlRNzcuMDIgMzYuNzQgNzcuNjMgMzYuNzRRNzguMDEgMzYuNzQgNzguMTIgMzcuMDFRNzguMjMgMzcuMjcgNzguMTYgMzcuNThRNzguMDEgMzguMTggNzcuMjUgMzkuMTdRNzYuNDkgNDAuMTYgNzUuNjUgNDAuMTZRNzUuMzUgNDAuMDggNzMuOSAzOS44OVE3Mi40NiAzOS43IDcwLjU2IDM5LjQ4UTcwLjI1IDM5LjQgNjkuODcgMzkuNEw2NS43NyA2Ny42UTY0LjcxIDc0Ljg5IDYzLjE5IDc5LjExUTYxLjY3IDgzLjMzIDU5LjQ2IDg1LjExUTU3LjI2IDg2LjkgNTMuODQgODYuOVoKIi8+PGNpcmNsZSBjeD0iNzciIGN5PSI2NyIgcj0iMy4yIiBmaWxsPSIjNEM3REZGIi8+PC9zdmc+" alt=""></div><div style="text-align:center"><b>Ad fontes</b><small>к источникам</small></div></div>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-read" viewBox="0 0 24 24"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5C4.7 20 4 19.3 4 18.5z"/><path d="M20 5.5C20 4.7 19.3 4 18.5 4H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/></symbol>
   <symbol id="i-lib" viewBox="0 0 24 24"><path d="M5 4v16M10 4v16M15 5l4 14"/></symbol>
@@ -85,25 +99,26 @@ f('data/origc/'+b+'/'+c+'.json');sel.forEach(function(t){f('data/trc/'+t+'/'+b+'
 <div id="pop" hidden></div>
 <div id="menu" hidden></div>
 <div id="modal" hidden><div class="sheet" id="sheet"></div></div>
-<script defer src="config.js?v=20261113zbaaaa"></script>
-<script defer src="decoders.js?v=20261113zbaaaa"></script>
-<script defer src="speech.js?v=20261113zbaaaa"></script>
-<script defer src="sync.js?v=20261113zbaaaa"></script>
-<script defer src="themes.js?v=20261113zbaaaa"></script>
-<script defer src="app.js?v=20261113zbaaaa"></script>
-<script defer src="search.js?v=20261113zbaaaa"></script>
-<script defer src="pages.js?v=20261113zbaaaa"></script>
-<script defer src="reading.js?v=20261113zbaaaa"></script>
-<script defer src="library.js?v=20261113zbaaaa"></script>
-<script defer src="kids.js?v=20261113zbaaaa"></script>
-<script defer src="lsearch.js?v=20261113zbaaaa"></script>
-<script defer src="insight.js?v=20261113zbaaaa"></script>
-<script defer src="streak.js?v=20261113zbaaaa"></script>
-<script defer src="reader.js?v=20261113zbaaaa"></script>
-<script defer src="plans.js?v=20261113zbaaaa"></script>
-<script defer src="offline.js?v=20261113zbaaaa"></script>
-<script defer src="settings.js?v=20261113zbaaaa"></script>
-<script defer src="update.js?v=20261113zbaaaa"></script>
-<script defer src="tabfx.js?v=20261113zbaaaa"></script>
+<script>window.__t0=Date.now();setTimeout(function(){var s=document.getElementById("splash");if(s)s.classList.add("off")},9000)</script>
+<script defer src="config.js?v=20261113zbaaaaaaa"></script>
+<script defer src="decoders.js?v=20261113zbaaaaaaa"></script>
+<script defer src="speech.js?v=20261113zbaaaaaaa"></script>
+<script defer src="sync.js?v=20261113zbaaaaaaa"></script>
+<script defer src="themes.js?v=20261113zbaaaaaaa"></script>
+<script defer src="app.js?v=20261113zbaaaaaaa"></script>
+<script defer src="search.js?v=20261113zbaaaaaaa"></script>
+<script defer src="pages.js?v=20261113zbaaaaaaa"></script>
+<script defer src="reading.js?v=20261113zbaaaaaaa"></script>
+<script defer src="library.js?v=20261113zbaaaaaaa"></script>
+<script defer src="kids.js?v=20261113zbaaaaaaa"></script>
+<script defer src="lsearch.js?v=20261113zbaaaaaaa"></script>
+<script defer src="insight.js?v=20261113zbaaaaaaa"></script>
+<script defer src="streak.js?v=20261113zbaaaaaaa"></script>
+<script defer src="reader.js?v=20261113zbaaaaaaa"></script>
+<script defer src="plans.js?v=20261113zbaaaaaaa"></script>
+<script defer src="offline.js?v=20261113zbaaaaaaa"></script>
+<script defer src="settings.js?v=20261113zbaaaaaaa"></script>
+<script defer src="update.js?v=20261113zbaaaaaaa"></script>
+<script defer src="tabfx.js?v=20261113zbaaaaaaa"></script>
 </body>
 </html>

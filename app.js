@@ -138,6 +138,9 @@ async function kfront(){
   const f=await J('data/ins/BTI/_front.json');if(!f){openModal('<h3>Предисловие</h3><p class="hint">Не удалось загрузить.</p>');return}
   openModal(`<h3>Предисловие переводчиков</h3><div class="kfront">`+(f.pre||[]).map(p=>`<p>${esc(p)}</p>`).join('')+`<h3>Пояснения, условные знаки и сокращения</h3>`+(f.exp||[]).map(p=>`<p>${esc(p)}</p>`).join('')+`</div>`)}
 
+/* заставка: убираем, когда текст готов (но не раньше чем покажется анимация) */
+function hideSplash(){const s=document.getElementById('splash');if(!s||s._h)return;s._h=1;
+  setTimeout(()=>{s.classList.add('off');setTimeout(()=>s.remove(),600)},Math.max(0,650-(Date.now()-(window.__t0||Date.now()))))}
 /* ---------- render ---------- */
 async function render(scrollV){
   const t=++token;applyBody();
@@ -146,7 +149,7 @@ async function render(scrollV){
   const R=$('#reader'),ck=cur.book+cur.ch+LY()+(isLand()?'L':''),book=cur.book,ch=cur.ch,P=chapterParts(book,ch);
   let stage=0;
   const show=(d,st,final)=>{
-    if(t!==token||st<=stage)return;stage=st;CUR=d;
+    if(t!==token||st<=stage)return;stage=st;CUR=d;hideSplash();
     if(R._ck!==ck){R._ck=ck;R.classList.remove('enter');void R.offsetWidth;R.classList.add('enter')}
     R.innerHTML=({R:viewR,A:viewA,B:viewB,D:viewD}[LY()]||viewR)(d)+navHTML();
     renderBar();initSplit();
