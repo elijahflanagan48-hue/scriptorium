@@ -7,9 +7,7 @@ ICON = base64.b64encode(open(os.path.join(root, 'icon.svg'), 'rb').read()).decod
 # (css-ширина, css-высота, dpr)
 DEV = [(440,956,3),(430,932,3),(428,926,3),(402,874,3),(393,852,3),(390,844,3),(375,812,3),(414,896,3),(414,896,2),(414,736,3),(375,667,2),(320,568,2),
        (768,1024,2),(744,1133,2),(810,1080,2),(820,1180,2),(834,1112,2),(834,1194,2),(1024,1366,2)]
-PAGE = '''<html><body style="margin:0;width:{w}px;height:{h}px;background:{bg};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;overflow:hidden">
-<img src="data:image/svg+xml;base64,{icon}" style="width:104px;height:104px;border-radius:4px 24px 24px 4px;display:block">
-<div style="text-align:center;font-family:-apple-system,system-ui,sans-serif;color:{fg}"><div style="font-weight:800;font-size:22px;line-height:1;letter-spacing:.02em">Ad fontes</div><div style="font-weight:500;font-size:13px;line-height:1.2;opacity:.55;margin-top:8px;letter-spacing:.04em">к истокам</div></div></body></html>'''
+PAGE = '''<html><body style="margin:0;width:{w}px;height:{h}px;background:{bg};overflow:hidden"></body></html>'''
 async def main():
     tags = []
     async with async_playwright() as p:
