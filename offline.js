@@ -30,7 +30,7 @@ const Offline=(()=>{
     run=(async()=>{
       while(Q.length){const id=Q.shift();if(!IDX||!BOOKS||!window.caches)break;
         const T=plan(id);prog={id,done:0,total:T.length};ping();
-        await pool(T,5,f=>f());
+        await pool(T,4,f=>f());
         if(prog.done>=T.length){st[id]={t:Date.now(),n:T.length};sv()}
         prog=null;ping()}
     })().catch(()=>{}).finally(()=>{run=null;prog=null;ping()});
@@ -46,6 +46,17 @@ const Offline=(()=>{
     else if(isPriv(id)){await Sync.pdrop([`tr/${id}/`,`align/${id}/`,`nt/${id}/`,...(id==='BTI'?['ins/BTI/']:[])])}
     else{const c=await caches.open(CN);for(const r of await c.keys())if(r.url.includes(`/data/trc/${id}/`)||r.url.includes(`/data/alc/${id}/`)||r.url.includes(`/data/tr/${id}/`)||r.url.includes(`/data/align/${id}/`))await c.delete(r)}
     delete st[id];sv();ping()}
+  /* автозагрузка: через несколько секунд после первого запуска тихо сохраняем на устройстве
+     открытые переводы и оригинал (один раз; если человек удалил — больше не навязываем) */
+  function auto(){
+    try{
+      const cn=navigator.connection;if(cn&&cn.saveData)return;
+      let tried=[];try{tried=JSON.parse(localStorage.getItem(K+'.auto')||'[]')}catch(e){}
+      const ids=[...(S.sel||[]).filter(x=>x!=='ORIG'&&TRS[x]&&!isPriv(x)),'orig'].filter(id=>!st[id]&&!tried.includes(id));
+      if(!ids.length)return;
+      localStorage.setItem(K+'.auto',JSON.stringify([...tried,...ids]));
+      ids.forEach(start)}catch(e){}}
+  addEventListener('load',()=>setTimeout(()=>{const w=()=>{if(typeof IDX!=="undefined"&&IDX&&BOOKS&&BOOKS.length)auto();else setTimeout(w,2000)};w()},12000));
   const status=id=>st[id]?new Date(st[id].t).toLocaleDateString('ru-RU'):null;
   return{start,drop,status,queued:id=>Q.includes(id),get busy(){return prog}}
 })();
