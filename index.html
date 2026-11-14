@@ -58,12 +58,12 @@ f('data/origc/'+b+'/'+c+'.json');sel.forEach(function(t){f('data/trc/'+t+'/'+b+'
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preload" href="fonts/literata-cyrillic-opsz-normal.woff2" as="font" type="font/woff2" crossorigin><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Frank+Ruhl+Libre:wght@400;500&family=Gentium+Plus:ital@0;1&display=swap" rel="stylesheet" media="print" onload="this.media='all'"><noscript><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Frank+Ruhl+Libre:wght@400;500&family=Gentium+Plus:ital@0;1&display=swap" rel="stylesheet"></noscript>
-<link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="alternate icon" type="image/png" href="icon-192.png"><link rel="stylesheet" href="style.css?v=20261113zbaaaaaaaaaaaaaaaa">
+<link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="alternate icon" type="image/png" href="icon-192.png"><link rel="stylesheet" href="style.css?v=20261113zbaaaaaaaaaaaaaaaaa">
 <style>#splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;background:#F5F7FC;color:#14161F;transition:opacity .45s ease,visibility .45s}
 @media(prefers-color-scheme:dark){#splash{background:#10131C;color:#E8EBF5}#splash .rp,#splash .lp{background:#1E2333!important;border-color:#2C3350!important}#splash .rp i,#splash .lp i{background:#3A4260!important}}
 #splash.off{opacity:0;visibility:hidden;pointer-events:none}
-#splash .wr{width:104px;height:104px;perspective:900px;animation:bkS 1.3s cubic-bezier(.5,0,.2,1) .55s both}
-#splash .bk{position:relative;width:104px;height:104px;transform-style:preserve-3d;animation:bkIn .7s cubic-bezier(.2,1.2,.4,1) both}
+#splash .wr{width:104px;height:104px;perspective:900px;animation:bkS 1.3s cubic-bezier(.5,0,.2,1) .4s both}
+#splash .bk{position:relative;width:104px;height:104px;transform-style:preserve-3d}
 #splash .rp,#splash .lp{position:absolute;inset:0;border-radius:4px 14px 14px 4px;background:#fff;border:1px solid #E1E5F0;padding:20px 14px 0 16px;box-sizing:border-box}
 #splash .rp i,#splash .lp i{display:block;height:5px;border-radius:3px;background:#DCE2F2;margin-bottom:9px;transform-origin:left;animation:ln 1s ease both}
 #splash .rp i:first-child,#splash .lp i:first-child{background:#4C7DFF;width:46%}
@@ -72,12 +72,12 @@ f('data/origc/'+b+'/'+c+'.json');sel.forEach(function(t){f('data/trc/'+t+'/'+b+'
 @keyframes rpIn{from{opacity:0}}
 #splash .lp{border-radius:14px 4px 4px 14px;padding:20px 16px 0 14px}
 #splash .lp i:nth-child(2){animation-delay:1.6s}#splash .lp i:nth-child(3){animation-delay:1.75s;width:80%}#splash .lp i:nth-child(4){animation-delay:1.9s;width:94%}#splash .lp i:nth-child(5){animation-delay:2.05s;width:60%}
-#splash .cv{position:absolute;inset:0;transform-origin:left center;transform-style:preserve-3d;animation:bkOp 1.3s cubic-bezier(.5,0,.2,1) .55s both}
+#splash .cv{position:absolute;inset:0;transform-origin:left center;transform-style:preserve-3d;animation:bkOp 1.3s cubic-bezier(.5,0,.2,1) .4s both}
 #splash .cv>*{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
 #splash .cv img{width:104px;height:104px;border-radius:4px 24px 24px 4px;display:block}
 #splash .cv .lp{transform:rotateY(180deg)}
-#splash b{display:block;font:800 22px/1 Manrope,system-ui,sans-serif;letter-spacing:.02em;animation:spUp .7s .25s both}
-#splash small{display:block;font:500 13px/1.2 Manrope,system-ui,sans-serif;opacity:.55;margin-top:8px;text-align:center;letter-spacing:.04em}
+#splash b{display:block;font:800 22px/1 -apple-system,system-ui,Manrope,sans-serif;letter-spacing:.02em}
+#splash small{display:block;font:500 13px/1.2 -apple-system,system-ui,Manrope,sans-serif;opacity:.55;margin-top:8px;text-align:center;letter-spacing:.04em}
 @keyframes bkIn{from{opacity:0;transform:scale(.7) rotateY(-14deg)}}
 @keyframes bkOp{to{transform:rotateY(-180deg)}}
 @keyframes bkS{to{transform:translateX(52px)}}
@@ -151,25 +151,25 @@ f('data/origc/'+b+'/'+c+'.json');sel.forEach(function(t){f('data/trc/'+t+'/'+b+'
 <div id="menu" hidden></div>
 <div id="modal" hidden><div class="sheet" id="sheet"></div></div>
 <script>window.__t0=Date.now();setTimeout(function(){var s=document.getElementById("splash");if(s)s.classList.add("off")},9000)</script>
-<script defer src="config.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="decoders.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="speech.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="sync.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="themes.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="app.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="search.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="pages.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="reading.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="library.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="kids.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="lsearch.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="insight.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="streak.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="reader.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="plans.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="offline.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="settings.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="update.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
-<script defer src="tabfx.js?v=20261113zbaaaaaaaaaaaaaaaa"></script>
+<script defer src="config.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="decoders.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="speech.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="sync.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="themes.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="app.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="search.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="pages.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="reading.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="library.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="kids.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="lsearch.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="insight.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="streak.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="reader.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="plans.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="offline.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="settings.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="update.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
+<script defer src="tabfx.js?v=20261113zbaaaaaaaaaaaaaaaaa"></script>
 </body>
 </html>
