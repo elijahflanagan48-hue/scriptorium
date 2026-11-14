@@ -47,12 +47,12 @@ const Offline=(()=>{
     else{const c=await caches.open(CN);for(const r of await c.keys())if(r.url.includes(`/data/trc/${id}/`)||r.url.includes(`/data/alc/${id}/`)||r.url.includes(`/data/tr/${id}/`)||r.url.includes(`/data/align/${id}/`))await c.delete(r)}
     delete st[id];sv();ping()}
   /* автозагрузка: через несколько секунд после первого запуска тихо сохраняем на устройстве
-     открытые переводы и оригинал (один раз; если человек удалил — больше не навязываем) */
+     Синодальный перевод (один раз; если человек удалил — больше не навязываем) */
   function auto(){
     try{
       const cn=navigator.connection;if(cn&&cn.saveData)return;
       let tried=[];try{tried=JSON.parse(localStorage.getItem(K+'.auto')||'[]')}catch(e){}
-      const ids=[...(S.sel||[]).filter(x=>x!=='ORIG'&&TRS[x]&&!isPriv(x)),'orig'].filter(id=>!st[id]&&!tried.includes(id));
+      const ids=['RST'].filter(x=>TRS[x]).filter(id=>!st[id]&&!tried.includes(id));
       if(!ids.length)return;
       localStorage.setItem(K+'.auto',JSON.stringify([...tried,...ids]));
       ids.forEach(start)}catch(e){}}
