@@ -51,7 +51,7 @@ const DCL=new Promise(r=>document.addEventListener('DOMContentLoaded',()=>r(),{o
   S.tabs=(S.tabs||[]).filter(t=>t&&BI[t.book]!==undefined);if(!S.tabs.length){S.tabs=[{book:cur.book,ch:cur.ch}];S.tab=0}
   S.tab=Math.min(Math.max(0,S.tab|0),S.tabs.length-1);S.sec='read';
   try{speechSynthesis.getVoices()}catch(e){}
-  const lv=S.lastV&&S.lastV.b===cur.book&&S.lastV.c===cur.ch?S.lastV.v:0;
+  const lv=S.lastV&&S.lastV.b===cur.book&&S.lastV.c===cur.ch?S.lastV.v:0;window.__restoreO=lv&&!h&&S.lastV.o!=null?S.lastV.o:null;
   bind();go(cur.book,cur.ch,h?h.v:lv);
   Sync.init(S,{status:accStatus,applied:()=>{save();cur=S.last;applyRd();render();if(S.sec==='set')Settings.render()}});
   if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
@@ -154,7 +154,10 @@ async function render(scrollV){
     R.innerHTML=({R:viewR,A:viewA,B:viewB,D:viewD}[LY()]||viewR)(d)+navHTML();
     renderBar();initSplit();
     const el=scrollV?$(`[data-v="${scrollV}"]`,R):null;
-    if(el){el.scrollIntoView({block:'center'});if(final){el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1700)}}
+    if(el){const ro=window.__restoreO;
+      if(ro!=null){const put=()=>{const e2=$(`[data-v="${scrollV}"]`,R);if(!e2)return;e2.scrollIntoView({block:'start'});scrollBy(0,e2.getBoundingClientRect().top-ro);return scrollY};
+        let y=put();if(final){window.__restoreO=null;const re=()=>{if(y!=null&&Math.abs(scrollY-y)<3&&t===token)y=put()};try{document.fonts.ready.then(re)}catch(x){}setTimeout(re,700)}}
+      else{el.scrollIntoView({block:'center'});if(final){el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1700)}}}
     else if(!first&&y0>0)scrollTo(0,y0);
     hideSplash();
   };
@@ -711,7 +714,7 @@ document.addEventListener('click',e=>{if(document.body.classList.contains('tabd'
 
 /* запоминаем, где остановились читать: стих у верхнего края */
 (function(){let t=null;addEventListener('scroll',()=>{if(t)return;t=setTimeout(()=>{t=null;try{if(!CUR||S.sec!=='read')return;const R=document.getElementById('reader');if(!R)return;
-  const els=R.querySelectorAll('[data-v]');let v=0;for(const e of els){if(e.getBoundingClientRect().bottom>110){v=+e.dataset.v;break}}
+  const els=R.querySelectorAll('[data-v]');let v=0,o=0;for(const e of els){const r=e.getBoundingClientRect();if(r.bottom>110){v=+e.dataset.v;o=Math.round(r.top);break}}
   if(!v||v===1&&scrollY<200){if(S.lastV){S.lastV=null;localStorage.setItem(KEY,JSON.stringify(S))}return}
-  if(S.lastV&&S.lastV.v===v&&S.lastV.b===cur.book&&S.lastV.c===cur.ch)return;
-  S.lastV={b:cur.book,c:cur.ch,v};localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}},900)},{passive:true})})();
+  if(S.lastV&&S.lastV.v===v&&S.lastV.o===o&&S.lastV.b===cur.book&&S.lastV.c===cur.ch)return;
+  S.lastV={b:cur.book,c:cur.ch,v,o};localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}},900)},{passive:true})})();
