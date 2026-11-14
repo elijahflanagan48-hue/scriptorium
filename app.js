@@ -51,6 +51,7 @@ const DCL=new Promise(r=>document.addEventListener('DOMContentLoaded',()=>r(),{o
   S.tabs=(S.tabs||[]).filter(t=>t&&BI[t.book]!==undefined);if(!S.tabs.length){S.tabs=[{book:cur.book,ch:cur.ch}];S.tab=0}
   S.tab=Math.min(Math.max(0,S.tab|0),S.tabs.length-1);S.sec='read';
   try{speechSynthesis.getVoices()}catch(e){}
+  if(!S.lvFix){S.lastV=null;S.lvFix=1}
   const lv=S.lastV&&S.lastV.b===cur.book&&S.lastV.c===cur.ch?S.lastV.v:0;window.__restoreO=lv&&!h&&S.lastV.o!=null?S.lastV.o:null;
   bind();go(cur.book,cur.ch,h?h.v:lv);
   Sync.init(S,{status:accStatus,applied:()=>{save();cur=S.last;applyRd();render();if(S.sec==='set')Settings.render()}});
@@ -151,7 +152,7 @@ async function render(scrollV){
   const show=(d,st,final)=>{
     if(t!==token||st<=stage)return;const first=!stage,y0=scrollY;stage=st;CUR=d;
     if(R._ck!==ck){R._ck=ck;R.classList.remove('enter');void R.offsetWidth;R.classList.add('enter')}
-    R.innerHTML=({R:viewR,A:viewA,B:viewB,D:viewD}[LY()]||viewR)(d)+navHTML();
+    R.innerHTML=({R:viewR,A:viewA,B:viewB,D:viewD}[LY()]||viewR)(d)+navHTML();R.dataset.bc=book+'.'+ch;R._tt=Date.now();
     renderBar();initSplit();
     const el=scrollV?$(`[data-v="${scrollV}"]`,R):null;
     if(el){const ro=window.__restoreO;
@@ -714,6 +715,7 @@ document.addEventListener('click',e=>{if(document.body.classList.contains('tabd'
 
 /* запоминаем, где остановились читать: стих у верхнего края */
 (function(){let t=null;addEventListener('scroll',()=>{if(t)return;t=setTimeout(()=>{t=null;try{if(!CUR||S.sec!=='read')return;const R=document.getElementById('reader');if(!R)return;
+  if(R.dataset.bc!==cur.book+'.'+cur.ch||Date.now()-(R._tt||0)<1500||document.getElementById('splash'))return;
   const els=R.querySelectorAll('[data-v]');let v=0,o=0;for(const e of els){const r=e.getBoundingClientRect();if(r.bottom>110){v=+e.dataset.v;o=Math.round(r.top);break}}
   if(!v||v===1&&scrollY<200){if(S.lastV){S.lastV=null;localStorage.setItem(KEY,JSON.stringify(S))}return}
   if(S.lastV&&S.lastV.v===v&&S.lastV.o===o&&S.lastV.b===cur.book&&S.lastV.c===cur.ch)return;
