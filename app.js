@@ -140,7 +140,7 @@ async function kfront(){
 
 /* заставка: убираем, когда текст готов (но не раньше чем покажется анимация) */
 function hideSplash(){const s=document.getElementById('splash');if(!s||s._h)return;s._h=1;
-  setTimeout(()=>{s.classList.add('off');setTimeout(()=>s.remove(),600)},Math.max(0,650-(Date.now()-(window.__t0||Date.now()))))}
+  setTimeout(()=>{s.classList.add('off');setTimeout(()=>s.remove(),600)},Math.max(0,1500-(Date.now()-(window.__t0||Date.now()))))}
 /* ---------- render ---------- */
 async function render(scrollV){
   const t=++token;applyBody();
