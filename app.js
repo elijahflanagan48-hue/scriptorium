@@ -149,11 +149,14 @@ async function render(scrollV){
   const R=$('#reader'),ck=cur.book+cur.ch+LY()+(isLand()?'L':''),book=cur.book,ch=cur.ch,P=chapterParts(book,ch);
   let stage=0;
   const show=(d,st,final)=>{
-    if(t!==token||st<=stage)return;stage=st;CUR=d;hideSplash();
+    if(t!==token||st<=stage)return;const first=!stage,y0=scrollY;stage=st;CUR=d;
     if(R._ck!==ck){R._ck=ck;R.classList.remove('enter');void R.offsetWidth;R.classList.add('enter')}
     R.innerHTML=({R:viewR,A:viewA,B:viewB,D:viewD}[LY()]||viewR)(d)+navHTML();
     renderBar();initSplit();
-    if(final&&scrollV){const el=$(`[data-v="${scrollV}"]`,R);if(el){el.scrollIntoView({block:'center'});el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1700)}}
+    const el=scrollV?$(`[data-v="${scrollV}"]`,R):null;
+    if(el){el.scrollIntoView({block:'center'});if(final){el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1700)}}
+    else if(!first&&y0>0)scrollTo(0,y0);
+    hideSplash();
   };
   if(R._ck!==ck)setTimeout(()=>{if(t===token&&!stage){R._ck=null;R.innerHTML=head()+`<div class="rsk">`+'<div class="sk"></div>'.repeat(9)+`</div>`}},120);
   // 1) первый открытый перевод — сразу, как только пришёл
