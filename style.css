@@ -1112,3 +1112,10 @@ html.ipad #side .chs{grid-template-columns:repeat(6,minmax(0,1fr))}
 .kfront p{margin:0 0 .7em;line-height:1.55;font-size:14.5px}.kfront h3{margin:1.2em 0 .6em}
 
 .soff{margin:4px 0 8px;border-top:1px solid var(--line)}.soff-r{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.soff-r .srl small{display:block;color:var(--ink2,#777);font-size:12.5px}.soff .tgh{margin:12px 0 2px}
+
+/* окно с полями ввода поверх клавиатуры: прижато к верху видимой области */
+@media(pointer:coarse){
+  #modal.kb{inset:auto;left:0;right:0;top:var(--vvt,0px);height:var(--vvh,100dvh);align-items:flex-start;padding:calc(env(safe-area-inset-top,0px) + 8px) 8px 8px;overflow:hidden;transition:none}
+  #modal.kb .sheet{border-radius:22px;max-height:calc(var(--vvh,100dvh) - 24px - env(safe-area-inset-top,0px));overflow:auto;padding-bottom:22px;transform:none!important;margin:0 auto}
+  #modal.kb .sheet::before{display:none!important}
+}

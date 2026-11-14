@@ -462,6 +462,15 @@ function openModal(html,o){const m=$('#modal'),drop=!!(o&&o.drop)&&isM();
   m.classList.toggle('drop',drop);
   $('#sheet').style.transform='';$('#sheet').innerHTML=html+(drop?'<div class="dgrab" id="dgrab" role="button" aria-label="Закрыть"><i></i></div>':'');$('#sheet').scrollTop=0;
   clearTimeout(m._t);if(m.hidden){m.hidden=false;m.offsetWidth;}m.classList.add('show');lockScroll('modal')}
+/* окно с полями ввода (вход, коды): при появлении клавиатуры уезжает вверх и подгоняется под видимую область */
+(()=>{const vv=window.visualViewport,m=()=>document.getElementById('modal'),coarse=matchMedia('(pointer:coarse)');
+  const upd=()=>{const el=m();if(!el||!vv)return;el.style.setProperty('--vvh',vv.height+'px');el.style.setProperty('--vvt',vv.offsetTop+'px')};
+  if(vv){vv.addEventListener('resize',upd);vv.addEventListener('scroll',upd)}
+  const isF=t=>t&&t.matches&&t.matches('input,textarea,select')&&t.closest('#sheet');
+  document.addEventListener('focusin',e=>{if(!coarse.matches||!isF(e.target))return;const el=m();if(!el)return;window.__kbT=Date.now();upd();el.classList.add('kb');
+    setTimeout(()=>{upd();try{e.target.scrollIntoView({block:'center',behavior:'smooth'})}catch(x){}},320)});
+  document.addEventListener('focusout',e=>{if(!isF(e.target))return;setTimeout(()=>{const el=m();if(el&&!(document.activeElement&&isF(document.activeElement))){window.__kbT=Date.now();el.classList.remove('kb')}},150)});
+})();
 const closeModal=()=>{const m=$('#modal');if(m.hidden)return;m.classList.remove('show');unlockScroll('modal');clearTimeout(m._t);m._t=setTimeout(()=>{if(!m.classList.contains('show'))m.hidden=true},m.classList.contains('drop')?380:230)};
 function bookSheet(sel){
   if(sel){const b=BOOKS[BI[sel]];openModal(`<h3>${esc(b.ru)}</h3><div class="hint" style="margin:-8px 0 12px"><a href="#" id="back">← все книги</a></div><div class="nums g-${genreOf(b.id)}">`+Array.from({length:b.chapters},(_,i)=>`<button data-go="${b.id}.${i+1}" class="${cur.book===b.id&&cur.ch===i+1?'on':''}">${i+1}</button>`).join('')+'</div>',{drop:1});return}
@@ -595,7 +604,7 @@ function bind(){
   let tx=null;$('#reader').addEventListener('touchstart',e=>{const p=e.touches[0];tx=e.touches.length===1?{x:p.clientX,y:p.clientY}:null},{passive:true});
   $('#reader').addEventListener('touchend',e=>{if(!tx)return;const p=e.changedTouches[0],dx=p.clientX-tx.x,dy=p.clientY-tx.y;tx=null;if(Math.abs(dx)>90&&Math.abs(dy)<45&&!getSelection().toString())step(dx<0?1:-1)},{passive:true});
   $('#modal').onclick=e=>{
-    if(e.target.id==='modal'){closeModal();return}
+    if(e.target.id==='modal'){if(Date.now()-(window.__kbT||0)<800)return;if(e.target.classList.contains('kb')){try{document.activeElement.blur()}catch(x){}return}closeModal();return}
     const bk=e.target.closest('[data-bk]');if(bk){bookSheet(bk.dataset.bk);return}
     if(e.target.id==='back'){e.preventDefault();bookSheet();return}
     const g=e.target.closest('[data-go]');if(g){const [b,c]=g.dataset.go.split('.');closeModal();go(b,+c);scrollTo(0,0);return}
