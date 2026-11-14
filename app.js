@@ -47,14 +47,14 @@ const DCL=new Promise(r=>document.addEventListener('DOMContentLoaded',()=>r(),{o
   if(!S.recent)S.recent=[];if(!S.wnotes)S.wnotes={};if(!S.ts)S.ts={};if(!S.qhist)S.qhist=[];if(!S.saved)S.saved=[];if(S.side===undefined)S.side=true;
   if(!S.rmode){S.rmode=1;S.layout='R'}if(!S.done)S.done={};
   if(BI[cur.book]===undefined)cur={book:'Gen',ch:1};
-  const h=parseHash();if(h)cur=h;
+  const h=navigator.standalone?null:parseHash();if(h)cur=h;
   S.tabs=(S.tabs||[]).filter(t=>t&&BI[t.book]!==undefined);if(!S.tabs.length){S.tabs=[{book:cur.book,ch:cur.ch}];S.tab=0}
   S.tab=Math.min(Math.max(0,S.tab|0),S.tabs.length-1);S.sec='read';
   try{speechSynthesis.getVoices()}catch(e){}
   if(!S.lvFix){S.lastV=null;S.lvFix=1}
   const lv=S.lastV&&S.lastV.b===cur.book&&S.lastV.c===cur.ch?S.lastV.v:0;window.__restoreO=lv&&!h&&S.lastV.o!=null?S.lastV.o:null;
   bind();go(cur.book,cur.ch,h?h.v:lv);
-  Sync.init(S,{status:accStatus,applied:()=>{save();cur=S.last;applyRd();render();if(S.sec==='set')Settings.render()}});
+  Sync.init(S,{status:accStatus,applied:()=>{S.last={book:cur.book,ch:cur.ch};save();applyRd();render();if(S.sec==='set')Settings.render()}});
   if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 })();
 addEventListener('hashchange',()=>{const h=parseHash();if(h&&BOOKS.length&&(h.book!==cur.book||h.ch!==cur.ch||h.v))go(h.book,h.ch,h.v)});
@@ -150,7 +150,7 @@ async function render(scrollV){
   const R=$('#reader'),ck=cur.book+cur.ch+LY()+(isLand()?'L':''),book=cur.book,ch=cur.ch,P=chapterParts(book,ch);
   let stage=0;
   const show=(d,st,final)=>{
-    if(t!==token||st<=stage)return;const first=!stage,y0=scrollY;stage=st;CUR=d;
+    if(t!==token||st<=stage)return;const first=!stage,y0=scrollY,same=R.dataset.bc===book+'.'+ch;stage=st;CUR=d;
     if(R._ck!==ck){R._ck=ck;R.classList.remove('enter');void R.offsetWidth;R.classList.add('enter')}
     R.innerHTML=({R:viewR,A:viewA,B:viewB,D:viewD}[LY()]||viewR)(d)+navHTML();R.dataset.bc=book+'.'+ch;R._tt=Date.now();
     renderBar();initSplit();
@@ -159,7 +159,7 @@ async function render(scrollV){
       if(ro!=null){const put=()=>{const e2=$(`[data-v="${scrollV}"]`,R);if(!e2)return;e2.scrollIntoView({block:'start'});scrollBy(0,e2.getBoundingClientRect().top-ro);return scrollY};
         let y=put();if(final){window.__restoreO=null;const re=()=>{if(y!=null&&Math.abs(scrollY-y)<3&&t===token)y=put()};try{document.fonts.ready.then(re)}catch(x){}setTimeout(re,700)}}
       else{el.scrollIntoView({block:'center'});if(final){el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1700)}}}
-    else if(!first&&y0>0)scrollTo(0,y0);
+    else if((same||!first)&&y0>0)scrollTo(0,y0);
     hideSplash();
   };
   if(R._ck!==ck)setTimeout(()=>{if(t===token&&!stage){R._ck=null;R.innerHTML=head()+`<div class="rsk">`+'<div class="sk"></div>'.repeat(9)+`</div>`}},120);
