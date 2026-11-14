@@ -36,9 +36,10 @@ const trSort=()=>{if(IDX)IDX.translations=[...IDX.translations.filter(t=>t.lang=
 const trGroups=()=>[['Русские переводы',IDX.translations.filter(t=>t.lang==='ru')],['Английские переводы',IDX.translations.filter(t=>t.lang!=='ru')]].filter(g=>g[1].length);
 
 /* ---------- init ---------- */
+const DCL=new Promise(r=>document.addEventListener('DOMContentLoaded',()=>r(),{once:true}));
 (async function init(){
   /* скрипты с defer выполняются по очереди: ждём, пока загрузятся все (иначе viewR и др. ещё не определены) */
-  if(document.readyState!=='complete')await new Promise(r=>document.addEventListener('DOMContentLoaded',()=>r(),{once:true}));
+  await DCL;
   IDX=await J('data/index.json');
   if(!IDX){document.body.innerHTML='<p style="padding:40px;font-family:sans-serif">Не найдены файлы данных. Запустите приложение через сервер: в папке приложения выполните <code>python3 -m http.server 8000</code> и откройте <code>http://localhost:8000</code>.</p>';return}
   BOOKS=IDX.books;BOOKS.forEach((b,i)=>BI[b.id]=i);IDX.translations.forEach(t=>TRS[t.id]=t);trSort();
