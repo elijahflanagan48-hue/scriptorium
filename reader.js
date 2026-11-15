@@ -338,5 +338,6 @@ const Rdr=(()=>{
       try{const b=await importFile(f);openOwn(b.id)}catch(err){alert(err.message||'Не удалось открыть файл');shelf()}}
   });
   document.addEventListener('click',e=>{const w=e.target.closest('.bkt .w[data-s]');if(w&&w.dataset.s)inspect([w.dataset.f,w.dataset.s,''],w.dataset.s[0]==='H',null,null)});
-  return{openLib,openOwn,toc,shelf,importFile,get on(){return document.body.classList.contains('bkmode')}};
+  function resume(){const k=S.rlast||'',i=k.indexOf(':');if(i<0)return false;const t=k.slice(0,i),id=k.slice(i+1);if(!RP()[k])return false;if(t==='lib')openLib(id);else if(t==='own')openOwn(id);else return false;return true}
+  return{openLib,openOwn,toc,shelf,importFile,resume,get on(){return document.body.classList.contains('bkmode')}};
 })();

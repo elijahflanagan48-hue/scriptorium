@@ -145,7 +145,7 @@ function hideSplash(){const s=document.getElementById('splash');if(!s||s._h)retu
 /* ---------- render ---------- */
 async function render(scrollV){
   const t=++token;applyBody();
-  $('#bookLabel').textContent=`${bookRu(cur.book)} ${cur.ch}`;if($('#miniT'))$('#miniT').textContent=`${bookRu(cur.book)} ${cur.ch}`;$('#bookBtn').className='pill only-m '+gcls();
+  $('#bookLabel').textContent=`${bookRu(cur.book)} ${cur.ch}`;setMini();$('#bookBtn').className='pill only-m '+gcls();
   renderTabs();buildSide();
   const R=$('#reader'),ck=cur.book+cur.ch+LY()+(isLand()?'L':''),book=cur.book,ch=cur.ch,P=chapterParts(book,ch);
   let stage=0;
@@ -565,11 +565,24 @@ function applyBody(){
 function showSec(s,fromNav){
   if(s==='read'&&S.sec==='read'&&fromNav&&tabD()){document.body.classList.toggle('drawer');return}
   if(s==='read'&&S.sec==='read'&&fromNav&&!isM()){S.side=!S.side;touchSettings();applyBody();return}
-  document.body.classList.remove('bkmode');if($('#miniT')&&typeof cur!=='undefined')$('#miniT').textContent=`${bookRu(cur.book)} ${cur.ch}`;if(typeof cur!=='undefined')topLib('');
-  const was=S.sec;S.sec=s;applyBody();$('#menu').hidden=true;if(s==='search')warmSearch();
-  if(s==='read'){$('#page').hidden=true;$('#reader').hidden=false;if(was!=='read')scrollTo(0,0)}
-  else{$('#reader').hidden=true;$('#page').hidden=false;if(was==='read'||isM())closeInsp();if(s==='set')Settings.render();else if(s==='plans'){if(was!=='plans')Plans.reset();Plans.render()}else Pages.render(s);scrollTo(0,0)}
+  const was=S.sec,wasBk=document.body.classList.contains('bkmode');
+  /* запоминаем, где остановились в разделе, чтобы вернуться на то же место */
+  if(was&&was!==s&&!wasBk){const R=$('#reader');SCR[was]={y:scrollY,bc:was==='read'&&R?R.dataset.bc:''}}
+  if(was!==s&&was==='lib')SCR.bk=wasBk;
+  document.body.classList.remove('bkmode');if($('#miniT')&&typeof cur!=='undefined')setMini();if(typeof cur!=='undefined')topLib('');
+  S.sec=s;applyBody();$('#menu').hidden=true;if(s==='search')warmSearch();
+  const back=fromNav&&was!==s?SCR[s]:null;
+  if(s==='read'){$('#page').hidden=true;$('#reader').hidden=false;
+    if(was!=='read'){const R=$('#reader');const y=back&&back.bc&&R&&R.dataset.bc===back.bc?back.y:0;scrollTo(0,0);if(y)requestAnimationFrame(()=>scrollTo(0,y))}}
+  else{$('#reader').hidden=true;$('#page').hidden=false;if(was==='read'||isM())closeInsp();
+    if(s==='lib'&&fromNav&&SCR.bk&&typeof Rdr!=='undefined'&&Rdr.resume()){SCR.bk=false;return}
+    if(s==='set')Settings.render();else if(s==='plans'){if(was!=='plans')Plans.reset();Plans.render()}else Pages.render(s);
+    scrollTo(0,0);if(back&&back.y)requestAnimationFrame(()=>scrollTo(0,back.y))}
 }
+const SCR={};
+/* подпись вверху при чтении: глава и перевод */
+function trLbl(){const p=typeof primary==='function'?primary():null,t=p&&TRS[p];if(!t)return'';return t.lang==='ru'?t.name.split(' ')[0]:p}
+function setMini(){const m=$('#miniT');if(!m||typeof cur==='undefined')return;const l=trLbl();m.innerHTML=esc(`${bookRu(cur.book)} ${cur.ch}`)+(l?` <small class="mtr">· ${esc(l)}</small>`:'')}
 function renderTabs(){
   const el=$('#tabs');if(!el)return;
   el.innerHTML=S.tabs.map((r,i)=>`<button class="tab g-${genreOf(r.book)} ${i===S.tab?'on':''}" data-tab="${i}" role="tab" title="${esc(bookRu(r.book))} ${r.ch}"><span class="gdot"></span>${esc(bookAb(r.book))} ${r.ch}${S.tabs.length>1?`<span class="x" data-tabx="${i}" role="button" aria-label="Закрыть вкладку">✕</span>`:''}</button>`).join('')+
