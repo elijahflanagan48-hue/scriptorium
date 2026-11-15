@@ -14,7 +14,7 @@ async def main():
         b = await p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--no-sandbox'])
         for w, h, d in DEV:
             for dark in (0, 1):
-                bg, fg = ('#10131C', '#E8EBF5') if dark else ('#F5F7FC', '#14161F')
+                bg, fg = ('#F5F7FC', '#14161F')  # всегда светлая: приложение по умолчанию светлое, иначе при светлой теме приложения вспышка
                 c = await b.new_context(viewport={'width': w, 'height': h}, device_scale_factor=d)
                 pg = await c.new_page(); await pg.set_content(PAGE.format(w=w, h=h, bg=bg, fg=fg, icon=ICON))
                 fn = f'splash/{w}x{h}x{d}{"d" if dark else ""}.png'

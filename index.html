@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Ad fontes</title>
 <meta name="description" content="Ad fontes — Библия с оригиналами на еврейском и греческом, переводами и умным поиском">
-<meta name="theme-color" content="#F5F7FC"><script>if(matchMedia("(prefers-color-scheme:dark)").matches)document.querySelector('meta[name="theme-color"]').content="#10131C"</script>
+<meta name="theme-color" content="#F5F7FC"><script>(function(){try{var T={"light":["#F5F7FC","#14161F",0],"sepia":["#F4ECDD","#2E2618",0],"parch":["#ECE0C6","#2B2116",0],"stone":["#F1EBE4","#2A2420",0],"olive":["#EDF1E8","#1E261C",0],"lake":["#ECF4F6","#13232B",0],"lilac":["#F3F1F8","#1E1A2B",0],"mono":["#FFFFFF","#000000",0],"dark":["#10131C","#E8EBF5",1],"candle":["#17110B","#EBDCC1",1],"sea":["#0A1A20","#DCEBEF",1],"forest":["#0B1611","#DCEBE1",1],"dusk":["#14111E","#E7E3F3",1],"graphite":["#1D1E21","#D8D8DB",1],"black":["#000000","#E4E4E4",1],"ember":["#120807","#E9B9A9",1]},S=JSON.parse(localStorage.getItem("scriptorium.v1")||"{}"),id=S.theme||"light";if(S.tAuto){var n=S.tAuto==="sys"?matchMedia("(prefers-color-scheme:dark)").matches:S.tAuto==="time"?(new Date().getHours()<7||new Date().getHours()>=21):false;id=n?(S.tNight||"dark"):(S.tDay||"light")}var x=T[id]||T.light,d=document.documentElement;d.style.setProperty("--sb",x[0]);d.style.setProperty("--si",x[1]);if(x[2])d.classList.add("sn");var m=document.querySelector('meta[name="theme-color"]');if(m)m.content=x[0]}catch(e){}})()</script>
 <meta name="apple-mobile-web-app-title" content="Ad fontes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-startup-image" media="(device-width:440px) and (device-height:956px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait) and (prefers-color-scheme:light)" href="splash/440x956x3.png">
@@ -58,10 +58,10 @@ f('data/origc/'+b+'/'+c+'.json');sel.forEach(function(t){f('data/trc/'+t+'/'+b+'
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preload" href="fonts/literata-cyrillic-opsz-normal.woff2" as="font" type="font/woff2" crossorigin><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Frank+Ruhl+Libre:wght@400;500&family=Gentium+Plus:ital@0;1&display=swap" rel="stylesheet" media="print" onload="this.media='all'"><noscript><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Frank+Ruhl+Libre:wght@400;500&family=Gentium+Plus:ital@0;1&display=swap" rel="stylesheet"></noscript>
-<link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="alternate icon" type="image/png" href="icon-192.png"><link rel="stylesheet" href="style.css?v=20261114splash3" media="print" onload="this.media='all';this.dataset.ok=1;document.documentElement.classList.add('css')"><noscript><style>html:not(.css) body>*{display:revert!important}</style><link rel="stylesheet" href="style.css?v=20261114splash3"></noscript>
-<style>html:not(.css),html:not(.css) body{overflow:hidden}html:not(.css) body>:not(#splash){display:none!important}html{background:#F5F7FC}@media(prefers-color-scheme:dark){html{background:#10131C}}
-#splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;background:#F5F7FC;color:#14161F;transition:opacity .45s ease,visibility .45s}
-@media(prefers-color-scheme:dark){#splash{background:#10131C;color:#E8EBF5}#splash .rp,#splash .lp{background:#1E2333!important;border-color:#2C3350!important}#splash .rp i,#splash .lp i{background:#3A4260!important}}
+<link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="alternate icon" type="image/png" href="icon-192.png"><link rel="stylesheet" href="style.css?v=20261115splash4" media="print" onload="this.media='all';this.dataset.ok=1;document.documentElement.classList.add('css')"><noscript><style>html:not(.css) body>*{display:revert!important}</style><link rel="stylesheet" href="style.css?v=20261115splash4"></noscript>
+<style>html:not(.css),html:not(.css) body{overflow:hidden}html:not(.css) body>:not(#splash){display:none!important}html{background:var(--sb,#F5F7FC)}
+#splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;background:var(--sb,#F5F7FC);color:var(--si,#14161F);transition:opacity .45s ease,visibility .45s}
+html.sn #splash .rp,html.sn #splash .lp{background:#1E2333!important;border-color:#2C3350!important}html.sn #splash .rp i,html.sn #splash .lp i{background:#3A4260!important}
 #splash:not(.go) *{animation-play-state:paused!important}
 #splash.off{opacity:0;visibility:hidden;pointer-events:none}
 #splash .wr{width:104px;height:104px;perspective:900px;animation:spIn .3s ease both,bkS 1.3s cubic-bezier(.5,0,.2,1) .7s both}
@@ -156,25 +156,25 @@ f('data/origc/'+b+'/'+c+'.json');sel.forEach(function(t){f('data/trc/'+t+'/'+b+'
 <div id="menu" hidden></div>
 <div id="modal" hidden><div class="sheet" id="sheet"></div></div>
 <script>window.__t0=Date.now();setTimeout(function(){var s=document.getElementById("splash");if(s)s.classList.add("off")},9000)</script>
-<script defer src="config.js?v=20261114splash3"></script>
-<script defer src="decoders.js?v=20261114splash3"></script>
-<script defer src="speech.js?v=20261114splash3"></script>
-<script defer src="sync.js?v=20261114splash3"></script>
-<script defer src="themes.js?v=20261114splash3"></script>
-<script defer src="app.js?v=20261114splash3"></script>
-<script defer src="search.js?v=20261114splash3"></script>
-<script defer src="pages.js?v=20261114splash3"></script>
-<script defer src="reading.js?v=20261114splash3"></script>
-<script defer src="library.js?v=20261114splash3"></script>
-<script defer src="kids.js?v=20261114splash3"></script>
-<script defer src="lsearch.js?v=20261114splash3"></script>
-<script defer src="insight.js?v=20261114splash3"></script>
-<script defer src="streak.js?v=20261114splash3"></script>
-<script defer src="reader.js?v=20261114splash3"></script>
-<script defer src="plans.js?v=20261114splash3"></script>
-<script defer src="offline.js?v=20261114splash3"></script>
-<script defer src="settings.js?v=20261114splash3"></script>
-<script defer src="update.js?v=20261114splash3"></script>
-<script defer src="tabfx.js?v=20261114splash3"></script>
+<script defer src="config.js?v=20261115splash4"></script>
+<script defer src="decoders.js?v=20261115splash4"></script>
+<script defer src="speech.js?v=20261115splash4"></script>
+<script defer src="sync.js?v=20261115splash4"></script>
+<script defer src="themes.js?v=20261115splash4"></script>
+<script defer src="app.js?v=20261115splash4"></script>
+<script defer src="search.js?v=20261115splash4"></script>
+<script defer src="pages.js?v=20261115splash4"></script>
+<script defer src="reading.js?v=20261115splash4"></script>
+<script defer src="library.js?v=20261115splash4"></script>
+<script defer src="kids.js?v=20261115splash4"></script>
+<script defer src="lsearch.js?v=20261115splash4"></script>
+<script defer src="insight.js?v=20261115splash4"></script>
+<script defer src="streak.js?v=20261115splash4"></script>
+<script defer src="reader.js?v=20261115splash4"></script>
+<script defer src="plans.js?v=20261115splash4"></script>
+<script defer src="offline.js?v=20261115splash4"></script>
+<script defer src="settings.js?v=20261115splash4"></script>
+<script defer src="update.js?v=20261115splash4"></script>
+<script defer src="tabfx.js?v=20261115splash4"></script>
 </body>
 </html>
