@@ -1121,4 +1121,3 @@ html.ipad #side .chs{grid-template-columns:repeat(6,minmax(0,1fr))}
 }
 
 #mini .mtr{font-weight:600;color:var(--mute);font-size:12px;margin-left:2px}
-#miniX{position:absolute;right:6px;bottom:0;width:36px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--mute)}#miniX svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;margin:0}

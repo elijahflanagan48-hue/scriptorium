@@ -245,7 +245,7 @@ const Rdr=(()=>{
     RP()[B.key]={pos:POS,y,t:Date.now(),title:B.title,lbl:ch.mini||''};S.rlast=B.key;touchSettings();save();
     const lang=ch.lang==='grc'?' lang="grc"':ch.lang==='heb'?' lang="he" dir="rtl"':ch.lang==='en'?' lang="en"':' lang="ru"';
     const tsel=B.kind==='lib'?`<label class="bksel"><span>Текст</span><select data-bktext>${B.texts.map(t=>`<option value="${esc(t.tid)}"${t.tid===B.text().tid?' selected':''}>${esc(Lib.lbl(t))}${t.access==='account'&&!Lib.hasAcc()?' · после входа':''}</option>`).join('')}</select></label>`:'';
-    let h=`<div class="pg bk-pg"><div class="bkbar"><button class="mini" data-bk="back">‹ Полки</button><span class="bkbt">${esc(B.title)}</span><span class="spacer"></span>${tsel}<button class="mini" data-bk="toc">Оглавление</button><button class="mini bkaa" data-bk="aa" aria-label="Вид текста">Аа</button></div>`;
+    let h=`<div class="pg bk-pg"><div class="bkbar"><button class="mini" data-bk="back">${B.kind==='lib'?'‹ К книге':'‹ Полки'}</button><span class="bkbt">${esc(B.title)}</span><span class="spacer"></span>${tsel}<button class="mini" data-bk="toc">Оглавление</button><button class="mini bkaa" data-bk="aa" aria-label="Вид текста">Аа</button></div>`;
     if(ch.locked)h+=`<div class="bkt"><div class="lnote warm">Этот текст открывается после входа в личный кабинет с доступом. <button class="mini" data-bk="acc">Войти</button></div></div>`;
     else if(ch.empty)h+=`<p class="hint">Здесь пока нет текста.</p>`;
     else{
@@ -323,7 +323,7 @@ const Rdr=(()=>{
       touchSettings();aa(true);return}
     const th=t.closest('#sheet [data-bkth]');if(th){S.tAuto='';S.theme=th.dataset.bkth;touchSettings();applyBody();aa(true);return}
     const b=t.closest('[data-bk]');if(!b)return;const a=b.dataset.bk;
-    if(a==='back'){showSec('lib')}
+    if(a==='back'){const s=S.lib||{};showSec('lib');if(B&&B.kind==='lib'&&s.w)Lib.open(s.w,s.p,s.c)}
     if(a==='toc')toc();
     if(a==='aa')aa();
     if(a==='acc')accSheet();

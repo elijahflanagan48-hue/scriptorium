@@ -130,16 +130,7 @@ $('#modal').addEventListener('click',e=>{
     const bk=document.body.classList.contains('bkmode');
     if(!isM()||S.noImm||!(bk||S.sec==='read')||document.documentElement.classList.contains('locked')){document.body.classList.remove('immersive');return}
     acc=(dy>0)===(acc>0)?acc+dy:dy;
-    if(y<80||acc<-24){document.body.classList.remove('immersive');if(y<80)window.__immHold=false}else if(acc>40&&!window.__immHold)document.body.classList.add('immersive');
-  },{passive:true});
-  /* выйти из режима чтения (панели остаются, пока не вернётесь к началу) и снова войти: кнопка в полоске сверху или двойное касание текста */
-  const imm=on=>{const b=document.body;if(on){window.__immHold=false;b.classList.add('immersive')}else{window.__immHold=true;b.classList.remove('immersive')}};
-  document.addEventListener('click',e=>{const x=e.target.closest&&e.target.closest('#miniX');if(!x)return;e.stopPropagation();e.preventDefault();imm(false)},true);
-  let lt=0,lx=0,ly=0;
-  document.addEventListener('touchend',e=>{if(!isM()||S.noImm||!(S.sec==='read'||document.body.classList.contains('bkmode')))return;
-    if(e.target.closest('#top,#tabbar,#mini,#modal,#sheet,#inspector,#pop,button,a,select,input,.w,.tw,.tw0'))return;
-    const p=e.changedTouches[0],n=Date.now();
-    if(n-lt<320&&Math.abs(p.clientX-lx)<30&&Math.abs(p.clientY-ly)<30){lt=0;imm(!document.body.classList.contains('immersive'))}else{lt=n;lx=p.clientX;ly=p.clientY}
+    if(y<80||acc<-24)document.body.classList.remove('immersive');else if(acc>40)document.body.classList.add('immersive');
   },{passive:true});
 })();
 applyRd();
