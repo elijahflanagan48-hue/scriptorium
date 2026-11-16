@@ -20,7 +20,7 @@ const Offline=(()=>{
     for(const b of t.books){
       if(isPriv(id)){
         T.push(()=>priv(`tr/${id}/${b}`),()=>priv(`align/${id}/${b}`),()=>priv(`nt/${id}/${b}`));
-        if(id==='BTI')T.push(()=>priv(`ins/BTI/${b}`))}
+        if(id==='BTI'||id==='NET')T.push(()=>priv(`ins/${id}/${b}`))}
       else{const n=BOOKS[BI[b]].chapters;for(let c=1;c<=n;c++)T.push(()=>pub(`data/trc/${id}/${b}/${c}.json`),()=>pub(`data/alc/${id}/${b}/${c}.json`))}}
     if(id==='BTI')T.push(()=>priv('ins/BTI/_front'));
     return T}
@@ -43,7 +43,7 @@ const Offline=(()=>{
     const qi=Q.indexOf(id);if(qi>=0){Q.splice(qi,1);ping();return}
     if(prog&&prog.id===id)return;
     if(id==='orig'){const c=await caches.open(CN);for(const r of await c.keys())if(/\/data\/(origc\/|lex_|occ\.json)/.test(r.url))await c.delete(r)}
-    else if(isPriv(id)){await Sync.pdrop([`tr/${id}/`,`align/${id}/`,`nt/${id}/`,...(id==='BTI'?['ins/BTI/']:[])])}
+    else if(isPriv(id)){await Sync.pdrop([`tr/${id}/`,`align/${id}/`,`nt/${id}/`,...((id==='BTI'||id==='NET')?[`ins/${id}/`]:[])])}
     else{const c=await caches.open(CN);for(const r of await c.keys())if(r.url.includes(`/data/trc/${id}/`)||r.url.includes(`/data/alc/${id}/`)||r.url.includes(`/data/tr/${id}/`)||r.url.includes(`/data/align/${id}/`))await c.delete(r)}
     delete st[id];sv();ping()}
   /* автозагрузка: через несколько секунд после первого запуска тихо сохраняем на устройстве

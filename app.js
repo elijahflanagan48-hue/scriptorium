@@ -8,8 +8,8 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(typ
 const stamp=k=>{S.ts[k]=Date.now();save()};
 const touchSettings=()=>{S.sts=Date.now();save()};
 const cache=new Map();
-const PRIV=/^data\/(tr|align|nt|ins)\/(BTI|NRT|RSP|KASS)\/([^/]+)\.json$/;const FNS={},INS={};
-const PRIVT=[['BTI','Современный перевод (Кулаков, BTI)'],['NRT','Новый русский перевод (НРП, Biblica)'],['RSP','Современный перевод (РБО)'],['KASS','Новый Завет, еп. Кассиан (1970)']];
+const PRIV=/^data\/(tr|align|nt|ins)\/(BTI|NRT|RSP|KASS|NET|NKJV)\/([^/]+)\.json$/;const FNS={},INS={};
+const PRIVT=[['BTI','Современный перевод (Кулаков, BTI)'],['NRT','Новый русский перевод (НРП, Biblica)'],['RSP','Современный перевод (РБО)'],['KASS','Новый Завет, еп. Кассиан (1970)'],['NET','NET Bible (Full Notes, 2nd ed.)'],['NKJV','New King James Version (NKJV)']];
 /* закрытые тексты кэшируются на устройстве в Sync.pget (IndexedDB) */
 window.clearPrivCache=()=>{};
 const privGet=(p,pm)=>(Sync.user&&Sync.user.access)?Sync.pget(pm[1]+'/'+pm[2]+'/'+pm[3]):Promise.resolve(null);
@@ -29,7 +29,7 @@ const LY=()=>{const l=S.layout||'R';return isM()&&!isLand()&&(l==='B'||l==='D')?
 const GEN={law:'Закон',hist:'История',poe:'Поэзия',pro:'Пророки',gos:'Евангелия и Деяния',epi:'Послания',rev:'Откровение'};
 const GORD=['law','hist','poe','pro','gos','epi','rev'];
 function genreOf(id){const i=BI[id];if(i<5)return'law';if(i<17)return'hist';if(i<22)return'poe';if(i<39)return'pro';if(i<44)return'gos';if(i<65)return'epi';return'rev'}
-const SHORT={RST:'Синод.',BTI:'Кулаков',NRT:'НРП',RSP:'РБО',KASS:'Кассиан'};
+const SHORT={RST:'Синод.',BTI:'Кулаков',NRT:'НРП',RSP:'РБО',KASS:'Кассиан',NET:'NET',NKJV:'NKJV'};
 const shortName=id=>SHORT[id]||id;
 /* переводы Библии: сначала русские, потом английские */
 const trSort=()=>{if(IDX)IDX.translations=[...IDX.translations.filter(t=>t.lang==='ru'),...IDX.translations.filter(t=>t.lang!=='ru')]};
@@ -101,7 +101,7 @@ const refLabel=r=>`${bookRu(r.book)} ${r.ch}${r.v?':'+r.v:''}`;
 const isPriv=id=>PRIV.test(`data/tr/${id}/x.json`);
 function chapterParts(book,ch){
   const ids=S.sel.filter(x=>x!=='ORIG'&&TRS[x]&&TRS[x].books.includes(book));
-  return{book,ids,o:J(`data/origc/${book}/${ch}.json`),t:ids.map(id=>isPriv(id)?J(`data/tr/${id}/${book}.json`):J(`data/trc/${id}/${book}/${ch}.json`).then(x=>x&&{[ch]:x})),a:ids.map(id=>isPriv(id)?Promise.all([J(`data/align/${id}/${book}.json`),J(`data/nt/${id}/${book}.json`).then(x=>{FNS[id+'|'+book]=x||{}}),id==='BTI'?J(`data/ins/BTI/${book}.json`).then(x=>{INS[book]=x||null}):0]).then(r=>r[0]):J(`data/alc/${id}/${book}/${ch}.json`).then(x=>x&&{[ch]:x}))};
+  return{book,ids,o:J(`data/origc/${book}/${ch}.json`),t:ids.map(id=>isPriv(id)?J(`data/tr/${id}/${book}.json`):J(`data/trc/${id}/${book}/${ch}.json`).then(x=>x&&{[ch]:x})),a:ids.map(id=>isPriv(id)?Promise.all([J(`data/align/${id}/${book}.json`),J(`data/nt/${id}/${book}.json`).then(x=>{FNS[id+'|'+book]=x||{}}),(id==='BTI'||id==='NET')?J(`data/ins/${id}/${book}.json`).then(x=>{INS[id+'|'+book]=x||null}):0]).then(r=>r[0]):J(`data/alc/${id}/${book}/${ch}.json`).then(x=>x&&{[ch]:x}))};
 }
 function buildChapter(book,ch,o,ids,T,A){
   const orig=o?o.chapters[ch]||{}:{},lang=o?o.lang:(BOOKS[BI[book]].testament==='NT'?'grc':'heb'),tr={},al={};
@@ -124,16 +124,16 @@ function fnShow(el){const p=el.dataset.fn.split('|'),f=FNS[p[0]+'|'+(CUR&&CUR.bo
 const vnHTML=(ref,v)=>`<span class="vn" data-ref="${ref}" title="Выделение и заметка">${v}${S.notes[ref]?'<span class="note-dot">✎</span>':''}</span>`;
 const hlc=ref=>S.hl[ref]?' hl'+S.hl[ref]:'';
 /* вставки Кулакова: подзаголовки перед стихами и введение к книге (только когда читаем перевод Кулакова) */
-const insOn=()=>primary()==='BTI'&&rd().ins!==false;
+const insOn=()=>(primary()==='BTI'||primary()==='NET')&&rd().ins!==false;
 function insMap(d){
-  if(d._im)return d._im;const m={},I=INS[d.book];d._im=m;if(!I||!I.s||!insOn())return m;
+  const pk=primary();if(d._im&&d._imp===pk)return d._im;const m={},I=INS[pk+'|'+d.book];d._im=m;d._imp=pk;if(!I||!I.s||!insOn())return m;
   for(const k in I.s){const[c,v]=k.split(':').map(Number);if(c!==d.ch)continue;const t=d.verses.find(x=>x>=v);if(t!==undefined)(m[t]=m[t]||[]).push(...I.s[k])}
   return m}
 const khHTML=(d,v)=>{const h=insMap(d)[v];return h?h.map(t=>`<div class="kh">${esc(t)}</div>`).join(''):''};
 function kintroHTML(d){
-  const I=INS[d.book];if(d.ch!==1||!I||!insOn()||!(I.i&&I.i.length))return'';
+  const I=INS[primary()+'|'+d.book];if(d.ch!==1||!I||!insOn()||!(I.i&&I.i.length))return'';
   const fr=(d.book==='Gen'||d.book==='Matt')?`<p class="kfr"><button data-kfront>Предисловие переводчиков и условные знаки</button></p>`:'';
-  return `<details class="kintro"><summary>О книге<small>введение Кулакова</small></summary>`+I.i.map(p=>`<p>${esc(p)}</p>`).join('')+
+  return `<details class="kintro"><summary>О книге<small>введение ${primary()==='BTI'?'Кулакова':'переводчиков'}</small></summary>`+I.i.map(p=>`<p>${esc(p)}</p>`).join('')+
     (I.o&&I.o.length?`<h5>Основное содержание книги</h5><ul>`+I.o.map(p=>`<li>${esc(p)}</li>`).join('')+`</ul>`:'')+fr+`</details>`}
 async function kfront(){
   const f=await J('data/ins/BTI/_front.json');if(!f){openModal('<h3>Предисловие</h3><p class="hint">Не удалось загрузить.</p>');return}
@@ -227,7 +227,7 @@ function viewB(d){
   let h=head()+chipsHTML(d)+`<div class="desk" style="grid-template-columns:52px repeat(${n},minmax(0,1fr))"><div class="colhead"></div>`+
     cols.map(c=>`<div class="colhead"><span>${c==='ORIG'?(d.lang==='heb'?'Иврит · WLC':'Греческий · SBLGNT'):esc(TRS[c].name)}</span>${n>1?`<button data-rm="${c}" title="Убрать колонку">✕</button>`:''}</div>`).join('');
   for(const v of d.verses){const ref=`${cur.book}.${cur.ch}.${v}`,hc=hlc(ref);
-    h+=(cols.includes('BTI')&&primary()==='BTI'?khHTML(d,v).replace(/class="kh"/g,'class="kh kwide"'):'')+`<div class="cell n${hc}" data-v="${v}" data-ref="${ref}">${vnHTML(ref,v)}</div>`+cols.map(c=>c==='ORIG'?
+    h+=(cols.includes(primary())&&(primary()==='BTI'||primary()==='NET')?khHTML(d,v).replace(/class="kh"/g,'class="kh kwide"'):'')+`<div class="cell n${hc}" data-v="${v}" data-ref="${ref}">${vnHTML(ref,v)}</div>`+cols.map(c=>c==='ORIG'?
       `<div class="cell orig-c${hc}" data-ref="${ref}">${d.orig[v]?origHTML(d.orig[v],d.lang):missOrig(d.lang)}</div>`:
       `<div class="cell${hc}" data-ref="${ref}">${d.tr[c]&&d.tr[c][v]?trHTML(c,v,d.tr[c][v],d):'<span class="miss">—</span>'}</div>`).join('')}
   return h+'</div>';
@@ -503,7 +503,7 @@ function moreSheet(){
 function syncPrivate(){
   if(!IDX)return;const ok=!!(Sync.user&&Sync.user.access);let ch=false;
   for(const[id,name]of PRIVT){
-    if(ok&&!TRS[id]){const t={id,name,lang:'ru',license:'скрытый доступ',books:id==='KASS'?BOOKS.filter(b=>b.testament==='NT').map(b=>b.id):BOOKS.map(b=>b.id)};TRS[id]=t;IDX.translations.push(t);trSort();ch=true;
+    if(ok&&!TRS[id]){const t={id,name,lang:(id==='NET'||id==='NKJV')?'en':'ru',license:'скрытый доступ',books:id==='KASS'?BOOKS.filter(b=>b.testament==='NT').map(b=>b.id):BOOKS.map(b=>b.id)};TRS[id]=t;IDX.translations.push(t);trSort();ch=true;
       if(id==='BTI'&&(!S.btiShown||PEND)){S.btiShown=1;PEND=false;if(!S.sel.includes('BTI'))S.sel.push('BTI');save()}}
     if(!ok&&TRS[id]){delete TRS[id];IDX.translations=IDX.translations.filter(t=>t.id!==id);S.sel=S.sel.filter(x=>x!==id);if(!S.sel.length)S.sel=['ORIG','RST'];ch=true}}
   if(ok&&S.wantSel){const ns=S.wantSel.filter(x=>x==='ORIG'||TRS[x]);if(ns.some(x=>x!=='ORIG')){S.sel=ns;ch=true}delete S.wantSel;save()}
