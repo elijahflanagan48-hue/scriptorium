@@ -13,7 +13,7 @@ const Offline=(()=>{
   function plan(id){
     const T=[];
     if(id==='orig'){
-      for(const u of ['data/lex_H.json','data/lex_G.json','data/occ.json'])T.push(()=>pub(u));
+      for(const u of ['data/lex_H.json','data/lex_G.json','data/occ.json','data/ru_gloss.json'])T.push(()=>pub(u));
       for(const b of BOOKS)for(let c=1;c<=b.chapters;c++)T.push(()=>pub(`data/origc/${b.id}/${c}.json`));
       return T}
     const t=TRS[id];if(!t)return T;

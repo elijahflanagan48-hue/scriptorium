@@ -169,7 +169,7 @@ body.side-off #side,body:not(.sec-read) #side{display:none}
 /* overlays */
 #pop{position:fixed;z-index:90;width:290px;padding:12px 14px;background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);pointer-events:none}
 #pop .lm{font-size:26px;line-height:1.2;margin-bottom:2px}#pop .lm.he{font-family:var(--heb);direction:rtl;text-align:right}#pop .lm.gr{font-family:var(--grc)}
-#pop .meta{color:var(--mute);font-size:13px}#pop .gl{margin-top:6px;font-weight:600}#pop .cnt{margin-top:6px;font-size:12px;color:var(--accent-ink);font-weight:700}#pop .auto{margin-top:6px;font-size:11.5px;color:var(--mute);font-style:italic}
+#pop .meta{color:var(--mute);font-size:13px}#pop .gl{margin-top:6px;font-weight:600}#pop .gl.en{margin-top:2px;font-weight:500;color:var(--mute);font-size:13px}#pop .cnt{margin-top:6px;font-size:12px;color:var(--accent-ink);font-weight:700}#pop .auto{margin-top:6px;font-size:11.5px;color:var(--mute);font-style:italic}
 #menu{position:fixed;z-index:95;width:290px;background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:14px}
 #menu .ref{font-weight:800;margin-bottom:8px}#menu .cols{display:flex;gap:8px;margin-bottom:10px}#menu .cols button{width:30px;height:30px;border-radius:50%;border:2px solid transparent}#menu .cols button:hover{border-color:var(--ink)}
 #menu textarea{width:100%;min-height:90px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;resize:vertical}

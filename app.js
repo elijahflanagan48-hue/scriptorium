@@ -285,11 +285,12 @@ const lexNow=k=>k&&LEX[k[0]]?LEX[k[0]][k]:null;
 async function occOf(k){if(!k)return[];if(OCC)return OCC[k]||[];return (await shard('oc',k))[k]||[]}
 function prefetchWord(k){if(k){lexOf(k);occOf(k)}}
 function decode(k,m){try{return k[0]==='G'||/^[A-Z]{1,2} /.test(m)?decGrc(m):decHeb(m)}catch(e){return{pos:'',detail:m}}}
+let RUG=null;const rugl=()=>RUG||(RUG=J('data/ru_gloss.json').then(x=>x||{}));
 async function popWord(anchor,wd,isH,note){
-  const [surf,k,m]=wd;const dm=decode(isH?'H':'G',m);const lx=k?await lexOf(k):null;if(!anchor.matches(':hover'))return;
+  const [surf,k,m]=wd;const dm=decode(isH?'H':'G',m);const lx=k?await lexOf(k):null;const rg=k?(await rugl())[k]:null;if(!anchor.matches(':hover'))return;
   const pop=$('#pop');
   pop.dataset.kind='';pop.innerHTML=`<div class="lm ${isH?'he':'gr'}">${esc(lx?lx.lemma:surf)}</div><div class="meta">${lx?esc(lx.tr)+' · ':''}${esc(dm.pos||'')}${dm.detail?' · '+esc(dm.detail):''}</div>`+
-    (lx?`<div class="gl">${esc(lx.gloss)}</div>`:'')+(k&&OCC&&OCC[k]?`<div class="cnt">${OCC[k].length} употр. в оригинале · клик — статья</div>`:'')+(note?`<div class="auto">${note}</div>`:'');
+    (rg?`<div class="gl rug">${esc(rg)}</div>`:'')+(lx?`<div class="gl${rg?' en':''}">${esc(lx.gloss)}</div>`:'')+(k&&OCC&&OCC[k]?`<div class="cnt">${OCC[k].length} употр. в оригинале · клик — статья</div>`:'')+(note?`<div class="auto">${note}</div>`:'');
   pop.hidden=false;const r=anchor.getBoundingClientRect(),pw=pop.offsetWidth,ph=pop.offsetHeight;
   let x=Math.min(Math.max(8,r.left+r.width/2-pw/2),innerWidth-pw-8),y=r.bottom+8;if(y+ph>innerHeight-8)y=r.top-ph-8;
   pop.style.left=x+'px';pop.style.top=y+'px';
